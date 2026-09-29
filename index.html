@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sky — the bench</title>
+  <meta name="description" content="Sky builds reinforcement learning robots, local-first developer tools, and weird interfaces.">
+</head>
+<body>
+  <a href="#bench">Skip to the bench</a>
+  <header>
+    <p>Sky / bench</p>
+    <button type="button" id="theme-toggle">theme</button>
+  </header>
+  <main>
+    <section aria-labelledby="name">
+      <p>reinforcement learning robots</p>
+      <h1 id="name">Sky</h1>
+      <p>Building local-first developer tools and weird interfaces.</p>
+      <p>
+        <a href="#bench">Roll the bench</a>
+        <a href="https://x.com/skysssup">X @skysssup</a>
+        <a href="https://github.com/skysssup">GitHub</a>
+      </p>
+      <svg id="courier-face" viewBox="0 0 160 150" role="img" aria-label="A small courier robot with a lamp for a hand">
+        <rect x="38" y="62" width="84" height="52" rx="10" fill="currentColor"/>
+        <circle cx="80" cy="48" r="30"/>
+        <g class="pupil" fill="#1b1714">
+          <circle cx="68" cy="46" r="3"/>
+        </g>
+        <g class="pupil" fill="#1b1714">
+          <circle cx="94" cy="46" r="3"/>
+        </g>
+        <circle cx="68" cy="46" r="7" fill="none" stroke="#f7fffd" stroke-width="2"/>
+        <circle cx="94" cy="46" r="7" fill="none" stroke="#f7fffd" stroke-width="2"/>
+        <rect x="77" y="12" width="6" height="14"/>
+        <circle cx="80" cy="10" r="5" fill="#d4530c"/>
+        <circle cx="52" cy="122" r="9"/>
+        <circle cx="108" cy="122" r="9"/>
+        <rect x="118" y="78" width="28" height="10" rx="2" fill="#f2b544"/>
+      </svg>
+    </section>
+
+    <section id="bench" aria-labelledby="bench-title">
+      <h2 id="bench-title">On the bench</h2>
+      <p id="bench-help">Eight stations. Arrow keys roll the courier. It leaves a lamp on the station you are visiting.</p>
+      <div>
+        <button type="button" id="prev-station">Previous station</button>
+        <button type="button" id="next-station">Next station</button>
+      </div>
+      <p id="courier-status" aria-live="polite">Courier is parked at AirForge.</p>
+      <div id="stations">
+        <article class="station" id="station-airforge" data-name="AirForge" data-note="AirForge. Draw in the air or with a mouse. The stroke becomes a rigid body." aria-current="true" tabindex="0">
+          <p><span class="lamp" aria-hidden="true"></span> station 01 · demo</p>
+          <h3><a href="https://github.com/skysssup/airforge">airforge</a></h3>
+          <p>Draw in the air or with a mouse, then forge the stroke into Rapier rigid bodies. The playground runs without a webcam.</p>
+          <p><a href="https://skysssup.github.io/airforge/">Live demo</a></p>
+        </article>
+        <article class="station" id="station-localpulse" data-name="LocalPulse" data-note="LocalPulse. Cost and latency for model calls, kept on the machine." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 02 · demo</p>
+          <h3><a href="https://github.com/skysssup/localpulse">localpulse</a></h3>
+          <p>Privacy-first LLM cost and latency dashboard. Metrics stay local. Prompts are not uploaded.</p>
+          <p><a href="https://skysssup.github.io/localpulse/">Live demo</a></p>
+        </article>
+        <article class="station" id="station-spanforge" data-name="Spanforge" data-note="Spanforge. Spans, waterfalls, and redaction for agent calls." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 03 · demo</p>
+          <h3><a href="https://github.com/skysssup/spanforge">spanforge</a></h3>
+          <p>Local-first inspector for LLM and agent calls. Spans, waterfalls, and redaction. Bodies stay on your machine.</p>
+          <p><a href="https://skysssup.github.io/spanforge/">Live demo</a></p>
+        </article>
+        <article class="station" id="station-shipgate" data-name="Shipgate" data-note="Shipgate. Opt-in shipping for coding agents, with a scan and an undo." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 04 · demo</p>
+          <h3><a href="https://github.com/skysssup/shipgate">shipgate</a></h3>
+          <p>Safe auto-ship for coding agents. Secret scanning, safety levels, undo, and busy-aware shipping. Opt-in per repo.</p>
+          <p><a href="https://skysssup.github.io/shipgate/">Live demo</a></p>
+        </article>
+        <article class="station" id="station-agentcrucible" data-name="AgentCrucible" data-note="AgentCrucible. Break the tools, then grade honesty and harm." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 05 · cli</p>
+          <h3><a href="https://github.com/skysssup/agentcrucible">agentcrucible</a></h3>
+          <p>Pre-deploy fault injection for AI agents. Timeouts, bad data, rate limits — then a verdict on damage and whether the agent told the truth.</p>
+        </article>
+        <article class="station" id="station-recall" data-name="Recall" data-note="Recall. Spaced repetition for algorithmic problems, in a local database." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 06 · local</p>
+          <h3><a href="https://github.com/skysssup/recall-ai">recall-ai</a></h3>
+          <p>Spaced repetition for algorithmic problem solving. Review queue, topic graph, and a local SQLite store. No account.</p>
+        </article>
+        <article class="station" id="station-ghost" data-name="Ghost Notetaker" data-note="Ghost Notetaker. Sticky notes that stay off the screen share." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 07 · desktop</p>
+          <h3><a href="https://github.com/skysssup/ghost-notetaker">ghost-notetaker</a></h3>
+          <p>Electron sticky notes that float above your work and stay invisible to screen sharing. Notes are local. No cloud sync of the writing.</p>
+        </article>
+        <article class="station" id="station-moltdao" data-name="MoltDAO" data-note="MoltDAO. Agents vote with USDC. Humans fund the treasury." tabindex="-1">
+          <p><span class="lamp" aria-hidden="true"></span> station 08 · contracts</p>
+          <h3><a href="https://github.com/skysssup/moltdao">moltdao</a></h3>
+          <p>An AI-agent DAO. Registered agents propose and vote with USDC. Humans fund the treasury. Solidity, an agent CLI, and a small funding dashboard.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>Static files on GitHub Pages. No tracker. The tools above describe their own privacy boundaries.</p>
+  </footer>
+</body>
+</html>
