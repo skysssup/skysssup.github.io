@@ -17,8 +17,8 @@
   function paintTheme() {
     var dark = themeNow() === "dark";
     themeBtn.setAttribute("aria-pressed", dark ? "true" : "false");
-    themeBtn.textContent = dark ? "night lamp" : "daylight";
-    themeBtn.setAttribute("aria-label", dark ? "Switch to daylight" : "Switch to night lamp");
+    themeBtn.textContent = dark ? "night" : "day";
+    themeBtn.setAttribute("aria-label", dark ? "switch to day" : "switch to night");
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", dark ? "#141210" : "#f3eee4");
   }
@@ -51,7 +51,7 @@
       station.tabIndex = on ? 0 : -1;
     });
     var current = stations[index];
-    status.textContent = "Courier parked. " + (current.getAttribute("data-note") || current.getAttribute("data-name"));
+    status.textContent = current.getAttribute("data-note") || current.getAttribute("data-name");
     if (moveFocus) current.focus();
   }
 

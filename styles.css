@@ -230,7 +230,7 @@ h1 {
   fill: var(--head);
 }
 
-#bench-title {
+#projects-title {
   margin: 2rem 0 0.4rem;
   font-size: clamp(1.8rem, 4vw, 2.6rem);
   letter-spacing: -0.03em;
