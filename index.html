@@ -21,7 +21,7 @@
   <a class="skip" href="#bench">Skip to the bench</a>
   <header class="top">
     <p class="brand">Sky / bench</p>
-    <button type="button" id="theme-toggle">theme</button>
+    <button type="button" id="theme-toggle" aria-pressed="false">daylight</button>
   </header>
   <main>
     <section class="hero" aria-labelledby="name">
@@ -67,48 +67,48 @@
       </div>
       <p id="courier-status" aria-live="polite">Courier is parked at AirForge.</p>
       </div>
-      <div class="stations" id="stations">
+      <div class="stations" id="stations" aria-label="Project stations">
         <article class="station" id="station-airforge" data-name="AirForge" data-note="AirForge. Draw in the air or with a mouse. The stroke becomes a rigid body." aria-current="true" tabindex="0">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 01 · demo</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 01 · demo</p>
           <h3><a href="https://github.com/skysssup/airforge">airforge</a></h3>
           <p>Draw in the air or with a mouse, then forge the stroke into Rapier rigid bodies. The playground runs without a webcam.</p>
           <p class="station-links"><a href="https://skysssup.github.io/airforge/">Live demo</a></p>
         </article>
         <article class="station" id="station-localpulse" data-name="LocalPulse" data-note="LocalPulse. Cost and latency for model calls, kept on the machine." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 02 · demo</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 02 · demo</p>
           <h3><a href="https://github.com/skysssup/localpulse">localpulse</a></h3>
           <p>Privacy-first LLM cost and latency dashboard. Metrics stay local. Prompts are not uploaded.</p>
           <p class="station-links"><a href="https://skysssup.github.io/localpulse/">Live demo</a></p>
         </article>
         <article class="station" id="station-spanforge" data-name="Spanforge" data-note="Spanforge. Spans, waterfalls, and redaction for agent calls." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 03 · demo</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 03 · demo</p>
           <h3><a href="https://github.com/skysssup/spanforge">spanforge</a></h3>
           <p>Local-first inspector for LLM and agent calls. Spans, waterfalls, and redaction. Bodies stay on your machine.</p>
           <p class="station-links"><a href="https://skysssup.github.io/spanforge/">Live demo</a></p>
         </article>
         <article class="station" id="station-shipgate" data-name="Shipgate" data-note="Shipgate. Opt-in shipping for coding agents, with a scan and an undo." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 04 · demo</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 04 · demo</p>
           <h3><a href="https://github.com/skysssup/shipgate">shipgate</a></h3>
           <p>Safe auto-ship for coding agents. Secret scanning, safety levels, undo, and busy-aware shipping. Opt-in per repo.</p>
           <p class="station-links"><a href="https://skysssup.github.io/shipgate/">Live demo</a></p>
         </article>
         <article class="station" id="station-agentcrucible" data-name="AgentCrucible" data-note="AgentCrucible. Break the tools, then grade honesty and harm." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 05 · cli</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 05 · cli</p>
           <h3><a href="https://github.com/skysssup/agentcrucible">agentcrucible</a></h3>
           <p>Pre-deploy fault injection for AI agents. Timeouts, bad data, rate limits — then a verdict on damage and whether the agent told the truth.</p>
         </article>
         <article class="station" id="station-recall" data-name="Recall" data-note="Recall. Spaced repetition for algorithmic problems, in a local database." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 06 · local</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 06 · local</p>
           <h3><a href="https://github.com/skysssup/recall-ai">recall-ai</a></h3>
           <p>Spaced repetition for algorithmic problem solving. Review queue, topic graph, and a local SQLite store. No account.</p>
         </article>
         <article class="station" id="station-ghost" data-name="Ghost Notetaker" data-note="Ghost Notetaker. Sticky notes that stay off the screen share." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 07 · desktop</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 07 · desktop</p>
           <h3><a href="https://github.com/skysssup/ghost-notetaker">ghost-notetaker</a></h3>
           <p>Electron sticky notes that float above your work and stay invisible to screen sharing. Notes are local. No cloud sync of the writing.</p>
         </article>
         <article class="station" id="station-moltdao" data-name="MoltDAO" data-note="MoltDAO. Agents vote with USDC. Humans fund the treasury." tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true"></span> station 08 · contracts</p>
+          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> station 08 · contracts</p>
           <h3><a href="https://github.com/skysssup/moltdao">moltdao</a></h3>
           <p>An AI-agent DAO. Registered agents propose and vote with USDC. Humans fund the treasury. Solidity, an agent CLI, and a small funding dashboard.</p>
         </article>
@@ -117,6 +117,10 @@
   </main>
   <footer>
     <p>Static files on GitHub Pages. No tracker. The tools above describe their own privacy boundaries.</p>
-  </footer>
+    <noscript>
+    <p>Courier and the lamp toggle need JavaScript. Every project link still works.</p>
+  </noscript>
+</footer>
+  <script src="bench.js"></script>
 </body>
 </html>
