@@ -3,124 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sky</title>
-  <meta name="description" content="Sky — reinforcement learning robots. local-first tools. weird UIs.">
-  <meta name="theme-color" content="#f3eee4">
+  <title>sky</title>
+  <meta name="description" content="sky — local tools, robots, whatever">
+  <meta name="theme-color" content="#111">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem("bench-theme");
-        if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
-      } catch (e) {}
-    })();
-  </script>
 </head>
 <body>
-  <a class="skip" href="#projects">Skip to projects</a>
-  <header class="top">
-    <p class="brand">skysssup</p>
-    <button type="button" id="theme-toggle" aria-pressed="false">day</button>
-  </header>
-  <main>
-    <section class="hero" aria-labelledby="name">
-      <div class="hero-copy">
-      <p class="eyebrow">reinforcement learning robots</p>
-      <h1 id="name">Sky</h1>
-      <p class="lede">local-first tools. weird UIs.</p>
-      <p class="hero-links">
-        <a href="#projects">projects</a>
-        <a href="https://x.com/skysssup">X</a>
-        <a href="https://github.com/skysssup">GitHub</a>
-      </p>
-    </div>
-    <div class="hero-robot">
-      <svg id="courier-face" viewBox="0 0 180 160" role="img" aria-labelledby="courier-title">
-        <title id="courier-title">little robot</title>
-        <rect class="shell" x="36" y="68" width="88" height="52" rx="12"/>
-        <circle class="head" cx="80" cy="54" r="30"/>
-        <circle cx="68" cy="52" r="8" fill="#f7fffd"/>
-        <circle cx="94" cy="52" r="8" fill="#f7fffd"/>
-        <g class="pupil">
-          <circle cx="68" cy="52" r="3.2" fill="#1b1714"/>
-        </g>
-        <g class="pupil">
-          <circle cx="94" cy="52" r="3.2" fill="#1b1714"/>
-        </g>
-        <rect class="shell" x="77" y="16" width="6" height="14"/>
-        <circle cx="80" cy="14" r="5.5" fill="#d4530c"/>
-        <circle class="shell" cx="54" cy="128" r="10"/>
-        <circle class="shell" cx="112" cy="128" r="10"/>
-        <rect x="122" y="84" width="30" height="12" rx="3" fill="#f2b544"/>
-      </svg>
-    </div>
-    </section>
+  <a class="skip" href="#stuff">skip</a>
 
-    <section id="projects" aria-labelledby="projects-title">
-      <div class="bench-head">
-      <h2 id="projects-title">projects</h2>
-      <p id="bench-help">← → or prev/next. click a card. or leave.</p>
-      <div class="courier-controls">
-        <button type="button" id="prev-station">prev</button>
-        <button type="button" id="next-station">next</button>
-      </div>
-      <p id="courier-status" aria-live="polite">airforge</p>
-      </div>
-      <div class="stations" id="stations" aria-label="Projects">
-        <article class="station" id="station-airforge" data-name="airforge" data-note="airforge — draw → Rapier bodies" aria-current="true" tabindex="0">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
-          <h3><a href="https://github.com/skysssup/airforge">airforge</a></h3>
-          <p>Mouse or optional MediaPipe hand draw → Rapier rigid bodies in Three/R3F. Webcam optional.</p>
-          <p class="station-links"><a href="https://skysssup.github.io/airforge/">demo</a></p>
-        </article>
-        <article class="station" id="station-localpulse" data-name="localpulse" data-note="localpulse — cost + latency, on disk" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
-          <h3><a href="https://github.com/skysssup/localpulse">localpulse</a></h3>
-          <p>Tokens, latency percentiles, estimated cost per model/route. Metrics on disk; prompts never stored.</p>
-          <p class="station-links"><a href="https://skysssup.github.io/localpulse/">demo</a></p>
-        </article>
-        <article class="station" id="station-spanforge" data-name="spanforge" data-note="spanforge — spans, redaction, local" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
-          <h3><a href="https://github.com/skysssup/spanforge">spanforge</a></h3>
-          <p>OpenAI-compatible proxy → local waterfalls and tool graphs. Redacts keys; bodies stay on 127.0.0.1.</p>
-          <p class="station-links"><a href="https://skysssup.github.io/spanforge/">demo</a></p>
-        </article>
-        <article class="station" id="station-shipgate" data-name="shipgate" data-note="shipgate — scan, commit, push, undo" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
-          <h3><a href="https://github.com/skysssup/shipgate">shipgate</a></h3>
-          <p>After an agent turn: stage → secret scan → commit → push. Opt-in levels. Undo.</p>
-          <p class="station-links"><a href="https://skysssup.github.io/shipgate/">demo</a></p>
-        </article>
-        <article class="station" id="station-agentcrucible" data-name="agentcrucible" data-note="agentcrucible — break tools, grade lies" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> cli</p>
-          <h3><a href="https://github.com/skysssup/agentcrucible">agentcrucible</a></h3>
-          <p>Fault-inject agent tools, then grade real damage vs. whether the agent lied.</p>
-        </article>
-        <article class="station" id="station-recall" data-name="recall-ai" data-note="recall-ai — spaced rep, SQLite" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> local</p>
-          <h3><a href="https://github.com/skysssup/recall-ai">recall-ai</a></h3>
-          <p>DSA spaced rep over SQLite. Review queue, topic graph, no cloud account.</p>
-        </article>
-        <article class="station" id="station-ghost" data-name="ghost-notetaker" data-note="ghost-notetaker — notes screen share misses" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> desktop</p>
-          <h3><a href="https://github.com/skysssup/ghost-notetaker">ghost-notetaker</a></h3>
-          <p>Electron sticky notes with content protection — invisible to screen share. Local only.</p>
-        </article>
-        <article class="station" id="station-moltdao" data-name="moltdao" data-note="moltdao — agents vote USDC" tabindex="-1">
-          <p class="kicker"><span class="lamp" aria-hidden="true">●</span> contracts</p>
-          <h3><a href="https://github.com/skysssup/moltdao">moltdao</a></h3>
-          <p>Agents propose and vote with USDC; humans fund. Foundry + ethers CLI + static dashboard.</p>
-        </article>
-      </div>
-    </section>
+  <main>
+    <pre class="face" aria-hidden="true">
+   ＿＿
+  |・ω・)
+  | ⊃／
+    </pre>
+
+    <h1>sky</h1>
+    <p class="blurb">
+      reinforcement learning robots.<br>
+      also little tools that stay on your machine.<br>
+      no cloud account. no pitch deck.
+    </p>
+
+    <p class="links">
+      <a href="https://github.com/skysssup">github</a>
+      ·
+      <a href="https://x.com/skysssup">@skysssup</a>
+    </p>
+
+    <h2 id="stuff">stuff</h2>
+    <ul class="stuff">
+      <li>
+        <a href="https://github.com/skysssup/airforge">airforge</a>
+        — draw → rapier bodies. webcam optional.
+        <a class="d" href="https://skysssup.github.io/airforge/">demo</a>
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/localpulse">localpulse</a>
+        — llm cost + latency on disk. prompts never stored.
+        <a class="d" href="https://skysssup.github.io/localpulse/">demo</a>
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/spanforge">spanforge</a>
+        — agent call waterfalls. redacts. 127.0.0.1 only.
+        <a class="d" href="https://skysssup.github.io/spanforge/">demo</a>
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/shipgate">shipgate</a>
+        — agent done → secret scan → commit → push. undo exists.
+        <a class="d" href="https://skysssup.github.io/shipgate/">demo</a>
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/agentcrucible">agentcrucible</a>
+        — break tools on purpose. grades whether the agent lied.
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/recall-ai">recall-ai</a>
+        — spaced rep for dsa. sqlite. no signup.
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/ghost-notetaker">ghost-notetaker</a>
+        — sticky notes screen share can't see.
+      </li>
+      <li>
+        <a href="https://github.com/skysssup/moltdao">moltdao</a>
+        — agents vote usdc. humans fund.
+      </li>
+    </ul>
+
+    <p class="bye">that's the list. rip whatever. <button type="button" id="flip" aria-pressed="false">make it darker</button></p>
   </main>
-  <footer>
-    <p>static files. no tracker.</p>
-    <noscript>
-    <p>theme toggle and card nav need JS. links still work.</p>
-  </noscript>
-</footer>
-  <script src="bench.js"></script>
+
+  <script src="site.js"></script>
 </body>
 </html>

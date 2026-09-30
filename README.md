@@ -1,9 +1,7 @@
-# Sky
+# sky
 
-personal site. [skysssup.github.io](https://skysssup.github.io/)
+personal page. https://skysssup.github.io/
 
-plain HTML/CSS/JS. no build.
+plain html/css/js. no build step. no tracker.
 
-- ← → / prev / next moves between projects
-- day/night toggle (stored as `bench-theme`)
-- `prefers-reduced-motion` kills flicker / eye follow / card nudge
+theme toggle is one button. that's the interactivity.
