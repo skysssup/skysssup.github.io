@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sky</title>
-  <meta name="description" content="reinforcement learning robots. local tools. weird UIs.">
+  <meta name="description" content="Sky — reinforcement learning robots. local-first tools. weird UIs.">
   <meta name="theme-color" content="#f3eee4">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
@@ -28,7 +28,7 @@
       <div class="hero-copy">
       <p class="eyebrow">reinforcement learning robots</p>
       <h1 id="name">Sky</h1>
-      <p class="lede">tools I use. local first. weird UIs.</p>
+      <p class="lede">local-first tools. weird UIs.</p>
       <p class="hero-links">
         <a href="#projects">projects</a>
         <a href="https://x.com/skysssup">X</a>
@@ -71,46 +71,46 @@
         <article class="station" id="station-airforge" data-name="airforge" data-note="airforge — draw → Rapier bodies" aria-current="true" tabindex="0">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
           <h3><a href="https://github.com/skysssup/airforge">airforge</a></h3>
-          <p>Draw in air or with a mouse. Stroke becomes Rapier bodies. Webcam optional.</p>
+          <p>Mouse or optional MediaPipe hand draw → Rapier rigid bodies in Three/R3F. Webcam optional.</p>
           <p class="station-links"><a href="https://skysssup.github.io/airforge/">demo</a></p>
         </article>
         <article class="station" id="station-localpulse" data-name="localpulse" data-note="localpulse — cost + latency, on disk" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
           <h3><a href="https://github.com/skysssup/localpulse">localpulse</a></h3>
-          <p>LLM cost + latency. Metrics stay on disk. Prompts don't leave.</p>
+          <p>Tokens, latency percentiles, estimated cost per model/route. Metrics on disk; prompts never stored.</p>
           <p class="station-links"><a href="https://skysssup.github.io/localpulse/">demo</a></p>
         </article>
         <article class="station" id="station-spanforge" data-name="spanforge" data-note="spanforge — spans, redaction, local" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
           <h3><a href="https://github.com/skysssup/spanforge">spanforge</a></h3>
-          <p>Spans and waterfalls for agent calls. Redacts secrets. Bodies stay local.</p>
+          <p>OpenAI-compatible proxy → local waterfalls and tool graphs. Redacts keys; bodies stay on 127.0.0.1.</p>
           <p class="station-links"><a href="https://skysssup.github.io/spanforge/">demo</a></p>
         </article>
         <article class="station" id="station-shipgate" data-name="shipgate" data-note="shipgate — scan, commit, push, undo" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> demo</p>
           <h3><a href="https://github.com/skysssup/shipgate">shipgate</a></h3>
-          <p>Agent finishes a turn → secret scan → commit → push. Opt-in. Undo.</p>
+          <p>After an agent turn: stage → secret scan → commit → push. Opt-in levels. Undo.</p>
           <p class="station-links"><a href="https://skysssup.github.io/shipgate/">demo</a></p>
         </article>
         <article class="station" id="station-agentcrucible" data-name="agentcrucible" data-note="agentcrucible — break tools, grade lies" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> cli</p>
           <h3><a href="https://github.com/skysssup/agentcrucible">agentcrucible</a></h3>
-          <p>Break tools on purpose. Grades damage and whether the agent lied.</p>
+          <p>Fault-inject agent tools, then grade real damage vs. whether the agent lied.</p>
         </article>
         <article class="station" id="station-recall" data-name="recall-ai" data-note="recall-ai — spaced rep, SQLite" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> local</p>
           <h3><a href="https://github.com/skysssup/recall-ai">recall-ai</a></h3>
-          <p>Spaced rep for algo problems. Review queue, topic graph, SQLite. No account.</p>
+          <p>DSA spaced rep over SQLite. Review queue, topic graph, no cloud account.</p>
         </article>
         <article class="station" id="station-ghost" data-name="ghost-notetaker" data-note="ghost-notetaker — notes screen share misses" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> desktop</p>
           <h3><a href="https://github.com/skysssup/ghost-notetaker">ghost-notetaker</a></h3>
-          <p>Electron sticky notes. Screen share can't see them. Local only.</p>
+          <p>Electron sticky notes with content protection — invisible to screen share. Local only.</p>
         </article>
         <article class="station" id="station-moltdao" data-name="moltdao" data-note="moltdao — agents vote USDC" tabindex="-1">
           <p class="kicker"><span class="lamp" aria-hidden="true">●</span> contracts</p>
           <h3><a href="https://github.com/skysssup/moltdao">moltdao</a></h3>
-          <p>Agents propose and vote with USDC. Humans fund. Solidity + CLI + tiny dashboard.</p>
+          <p>Agents propose and vote with USDC; humans fund. Foundry + ethers CLI + static dashboard.</p>
         </article>
       </div>
     </section>
