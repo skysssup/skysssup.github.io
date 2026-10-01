@@ -13,6 +13,10 @@
     var dark = now() === "dark";
     btn.textContent = dark ? "make it lighter" : "make it darker";
     btn.setAttribute("aria-pressed", dark ? "true" : "false");
+    // Stable accessible name; visible label may change with theme.
+    if (!btn.getAttribute("aria-label")) {
+      btn.setAttribute("aria-label", "Toggle color theme");
+    }
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", dark ? "#11100e" : "#faf7f0");
   }

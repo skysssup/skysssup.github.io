@@ -10,12 +10,12 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip" href="#stuff">skip</a>
+  <a class="skip" href="#stuff">Skip to projects</a>
 
   <main>
     <h1>sky</h1>
     <p class="blurb">
-      tools I use on this machine. some have a demo.
+      Small tools I run on this machine. Demos are listed only when the live page exists.
     </p>
 
     <p class="links">
@@ -28,43 +28,39 @@
     <ul class="stuff">
       <li>
         <a href="https://github.com/skysssup/airforge">airforge</a>
-        — draw, get physics bodies
-        <a class="d" href="https://skysssup.github.io/airforge/">demo</a>
+        — draw shapes into a local Rapier/Three physics scene; webcam optional
       </li>
       <li>
         <a href="https://github.com/skysssup/localpulse">localpulse</a>
-        — LLM cost and latency, files on disk
-        <a class="d" href="https://skysssup.github.io/localpulse/">demo</a>
+        — LLM cost and latency from a metrics file on disk (demo numbers are fixtures)
       </li>
       <li>
         <a href="https://github.com/skysssup/spanforge">spanforge</a>
-        — call waterfalls on localhost
-        <a class="d" href="https://skysssup.github.io/spanforge/">demo</a>
+        — localhost proxy that records call waterfalls and redacts secrets
       </li>
       <li>
         <a href="https://github.com/skysssup/shipgate">shipgate</a>
-        — scan secrets, then commit, with undo
-        <a class="d" href="https://skysssup.github.io/shipgate/">demo</a>
+        — scan for secrets, then commit/push, with undo; keeps your staged work on block
       </li>
       <li>
         <a href="https://github.com/skysssup/agentcrucible">agentcrucible</a>
-        — break mock tools; score damage and lies
+        — break mock tools on purpose; score damage and lies
       </li>
       <li>
         <a href="https://github.com/skysssup/recall-ai">recall-ai</a>
-        — spaced repetition for DSA, SQLite
+        — spaced repetition for DSA, local SQLite API on loopback
       </li>
       <li>
         <a href="https://github.com/skysssup/ghost-notetaker">ghost-notetaker</a>
-        — notes that screen share should not show
+        — overlay notes with best-effort screen-capture exclusion (not universal)
       </li>
       <li>
         <a href="https://github.com/skysssup/moltdao">moltdao</a>
-        — toy DAO: agents vote USDC, humans fund
+        — toy DAO for experiments; not production-ready governance
       </li>
     </ul>
 
-    <p class="bye">that's the list. <button type="button" id="flip" aria-pressed="false">make it darker</button></p>
+    <p class="bye">that's the list. <button type="button" id="flip" aria-label="Toggle color theme" aria-pressed="false">make it darker</button></p>
   </main>
 
   <script src="site.js"></script>

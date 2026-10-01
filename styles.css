@@ -40,13 +40,21 @@ body {
 .skip {
   position: absolute;
   left: 1rem;
-  top: -3rem;
+  top: -3.5rem;
+  z-index: 10;
   background: var(--fg);
   color: var(--bg);
-  padding: 0.3rem 0.6rem;
+  padding: 0.35rem 0.7rem;
   text-decoration: none;
+  border-radius: 0.25rem;
+  transition: top 0.15s ease;
 }
-.skip:focus { top: 0.75rem; }
+.skip:focus,
+.skip:focus-visible {
+  top: 0.75rem;
+  outline: 2px solid var(--hot);
+  outline-offset: 2px;
+}
 
 main {
   max-width: 40rem;
