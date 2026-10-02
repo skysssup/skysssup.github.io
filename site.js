@@ -29,10 +29,8 @@
     if (meta) meta.setAttribute("content", dark ? "#11100e" : "#faf7f0");
   }
 
-  try {
-    var saved = localStorage.getItem("sky-theme");
-    if (saved === "dark" || saved === "light") root.setAttribute("data-theme", saved);
-  } catch (e) {}
+  var saved = savedTheme();
+  if (saved) root.setAttribute("data-theme", saved);
 
   btn.addEventListener("click", function () {
     var next = now() === "dark" ? "light" : "dark";
@@ -44,9 +42,6 @@
   // Keep button label / aria-pressed / theme-color in sync when OS preference
   // changes. Explicit localStorage override (data-theme) still wins via now().
   function onSchemeChange() {
-    if (!savedTheme()) {
-      root.removeAttribute("data-theme");
-    }
     paint();
   }
   if (typeof darkMq.addEventListener === "function") {
@@ -54,6 +49,16 @@
   } else if (typeof darkMq.addListener === "function") {
     darkMq.addListener(onSchemeChange);
   }
+
+  // A selection in this tab remains valid even when storage is unavailable.
+  // Storage events only reflect changes made by another tab.
+  window.addEventListener("storage", function (event) {
+    if (event.key !== "sky-theme" && event.key !== null) return;
+    var theme = savedTheme();
+    if (theme) root.setAttribute("data-theme", theme);
+    else root.removeAttribute("data-theme");
+    paint();
+  });
 
   paint();
 })();

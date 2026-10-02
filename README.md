@@ -7,3 +7,9 @@ Project blurbs match the public repos and call out real limitations (capture exc
 ## Local
 
 Open `index.html` or serve the folder with any static file server.
+
+Theme behavior tests (Node.js 22 or newer, no dependencies):
+
+```sh
+node --test test/site.test.cjs
+```
