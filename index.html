@@ -3,50 +3,101 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sky</title>
-  <meta name="description" content="Sky: small tools and experiments, mostly in TypeScript and Python.">
-  <meta name="theme-color" content="#111">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <title>Aakash Dahal — Builder</title>
+  <meta name="description" content="Aakash Dahal builds small tools and agent experiments. AI systems, creative tools, and things that ship.">
+  <meta name="theme-color" content="#faf7f0">
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/space-grotesk-bold.woff" as="font" type="font/woff" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip" href="#stuff">Skip to projects</a>
-
+  <div class="gear-flash" aria-hidden="true"></div>
+  <div class="gear-scan" aria-hidden="true"></div>
+  <div class="gear-vignette" aria-hidden="true"></div>
+  <div class="edge-ripple" aria-hidden="true"></div>
+  <button class="light-switch" id="lights" type="button" aria-label="Turn lights off" aria-pressed="false"><span class="switch-icon" aria-hidden="true">☼</span><span id="light-label">LIGHTS ON</span></button>
+  <div class="blueprint" aria-hidden="true">
+    <span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>
+    <span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>
+    <span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>
+    <span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>
+  </div>
+  <header class="header">
+    <a class="wordmark" href="#top"><img src="assets/mark.svg" alt="" width="13" height="16"> AAKASH.DAHAL</a>
+    <div class="header-center">
+      <button class="control" id="gear" type="button" aria-pressed="false">[ GEAR TWO ]</button>
+      <span class="globe" aria-hidden="true">◎</span>
+    </div>
+    <div class="time"><span>YOUR LOCAL TIME</span><time id="clock">--:--</time></div>
+  </header>
   <main>
-    <h1>sky</h1>
-    <p class="blurb">
-      Small tools and experiments, mostly in TypeScript and Python.
-    </p>
-
-    <p class="links">
-      <a href="https://github.com/skysssup">github</a>
-      ·
-      <a href="https://x.com/skysssup">@skysssup</a>
-    </p>
-
-    <h2 id="stuff">Projects</h2>
-    <ul class="stuff">
-      <li>
-        <a href="https://github.com/skysssup/airforge">airforge</a>
-        — sketch ramps and balls in the browser and simulate them with Rapier
-      </li>
-      <li>
-        <a href="https://github.com/skysssup/shipgate">shipgate</a>
-        — Git CLI that scans staged changes for credentials before committing and pushing
-      </li>
-      <li>
-        <a href="https://github.com/skysssup/agentcrucible">agentcrucible</a>
-        — fault-injection harness for scripted agents using mock tools
-      </li>
-      <li>
-        <a href="https://github.com/skysssup/recall-ai">recall-ai</a>
-        — local spaced-repetition tracker for coding problems
-      </li>
-    </ul>
-
-    <p class="bye">that's the list. <button type="button" id="flip" aria-label="Toggle color theme" aria-pressed="false">make it darker</button></p>
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <h1 id="hero-title">AAKASH,<br>DAHAL.</h1>
+      <button class="logo-stage" id="logo" type="button" aria-label="Replay the logo assembly animation">
+        <img class="logo-fallback" src="assets/mark.svg" alt="" width="417" height="500">
+        <canvas id="logo-canvas" width="600" height="720" aria-hidden="true"></canvas>
+      </button>
+      <svg class="annotations" viewBox="0 0 1440 1000" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M780 280 L960 145 H1040 M490 475 L345 415 H235 M760 755 L810 900 H900"/>
+        <rect x="776" y="276" width="8" height="8"/><rect x="486" y="471" width="8" height="8"/><rect x="756" y="751" width="8" height="8"/>
+      </svg>
+      <span class="annotation annotation-one">BUILDER</span>
+      <span class="annotation annotation-two">AGENT EXPERIMENTS</span>
+      <span class="annotation annotation-three">ALWAYS SHIPPING</span>
+      <aside class="panel essentially">
+        <h2>ESSENTIALLY</h2>
+        <p>MY PASSION IS TO PUSH THE BOUNDARIES OF WHAT IS POSSIBLE WITH AI. RESEARCHING AND BUILDING AI SYSTEMS IS MY FAVORITE THING TO DO. CHRONICALLY UNHINGED.</p>
+      </aside>
+      <aside class="panel identity">
+        <h2>AAKASH.DAHAL <span>/01</span></h2>
+        <p>SMALL TOOLS<br>+ AGENT EXPERIMENTS</p>
+      </aside>
+      <nav class="threads" aria-label="Core threads of my work">
+        <h2>[ CORE THREADS OF MY WORK ]</h2>
+        <a href="#stuff"><span class="thread-icon">⌖</span><span><small>01.</small><strong>AI SYSTEMS</strong></span></a>
+        <a href="#stuff"><span class="thread-icon">∞</span><span><small>02.</small><strong>CREATIVE TOOLS</strong></span></a>
+        <a href="#contact"><span class="thread-icon">♧</span><span><small>03.</small><strong>SHIPPING EXPERIMENTS</strong></span></a>
+      </nav>
+      <aside class="panel about" id="about-panel">
+        <h2>BUILDER. EXPERIMENTER. BOTH. <button id="about-close" type="button" aria-label="Close about panel">×</button></h2>
+        <p>Hi, I’m Aakash Dahal. I build small tools and agent experiments.</p>
+        <div class="mini-links"><a href="https://x.com/skysssup">X / TWITTER</a><a href="https://github.com/skysssup">GITHUB</a></div>
+      </aside>
+      <button class="control about-open" id="about-open" type="button" aria-controls="about-panel" aria-expanded="true" hidden>[ ABOUT ↗ ]</button>
+      <div class="motion-controls"><button id="motion" type="button" aria-pressed="false">[ PAUSE MOTION ]</button><span>CLICK THE MARK TO REASSEMBLE ↗</span></div>
+    </section>
+    <section class="editorial" aria-labelledby="statement">
+      <div class="portrait-column">
+        <div class="portrait"><img src="assets/avatar.jpg" alt="Aakash’s illustrated avatar" width="424" height="424" loading="lazy"></div>
+        <div class="panel portrait-caption"><h2><span>/////</span><span>/01</span></h2><p>BUILDING SMALL TOOLS AND AGENT EXPERIMENTS. MOSTLY IN TYPESCRIPT AND PYTHON.</p></div>
+      </div>
+      <div class="editorial-copy">
+        <h2 id="statement">I build things. Mostly AI.<br>Sometimes they work.</h2>
+        <div class="facts"><p>SMALL TOOLS. FAST EXPERIMENTS. FROM AN IDEA TO SOMETHING YOU CAN ACTUALLY USE.</p><p>DRAW IN THE AIR. BREAK AGENT TOOLS. MAKE NOTES THAT SCREEN SHARE CAN’T SEE.</p><p>AAKASH DAHAL / @SKYSSSUP<br>→ BUILDING, TESTING, SHIPPING.</p></div>
+      </div>
+    </section>
+    <section class="work" id="stuff" aria-labelledby="work-title">
+      <h2 class="section-label" id="work-title">[ SELECTED WORK / 01—08 ]</h2>
+      <ol class="project-list">
+        <li><a href="https://github.com/skysssup/ghost-notetaker"><span class="project-name">GHOST-NOTETAKER</span><span class="project-description">STICKY NOTES SCREEN SHARE CAN’T SEE</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/airforge"><span class="project-name">AIRFORGE</span><span class="project-description">DRAW IN AIR → RAPIER BODIES</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/spanforge"><span class="project-name">SPANFORGE</span><span class="project-description">AGENT CALL SPANS + WATERFALLS</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/localpulse"><span class="project-name">LOCALPULSE</span><span class="project-description">LLM COST + LATENCY ON DISK</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/recall-ai"><span class="project-name">RECALL-AI</span><span class="project-description">SPACED REP FOR ALGO PROBLEMS</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/shipgate"><span class="project-name">SHIPGATE</span><span class="project-description">AGENT DONE → SCAN → COMMIT → PUSH</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/moltdao"><span class="project-name">MOLTDAO</span><span class="project-description">AGENTS VOTE USDC</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/skysssup/agentcrucible"><span class="project-name">AGENTCRUCIBLE</span><span class="project-description">BREAK AGENT TOOLS ON PURPOSE</span><span class="arrow">↗</span></a></li>
+      </ol>
+    </section>
   </main>
-
+  <footer id="contact">
+    <div class="footer-heading"><h2>Experiments<br>& things that ship.</h2><p>BUILDING AI, SMALL TOOLS, AND SYSTEMS.<br>THE CODE IS THE NOTEBOOK.</p></div>
+    <div class="contact"><p>REACH OUT TO ME OVER HERE AT:</p><a href="https://x.com/skysssup">X / TWITTER <span>↗</span></a><a href="https://github.com/skysssup">GITHUB <span>↗</span></a><a href="mailto:hello@aakashdahal.fun">EMAIL <span>↗</span></a></div>
+    <div class="footer-bottom"><span>AAKASH DAHAL / <span id="year">2026</span></span><a href="https://aakashdahal.fun">CURRENT SITE →</a><button type="button" id="flip" aria-label="Toggle color theme" aria-pressed="false">make it darker</button><a href="#top">BACK TO TOP ↑</a></div>
+  </footer>
   <script src="site.js"></script>
+  <script src="assets/vendor/lenis.min.js"></script>
+  <script src="portfolio.js"></script>
 </body>
 </html>
