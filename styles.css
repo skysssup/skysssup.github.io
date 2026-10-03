@@ -62,13 +62,6 @@ main {
   padding: 2.5rem 1.25rem 4rem;
 }
 
-.face {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  line-height: 1.15;
-  color: var(--mute);
-}
-
 h1 {
   margin: 0;
   font-size: 2.4rem;
@@ -121,12 +114,6 @@ h2 {
 }
 
 .stuff a { font-weight: 600; text-underline-offset: 0.15em; }
-
-.stuff .d {
-  font-weight: 400;
-  font-size: 0.9rem;
-  margin-left: 0.2rem;
-}
 
 .bye {
   margin: 2rem 0 0;
