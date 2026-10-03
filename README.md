@@ -1,14 +1,10 @@
 # skysssup.github.io
 
-Personal site for [skysssup](https://github.com/skysssup). Plain HTML/CSS/JS, dark/light theme via `localStorage`, hosted on GitHub Pages.
+Source for [skysssup.github.io](https://skysssup.github.io/). Plain HTML, CSS, and JavaScript served by GitHub Pages; the light/dark choice is saved in `localStorage`.
 
-Project blurbs match the public repos and call out real limitations (capture exclusion is best-effort; MoltDAO is a toy; Spanforge redaction is pattern-based and not universal). Demo links are omitted unless the live page returns 200 (as of 2026-10-02).
+Open `index.html` directly or serve the folder with any static file server.
 
-## Local
-
-Open `index.html` or serve the folder with any static file server.
-
-Theme behavior tests (Node.js 22 or newer, no dependencies):
+The theme toggle has a small test suite (Node.js 22 or later, no dependencies):
 
 ```sh
 node --test test/site.test.cjs
