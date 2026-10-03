@@ -7,23 +7,25 @@ const source = fs.readFileSync(path.join(__dirname, '../site.js'), 'utf8');
 function page({ saved = null, dark = false, blocked = false, legacy = false } = {}) {
   const attrs = new Map();
   const listeners = {};
-  const button = { textContent: '', attrs: new Map(), getAttribute(k) { return this.attrs.get(k); }, setAttribute(k,v) { this.attrs.set(k,v); }, addEventListener(k,f) { listeners[k] = f; } };
+  const label = { textContent: '' };
+  const button = { label, attrs: new Map(), getAttribute(k) { return this.attrs.get(k); }, setAttribute(k,v) { this.attrs.set(k,v); }, addEventListener(k,f) { listeners[k] = f; }, querySelector: () => label };
   const root = { getAttribute: k => attrs.get(k), setAttribute: (k,v) => attrs.set(k,v), removeAttribute: k => attrs.delete(k) };
   const meta = { setAttribute(k,v) { this[k] = v; } };
   const mq = { matches: dark };
   if (legacy) mq.addListener = f => { listeners.scheme = f; };
   else mq.addEventListener = (k,f) => { listeners.scheme = f; };
   const storage = { getItem() { if (blocked) throw new Error('blocked'); return saved; }, setItem(k,v) { if (blocked) throw new Error('blocked'); saved = v; } };
-  vm.runInNewContext(source, { document: { documentElement: root, getElementById: () => button, querySelector: () => meta }, localStorage: storage, window: { matchMedia: () => mq, addEventListener: (k,f) => { listeners[k] = f; } } });
-  return { attrs, button, meta, mq, listeners, changeSaved: v => { saved = v; } };
+  const window = { matchMedia: () => mq, addEventListener: (k,f) => { listeners[k] = f; } };
+  vm.runInNewContext(source, { document: { documentElement: root, getElementById: () => button, querySelector: () => meta }, localStorage: storage, window });
+  return { attrs, button, meta, mq, listeners, window, changeSaved: v => { saved = v; } };
 }
 test('follows OS changes without an explicit selection', () => {
   const p = page();
   assert.equal(p.button.attrs.get('aria-pressed'), 'false');
   p.mq.matches = true;
   p.listeners.scheme();
-  assert.equal(p.button.textContent, 'make it lighter');
-  assert.equal(p.meta.content, '#11100e');
+  assert.equal(p.button.label.textContent, 'LIGHTS OFF');
+  assert.equal(p.meta.content, '#0b0b0c');
 });
 test('preserves a user selection across OS changes when storage is blocked', () => {
   const p = page({ blocked: true });
@@ -35,8 +37,8 @@ test('preserves a user selection across OS changes when storage is blocked', () 
 });
 test('saved light preference overrides a dark OS', () => {
   const p = page({ saved: 'light', dark: true });
-  assert.equal(p.button.textContent, 'make it darker');
-  assert.equal(p.meta.content, '#faf7f0');
+  assert.equal(p.button.label.textContent, 'LIGHTS ON');
+  assert.equal(p.meta.content, '#ffffff');
 });
 test('synchronizes theme changes and resets from other tabs', () => {
   const p = page({ saved: 'dark' });
@@ -61,4 +63,16 @@ test('ignores invalid saved preferences and supports legacy media listeners', ()
   p.mq.matches = true;
   p.listeners.scheme();
   assert.equal(p.button.attrs.get('aria-pressed'), 'true');
+});
+test('Gear Two reads as lights off and an installed transition decides the next theme', () => {
+  const p = page();
+  p.attrs.set('data-gear', 'two');
+  p.listeners.storage({ key: 'sky-theme' });
+  assert.equal(p.button.label.textContent, 'LIGHTS OFF');
+  assert.equal(p.meta.content, '#090909');
+  let seen = null;
+  p.window.skyThemeTransition = (apply, current) => { seen = current; apply('light'); };
+  p.listeners.click();
+  assert.equal(seen, 'light');
+  assert.equal(p.attrs.get('data-theme'), 'light');
 });

@@ -1,7 +1,9 @@
 (function () {
   var root = document.documentElement;
   var btn = document.getElementById("flip");
+  var label = btn.querySelector("[data-theme-label]");
   var darkMq = window.matchMedia("(prefers-color-scheme: dark)");
+  var colors = { light: "#ffffff", dark: "#0b0b0c", gear: "#090909" };
 
   function savedTheme() {
     try {
@@ -18,29 +20,37 @@
   }
 
   function paint() {
-    var dark = now() === "dark";
-    btn.textContent = dark ? "make it lighter" : "make it darker";
+    var gear = root.getAttribute("data-gear") === "two";
+    var dark = gear || now() === "dark";
+    if (label) label.textContent = dark ? "LIGHTS OFF" : "LIGHTS ON";
     btn.setAttribute("aria-pressed", dark ? "true" : "false");
-    // Stable accessible name; visible label may change with theme.
     if (!btn.getAttribute("aria-label")) {
       btn.setAttribute("aria-label", "Toggle color theme");
     }
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", dark ? "#11100e" : "#faf7f0");
+    if (meta) meta.setAttribute("content", gear ? colors.gear : dark ? colors.dark : colors.light);
+  }
+
+  function setTheme(theme) {
+    root.setAttribute("data-theme", theme);
+    try { localStorage.setItem("sky-theme", theme); } catch (e) {}
+    paint();
   }
 
   var saved = savedTheme();
   if (saved) root.setAttribute("data-theme", saved);
 
   btn.addEventListener("click", function () {
-    var next = now() === "dark" ? "light" : "dark";
-    root.setAttribute("data-theme", next);
-    try { localStorage.setItem("sky-theme", next); } catch (e) {}
-    paint();
+    var current = now();
+    var apply = function (theme) {
+      setTheme(theme || (current === "dark" ? "light" : "dark"));
+    };
+    if (typeof window.skyThemeTransition === "function") window.skyThemeTransition(apply, current);
+    else apply();
   });
 
-  // Keep button label / aria-pressed / theme-color in sync when OS preference
-  // changes. Explicit localStorage override (data-theme) still wins via now().
+  // Keep the switch label, aria-pressed, and theme-color in sync when the OS
+  // preference changes. An explicit selection (data-theme) still wins via now().
   function onSchemeChange() {
     paint();
   }
@@ -60,5 +70,6 @@
     paint();
   });
 
+  window.skyTheme = { paint: paint, current: now, set: setTheme };
   paint();
 })();

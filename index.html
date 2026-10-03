@@ -3,50 +3,146 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sky</title>
-  <meta name="description" content="Sky: small tools and experiments, mostly in TypeScript and Python.">
-  <meta name="theme-color" content="#111">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <title>Aakash Dahal</title>
+  <meta name="description" content="Aakash Dahal (Sky) builds developer tools, agent harnesses, and interactive physics software in TypeScript and Python.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/space-grotesk-700.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="assets/avatar.jpg" as="image">
+  <script>try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}document.documentElement.classList.add("js")</script>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <a class="skip" href="#stuff">Skip to projects</a>
+<body class="is-loading">
+  <a class="skip" href="#work">Skip to work</a>
+  <div class="fx-flash" aria-hidden="true"></div>
+  <div class="fx-scan" aria-hidden="true"></div>
+  <div class="fx-vignette" aria-hidden="true"></div>
+  <canvas class="fx-particles" aria-hidden="true"></canvas>
+  <div class="blueprint glitchable" aria-hidden="true"></div>
 
-  <main>
-    <h1>sky</h1>
-    <p class="blurb">
-      Small tools and experiments, mostly in TypeScript and Python.
-    </p>
+  <header class="site-header glitchable">
+    <div class="header-left">
+      <a class="logo" href="./" aria-current="page">AAKASHDAHAL.FUN</a>
+      <a class="header-link" href="portfolio/">/PORTFOLIO</a>
+    </div>
+    <div class="header-center">
+      <button class="gear chroma" id="gear" type="button" aria-pressed="false">[ <span id="gear-label">GEAR TWO</span> ]</button>
+      <svg class="globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3 3.2 3 16.8 0 20M12 2c-3 3.2-3 16.8 0 20"/><path class="globe-spin" d="M12 2c5.5 3.4 5.5 16.6 0 20"/></svg>
+    </div>
+    <div class="clock">
+      <span class="clock-label">LOCAL TIME</span>
+      <span class="clock-value"><span class="dim">KTM</span> <time id="clock">--:--</time></span>
+    </div>
+  </header>
 
-    <p class="links">
-      <a href="https://github.com/skysssup">github</a>
-      ·
-      <a href="https://x.com/skysssup">@skysssup</a>
-    </p>
+  <main id="top">
+    <section class="hero glitchable" aria-labelledby="hero-title">
+      <h1 class="hero-title chroma" id="hero-title" data-parallax="-120">
+        <span class="mask"><span>AAKASH,</span></span>
+        <span class="mask"><span>UNHINGED.</span></span>
+      </h1>
 
-    <h2 id="stuff">Projects</h2>
-    <ul class="stuff">
-      <li>
-        <a href="https://github.com/skysssup/airforge">airforge</a>
-        — sketch ramps and balls in the browser and simulate them with Rapier
-      </li>
-      <li>
-        <a href="https://github.com/skysssup/shipgate">shipgate</a>
-        — Git CLI that scans staged changes for credentials before committing and pushing
-      </li>
-      <li>
-        <a href="https://github.com/skysssup/agentcrucible">agentcrucible</a>
-        — fault-injection harness for scripted agents using mock tools
-      </li>
-      <li>
-        <a href="https://github.com/skysssup/recall-ai">recall-ai</a>
-        — local spaced-repetition tracker for coding problems
-      </li>
-    </ul>
+      <div class="hero-figure" id="figure" data-parallax="80" role="img" aria-label="Aakash's GitHub avatar, a dithered statue raising a torch, rendered as moving dots and words">
+        <img class="figure-fallback" src="assets/avatar.jpg" alt="" width="424" height="424">
+      </div>
 
-    <p class="bye">that's the list. <button type="button" id="flip" aria-label="Toggle color theme" aria-pressed="false">make it darker</button></p>
+      <svg class="annotations" id="annotations" aria-hidden="true"></svg>
+      <span class="annot" data-anchor="0.6,0.37" data-glitch="0">SHITPOSTER</span>
+      <span class="annot" data-anchor="0.27,0.52" data-glitch="1">BUILDER</span>
+      <span class="annot" data-anchor="0.47,0.86" data-glitch="2">ENJOYMAXXING</span>
+
+      <aside class="panel essentially reveal-right" aria-label="Essentially">
+        <h2 class="panel-head">ESSENTIALLY</h2>
+        <p class="panel-body">I BUILD DEVELOPER TOOLS, AGENT HARNESSES, AND PHYSICS TOYS, THEN BREAK THEM ON PURPOSE. REINFORCEMENT LEARNING AND ROBOTICS ARE NEXT. CHRONICALLY UNHINGED.</p>
+      </aside>
+
+      <aside class="panel info reveal-right" aria-label="Domain">
+        <h2 class="panel-head"><span>AAKASHDAHAL.FUN</span><span class="panel-num">/26</span></h2>
+        <div class="panel-body">
+          <p>SKY (SHITPOSTER)</p>
+          <p>+ FUN (FOR UNHINGED NERDS)</p>
+        </div>
+      </aside>
+
+      <div class="threads reveal-left chroma">
+        <h2 class="threads-title">[ CORE THREADS OF MY WORK ]</h2>
+        <ul>
+          <li><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="1.6"/><path d="M10 1v4M10 15v4M1 10h4M15 10h4"/></svg></span><span><small>01.</small>AI SYSTEMS</span></li>
+          <li><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="10" rx="8" ry="3.2"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(60 10 10)"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(-60 10 10)"/><circle cx="10" cy="10" r="1.3"/></svg></span><span><small>02.</small>PHYSICS SOFTWARE</span></li>
+          <li><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14v9H9l-4 3v-3H3z"/><path d="M6.5 8.5h.01M10 8.5h.01M13.5 8.5h.01"/></svg></span><span><small>03.</small>TALKING NONSENSE</span></li>
+        </ul>
+      </div>
+
+      <aside class="panel about reveal-right" id="about" aria-label="About">
+        <h2 class="panel-head"><span>BUILDER. SHITPOSTER. BOTH.</span><button class="panel-close" id="about-close" type="button" aria-label="Close about panel">×</button></h2>
+        <div class="panel-body">
+          <p>Developer tools and interactive physics software, mostly in TypeScript and Python.</p>
+          <div class="chips"><a href="https://x.com/skysssup">X / TWITTER</a><a href="https://github.com/skysssup">GITHUB</a></div>
+        </div>
+      </aside>
+      <button class="about-reopen" id="about-open" type="button" aria-controls="about" aria-expanded="true" hidden>[ + ]</button>
+    </section>
+
+    <section class="editorial glitchable" aria-labelledby="statement">
+      <div class="editorial-left reveal-up">
+        <div class="dither" id="dither" role="img" aria-label="Close crop of the same avatar, dithered into blinking pixels"></div>
+        <div class="spec">
+          <div class="spec-head"><span class="stripes" aria-hidden="true"></span><span>/01</span></div>
+          <p>BUILDING AI SYSTEMS THAT CLOSE THE GAP BETWEEN HUMANS AND MACHINES.</p>
+        </div>
+      </div>
+      <div class="editorial-right">
+        <h2 class="statement reveal-up" id="statement">I build things. Mostly AI.<br>Sometimes they work.</h2>
+        <div class="facts">
+          <p class="reveal-up">EIGHT PROJECTS SINCE JUNE 2026. FOUR OF THEM PUBLIC. ALL OF THEM SHIPPED HORRIBLY.</p>
+          <p class="reveal-up">ALSO INTERESTED IN ROBOTICS. ONE DAY I WILL BUILD MECHAS AND EXOSKELETONS.</p>
+          <p class="reveal-up">© MOSTLY TYPESCRIPT AND PYTHON<br>→ TOOLS FOR AGENTS, TOYS FOR PHYSICS.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="work glitchable" id="work" aria-labelledby="work-title">
+      <div class="work-head reveal-up">
+        <h2 id="work-title">[ THINGS I SHIPPED ]</h2>
+        <a href="portfolio/">FULL PORTFOLIO →</a>
+      </div>
+      <div class="work-inner">
+        <ol class="work-list" id="work-list"></ol>
+        <aside class="work-detail" id="work-detail" aria-live="polite"></aside>
+      </div>
+    </section>
   </main>
 
+  <footer class="site-footer glitchable">
+    <div class="footer-grid">
+      <div class="footer-col reveal-up">
+        <h2 class="footer-title">Shitposts &amp; Ships</h2>
+        <p class="footer-note">NO ESSAYS YET. THE SHITPOSTS LIVE ON X, THE SHIPS LIVE ON GITHUB, AND THE FULL INDEX LIVES HERE:</p>
+        <a class="row" href="portfolio/"><span>PORTFOLIO</span><span class="row-meta">08 PROJECTS</span><span class="row-arrow">→</span></a>
+      </div>
+      <div class="footer-col reveal-up">
+        <p class="footer-note">REACH OUT TO ME OVER HERE AT:</p>
+        <a class="row" href="https://x.com/skysssup"><span>X / TWITTER</span><span class="row-arrow">↗</span></a>
+        <a class="row" href="https://github.com/skysssup"><span>GITHUB</span><span class="row-arrow">↗</span></a>
+        <a class="row" href="mailto:hello@aakashdahal.fun"><span>EMAIL</span><span class="row-arrow">↗</span></a>
+        <a class="row" href="https://aakashdahal.fun"><span>V1 SITE</span><span class="row-arrow">→</span></a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span class="year">2026</span> AAKASH DAHAL</span>
+      <span>NO COOKIES. JUST DOTS.</span>
+    </div>
+  </footer>
+
+  <button class="light-switch" id="flip" type="button" aria-label="Toggle color theme" aria-pressed="false">
+    <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+    <span class="switch-label" data-theme-label>LIGHTS ON</span>
+  </button>
+
   <script src="site.js"></script>
+  <script src="assets/vendor/lenis.min.js"></script>
+  <script src="js/dotfield.js"></script>
+  <script src="js/cat.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
