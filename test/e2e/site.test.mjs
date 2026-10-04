@@ -105,6 +105,20 @@ test('content sits on the sheet: left edges on a line or its inset, right-aligne
   }
 });
 
+test('below the header, nothing is boxed on four sides except the panel, the dialog, form fields, and buttons', async () => {
+  for (const url of PAGES) for (const [width, height] of [[1440, 900], [390, 844]]) for (const view of url === '/work/' ? ['list', 'grid'] : ['list']) {
+    const { page, context } = await open(url, { width, height, touch: width < 768 });
+    if (view === 'grid') await page.click('button[data-work-view="grid"]');
+    const boxed = await page.evaluate(() => [...document.querySelectorAll('main *, .site-footer *')].filter(el => {
+      if (el.closest('.panel, dialog, .btn') || el.matches('input, select, textarea')) return false;
+      const cs = getComputedStyle(el);
+      return cs.display !== 'none' && ['Top', 'Right', 'Bottom', 'Left'].every(side => parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== 'none' && cs[`border${side}Color`] !== 'rgba(0, 0, 0, 0)');
+    }).map(el => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`));
+    assert.deepEqual(boxed, [], `${url} ${width} ${view}`);
+    await context.close();
+  }
+});
+
 test('section links land each section just under the header, with smooth scrolling and without', async () => {
   for (const reduced of [false, true]) {
     const { page, context } = await open('/work/agentcrucible/', { reduced });

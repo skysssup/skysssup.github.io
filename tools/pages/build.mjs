@@ -146,7 +146,7 @@ function siteIndex() {
     <nav aria-label="Projects">
       <p class="index-label t-label muted">Projects</p>
       <ol class="index-projects">
-${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name, p.slug, p.tagline, themesOf(p), ...p.stack].join(' '))}"><a href="/work/${p.slug}/"><span class="t-label muted">${pad(i + 1)}</span><span class="index-project-name">${esc(p.name)}<span class="t-small muted">${themesOf(p)}</span></span>${NEXT}</a></li>`).join('\n')}
+${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name, p.slug, p.tagline, themesOf(p), ...p.stack].join(' '))}"><a href="/work/${p.slug}/"><span class="t-label muted">${pad(i + 1)}</span><span class="index-project-name">${esc(p.name)}<span class="t-small muted">${themesOf(p, DOT)}</span></span>${NEXT}</a></li>`).join('\n')}
       </ol>
     </nav>
     <p class="index-empty t-small muted" data-index-empty hidden>No matches. Try a project name, a technology, or “contact”.</p>
