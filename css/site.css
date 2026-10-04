@@ -918,9 +918,6 @@ html.index-is-open { scrollbar-gutter: stable; }
 .lost p { margin-top: 8px; color: var(--muted); }
 .lost .links { display: flex; gap: 20px; margin-top: 24px; }
 
-/* ── cat ────────────────────────────────────────────────── */
-.cat { position: fixed; left: 0; top: 0; z-index: 40; width: 32px; height: 32px; pointer-events: none; image-rendering: pixelated; }
-
 /* ── Gear Two ───────────────────────────────────────────── */
 /* Turning it on: a flash that fades, a red ring from the switch, then the palette turns while text splits
    and media slices, then it settles. --beat-delay (set by motion.js) keeps every pulse on the dots' heartbeat. */
@@ -1072,7 +1069,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .site-footer .end, .toc, .fig-ctrl, .copy, .cat, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .site-footer .end, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

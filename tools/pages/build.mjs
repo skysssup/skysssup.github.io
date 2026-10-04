@@ -168,7 +168,7 @@ function siteNumbers() {
   const read = p => fs.readFileSync(path.join(ROOT, p));
   const gz = p => zlib.gzipSync(read(p), { level: 9 }).length;
   const count = (dir, suffix, pattern) => fs.readdirSync(path.join(ROOT, dir)).filter(f => f.endsWith(suffix)).reduce((n, f) => n + (read(path.join(dir, f)).toString().match(pattern) || []).length, 0);
-  const home = ['css/site.css', 'js/theme.js', 'js/motion.js', 'js/hero.js', 'js/cat.js', 'js/page.js', 'assets/vendor/lenis.min.js'];
+  const home = ['css/site.css', 'js/theme.js', 'js/motion.js', 'js/hero.js', 'js/page.js', 'assets/vendor/lenis.min.js'];
   const fonts = fs.readdirSync(path.join(ROOT, 'assets/fonts')).filter(f => f.endsWith('.woff2'));
   return {
     unitTests: count('test', '.test.cjs', /^test\(/gm),
@@ -316,7 +316,7 @@ ${colophon()}
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/hero.js', '/js/cat.js', '/js/page.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/hero.js', '/js/page.js'])}
 </body>
 </html>
 `;
@@ -360,7 +360,7 @@ ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join('
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/cat.js', '/js/page.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/page.js'])}
 </body>
 </html>
 `;
@@ -477,7 +477,7 @@ ${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="$
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', ...(body && body.prose.includes('data-demo') ? ['/js/demo.js'] : []), '/js/cat.js', '/js/page.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', ...(body && body.prose.includes('data-demo') ? ['/js/demo.js'] : []), '/js/page.js'])}
 </body>
 </html>
 `;
@@ -497,7 +497,7 @@ ${header('')}
   </div>
 </main>
 ${footer()}
-${scripts(['/js/theme.js', '/js/motion.js', '/js/cat.js', '/js/page.js'])}
+${scripts(['/js/theme.js', '/js/motion.js', '/js/page.js'])}
 </body>
 </html>
 `;

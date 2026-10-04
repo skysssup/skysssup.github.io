@@ -1,5 +1,5 @@
 /* Page behavior: local time, copy-to-clipboard, the /work theme filter, the case-study section index,
-   video play/pause, the hero, and the cat. Filter and scrollspy logic are exported for tests. */
+   video play/pause, and the hero. Filter and scrollspy logic are exported for tests. */
 (function (global) {
   "use strict";
 
@@ -398,16 +398,6 @@
       matrix.addEventListener("mouseleave", function () { matrix.removeAttribute("data-hover-col"); });
       matrix.addEventListener("focusin", column);
       matrix.addEventListener("focusout", function (event) { if (!event.relatedTarget || !matrix.contains(event.relatedTarget)) matrix.removeAttribute("data-hover-col"); });
-    }
-
-    /* cat: only with a mouse */
-    if (win.SkyCat && win.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      win.SkyCat.mount({
-        reduced: {
-          get matches() { return motion.reduced(); },
-          addEventListener: function (type, fn) { motion.subscribe(fn); }
-        }
-      });
     }
 
     return { hero: hero };

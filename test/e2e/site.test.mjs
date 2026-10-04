@@ -288,7 +288,6 @@ test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Tw
   await context.close();
   const os = await open('/', { reduced: true });
   assert.equal(await os.page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
-  assert.equal(await os.page.evaluate(() => !!document.querySelector('.cat') && !document.querySelector('.cat').hidden), false);
   await os.context.close();
 });
 
@@ -304,20 +303,6 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
     assert.match(outline, /solid 2px/, `focus ring on ${await page.evaluate(() => document.activeElement.outerHTML.slice(0, 80))}`);
   }
   await context.close();
-});
-
-test('the cat follows a mouse, and stays away on touch screens', async () => {
-  const { page, context } = await open('/work/');
-  await page.mouse.move(200, 300);
-  await page.waitForTimeout(150);
-  const first = await page.$eval('.cat', c => c.style.transform);
-  await page.mouse.move(1200, 600, { steps: 10 });
-  await page.waitForTimeout(1200);
-  assert.notEqual(await page.$eval('.cat', c => c.style.transform), first);
-  await context.close();
-  const touch = await open('/work/', { width: 390, height: 844, touch: true });
-  assert.equal(await touch.page.$('.cat'), null);
-  await touch.context.close();
 });
 
 test('the stack matrix draws in once seen, lights a column on hover, and reads as a list on small screens', async () => {

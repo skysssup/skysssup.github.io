@@ -39,7 +39,7 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
   the reveals (`[data-reveal]`: section rules draw in, media wipes in, the stack matrix's dots pop in, and the
   colophon counts up, once, when first seen, never under reduced motion), the stack matrix's column highlight,
-  and mounting the hero and the cat (`js/cat.js`). Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
+  and mounting the hero. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
   use arrow keys to browse, Enter to open, and Escape to close. It uses a native dialog, traps focus,
   restores the opener, and locks background scrolling without changing the saved motion preference.
 - `js/diagram.js` — draws case-study diagrams from their JSON specs.

@@ -8,7 +8,6 @@ Status: approved and built. Where the build departed from the draft, the note sa
 - Plain HTML/CSS/JS on GitHub Pages, no build step, every asset self-hosted, Lenis vendored.
 - `site.js` theme logic: saved choice, OS sync, cross-tab sync, theme-color meta (7 tests).
 - Gear Two state machine (flash → glitch → settle, cancellable, reduced-motion path) and the circle theme reveal via View Transitions (6 tests).
-- The pixel cat: original 16×16 sprites, outline derivation, chase/alert/sleep/scratch state machine (5 tests).
 - Off-screen and background-tab pausing of canvases; reduced-motion handling.
 
 **Rebuild**
@@ -77,7 +76,7 @@ Sentence case everywhere except mono labels. Numerals for numbers. No text is se
 The accent only marks interactive or active things: links on hover, the current page, pressed filters, focus rings, the words on the figure. Lines are ink at 10% opacity. Blue because it's the blueprint color. Gear Two swaps the accent and the figure's ink to red, tints the sheet lines red, and gives the figure a glow and a heartbeat (§9); nothing else changes.
 
 ## 6. Components
-Sheet frame and grid · header (name → home, Work, Contact, Gear Two toggle, Kathmandu time with UTC offset, light switch) · panel (1px border, mono head, sans body) · theme index (3 links with counts) · project card (16:10 media, meta row, name, tagline) · stack matrix (technologies as rows ordered by use, projects as columns one minor column wide, a dot per use; rows and columns light up on hover or focus; below 768 it reads as a list of technologies with project names) · colophon (notes and six measured numbers in a panel grid) · project row for `/work` (number, name, tagline, themes, stack and visibility, thumbnail) · filter bar (toggle buttons with counts, `aria-pressed`, URL state) · case-study header (breadcrumb, title, one-liner, meta `<dl>`: role, status, themes, stack, repo) · media figure (numbered "Fig. N" with caption; image with WebP srcset, muted looping video with poster and a pause button, terminal block with real output, click-to-load demo frame) · sticky section index with scrollspy · prose section · decisions list (decision, why, cost) · numbers panel (verified facts) · diagram (inline SVG drawn in the site's type and colors, follows the theme and Gear Two) · previous/next project · contact block · footer (©, source link, motion toggle) · skip link · cat · 404.
+Sheet frame and grid · header (name → home, Work, Contact, Gear Two toggle, Kathmandu time with UTC offset, light switch) · panel (1px border, mono head, sans body) · theme index (3 links with counts) · project card (16:10 media, meta row, name, tagline) · stack matrix (technologies as rows ordered by use, projects as columns one minor column wide, a dot per use; rows and columns light up on hover or focus; below 768 it reads as a list of technologies with project names) · colophon (notes and six measured numbers in a panel grid) · project row for `/work` (number, name, tagline, themes, stack and visibility, thumbnail) · filter bar (toggle buttons with counts, `aria-pressed`, URL state) · case-study header (breadcrumb, title, one-liner, meta `<dl>`: role, status, themes, stack, repo) · media figure (numbered "Fig. N" with caption; image with WebP srcset, muted looping video with poster and a pause button, terminal block with real output, click-to-load demo frame) · sticky section index with scrollspy · prose section · decisions list (decision, why, cost) · numbers panel (verified facts) · diagram (inline SVG drawn in the site's type and colors, follows the theme and Gear Two) · previous/next project · contact block · footer (©, source link, motion toggle) · skip link · 404.
 
 Arrows appear only where they carry meaning: ↗ marks a link that leaves the site; ↓ leads into a page section;
 → opens a project or destination; ↑ returns to the top.
@@ -129,7 +128,7 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
 - **Text is never hidden waiting for scroll.** Only graphics wait: a section's rule draws itself from the left (900 ms), a media frame wipes in from the left (800 ms), the stack matrix's dots pop in with a 12 ms stagger, and the colophon's numbers count up over 600 ms. Each happens once, the first time the element is 20% in view (`[data-reveal]` → `.is-seen`), only with JavaScript and full motion; without either, everything is simply there.
 - **Smooth scroll.** Lenis with lerp 0.1. Touch uses native scrolling. Anchors are offset by the header height. Demos get `data-lenis-prevent`.
 - **Page transitions.** Cross-document View Transitions: a 250 ms fade of `main` while the header stays fixed. Chromium only; elsewhere pages load normally.
-- **Reduced motion.** It applies when the OS asks for it, or when the footer motion toggle is set (saved locally). Smooth scroll, entrances, blinking, ripples, video autoplay, Gear Two effects, and the cat all stop.
+- **Reduced motion.** It applies when the OS asks for it, or when the footer motion toggle is set (saved locally). Smooth scroll, entrances, blinking, ripples, video autoplay, and Gear Two effects all stop.
 
 ## 9. Gear Two
 - **Control.** A bordered mono button in the header center labeled "Gear Two" (no brackets), with `aria-pressed`. The label never changes. While Gear Two is on, the button pulses a red halo in time with the heartbeat.
@@ -149,19 +148,14 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
 - **Saving the choice.** The choice is saved, it follows the OS until set, and it syncs across tabs (the existing tested logic).
 - **Reveal.** A soft-edged circle grows from the switch over 850 ms (View Transitions). Without the API, the colors cross-fade over 200 ms. Under reduced motion it's instant.
 
-## 11. Cat
-- **Behavior.** It keeps the original sprite and state machine, tuned for a calmer chase. It runs to the cursor, sits, blinks, sleeps when idle, and scratches the wall the cursor left through.
-- **Hidden** on touch-only devices and under reduced motion.
-- **Never interferes.** It ignores pointer events and never covers the header.
-
-## 12. Accessibility (WCAG 2.2 AA)
+## 11. Accessibility (WCAG 2.2 AA)
 - axe-core reports 0 violations on every page in light, dark, and Gear Two, at 1440 and 390.
 - Focus ring: 2 px accent, 2 px offset. Skip link. One `h1` per page. Ordered headings. Landmarks.
 - Toggles use `aria-pressed`.
 - Autoplaying video has a pause control. The motion toggle covers WCAG 2.2.2 for the hero.
 - All text meets 4.5:1, including in Gear Two.
 
-## 13. Performance budget (gzip)
+## 12. Performance budget (gzip)
 - **Per page.**
   - HTML ≤ 25 KB, CSS ≤ 20 KB, JS ≤ 45 KB, Lenis about 9 KB.
   - Fonts: 3 files totaling about 59 KB, 2 of them preloaded.
@@ -169,32 +163,32 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
 - **Media.** Images are lazy-loaded with fixed dimensions (no layout shift). Videos use `preload="none"` with a poster. Demos load on click.
 - **Targets.** Lighthouse mobile: 95+ performance, 100 accessibility, 100 best practices, 100 SEO. LCP under 2 s. CLS under 0.02.
 
-## 14. Meta
+## 13. Meta
 Each page gets a unique title and description, a canonical URL on `https://skysssup.github.io/`, `og:*` and `twitter:card=summary_large_image`, and a 1200×630 share image rendered from the page's own design by a committed script. Plus JSON-LD `Person` on home. Moving to aakashdahal.fun later is a one-line origin change, guarded by a test.
 
-## 15. Testing and QA
+## 14. Testing and QA
 - **Node tests (`node --test`).**
   - Hero math: projection, ripple, blink schedule, stipple sampler, word layout.
-  - Gear Two, theme, motion preference, cat, filter ↔ URL state, scrollspy.
+  - Gear Two, theme, motion preference, filter ↔ URL state, scrollspy.
   - Content integrity on every page: meta and OG tags, one `h1`, alt text, internal links resolve, assets exist, banned-word list, no uppercase paragraphs.
 - **Playwright.**
   - All 11 pages × 4 widths × 3 modes: zero console errors, no horizontal overflow, the grid-alignment assertion, and screenshots.
-  - Interactions: Gear Two, the theme reveal, filters and URL, keyboard paths, video pause, demo loading, the cat, and the reduced-motion paths.
+  - Interactions: Gear Two, the theme reveal, filters and URL, keyboard paths, video pause, demo loading, and the reduced-motion paths.
   - An internal and external link check.
 - **axe-core** in every mode.
 - **CI.** GitHub Actions runs all of it on every push to `main`.
 - **Visual loop.** After each major change, 132 screenshots go onto contact sheets. I critique and fix, and repeat until nothing is off.
 
-## 16. Writing rules (all copy)
+## 15. Writing rules (all copy)
 - First person. Plain technical English. Every sentence carries a fact, a mechanism, or a reason.
 - Numbers and module names come from the code and are verified.
 - No marketing adjectives, no invented users, metrics, employers, or credentials, no "not just X but Y", no exclamation marks.
 - The case studies keep the repos' own candor about limits.
 
-## 17. Draft "Essentially" statement (needs your edit or OK)
+## 16. Draft "Essentially" statement (needs your edit or OK)
 > I build instruments for AI systems: a harness that catches an agent refunding twice, a proxy that traces every LLM call, and a gate that scans what a coding agent is about to push. Also physics software you can draw into. Next: reinforcement learning and robotics.
 
-## 18. Defaults I'll take unless you say otherwise
+## 17. Defaults I'll take unless you say otherwise
 - Selected work on home = the 4 public projects.
 - Live AirForge and Shipgate demos hosted at `/work/<slug>/demo/`, loaded only on click.
 - MoltDAO stays, last, labeled "Experiment", written candidly as what the experiment taught.
