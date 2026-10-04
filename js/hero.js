@@ -30,6 +30,18 @@
     return Math.exp(-Math.pow((p - 0.08) / 0.045, 2)) + 0.6 * Math.exp(-Math.pow((p - 0.3) / 0.05, 2));
   }
 
+  // Gear Two's tears, one plan per heartbeat (beats are numbered on the heartbeat's clock, seconds / 0.9).
+  // Each block of seven beats (6.3 s) gives its third, fourth, or fifth beat a long tear: 8 frames at 24 fps,
+  // 3 tiles, one afterimage. About 35% of the other beats get a short one: 2-4 frames, 1-2 tiles. Every tear
+  // starts at its beat's first peak. Returns null for a clean beat; the same beat always gets the same plan.
+  var BEAT = 0.9, TEAR_AT = 0.072, TEAR_BLOCK = 7, TEAR_CHANCE = 0.35;
+  function longTearBeat(block) { return block * TEAR_BLOCK + 2 + Math.floor(hash(block * 7 + 101) * 3); }
+  function tearSchedule(beat) {
+    if (beat === longTearBeat(Math.floor(beat / TEAR_BLOCK))) return { frames: 8, tiles: 3, glitch: 0.8, after: true, long: true };
+    if (hash(beat * 5 + 3) >= TEAR_CHANCE) return null;
+    return { frames: 2 + Math.floor(hash(beat * 5 + 4) * 3), tiles: hash(beat * 5 + 5) < 0.5 ? 1 : 2, glitch: 0.6, after: false, long: false };
+  }
+
   // The base sway: ±16° of yaw over 14 s on the sway clock (which runs 1.6× in Gear Two).
   var SWAY = 14;
   function sway(clock) { return 0.28 * Math.sin((TAU * clock) / SWAY); }
@@ -509,7 +521,7 @@
     var ripFlat = new Float32Array(16);
     var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
     var ring = null, ringFont = 0, fontReady = false, highlighted = null;
-    var glitchUntil = 0, tear = null, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
+    var glitchUntil = 0, tear = null, tearBeat = -1, longDone = -1, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
     var sheenIndex = -1, sheenAt = 0, sheenDir = 0, sheenNumber = 0, starChance = 0, lights = new Float32Array(9);
     var cpuMs = 0, telemetryAt = 0;
 
@@ -681,6 +693,9 @@
       for (var i = 0; i < tiles.length; i++) {
         var tl = tiles[i];
         var x = Math.round(tl[0] + tl[4]) + 0.5, y = Math.round(tl[1] + tl[5]) + 0.5, w = Math.round(tl[2]), h = Math.round(tl[3]);
+        // a faint frame where the block was torn from, and a firm one where it landed
+        ctx.globalAlpha = 0.35;
+        ctx.strokeRect(Math.round(tl[0]) + 0.5, Math.round(tl[1]) + 0.5, w, h);
         ctx.globalAlpha = 0.08;
         ctx.fillRect(x, y, w, h);
         ctx.globalAlpha = 0.9;
@@ -767,6 +782,24 @@
       if (ready) raf = requestAnimationFrame(frame);
     }
 
+    function planTear(plan, from, block) {
+      return { from: from, until: from + plan.frames * 1000 / 24, tiles: plan.tiles, glitch: plan.glitch, after: plan.after ? (block % 2 ? 2 : -2) : 0, drawn: false };
+    }
+
+    // At a sheen in Gear Two the burst tears with it: the long tear moves to meet it when due within a second,
+    // otherwise one frame tears.
+    function tearAtSheen(now, t) {
+      var block = Math.floor(t / BEAT / TEAR_BLOCK);
+      for (var k = Math.max(block, longDone + 1); k <= block + 1; k++) {
+        if (Math.abs(longTearBeat(k) * BEAT + TEAR_AT - t) < 1) {
+          tear = planTear(tearSchedule(longTearBeat(k)), now, k);
+          longDone = k;
+          return;
+        }
+      }
+      tear = { from: now, until: now + 1000 / 24, tiles: 1, glitch: 0.6, after: 0, drawn: false };
+    }
+
     function render(now) {
       if (gl.isContextLost()) { fallback(); return; }
       reveal();
@@ -813,14 +846,29 @@
           sheenAt = now;
           sheenDir = turn.dir;
           sheenNumber = turn.index + 1;
-          if (gear) tear = { until: now + 1000 / 24, glitch: 0.6, tiles: 1, after: false };
+          if (gear && built > 2) tearAtSheen(now, t);
+        }
+      }
+      // Gear Two tears the figure on some heartbeats, from the beat's first peak, once it has assembled
+      if (live && gear && built > 2) {
+        var b = Math.floor(t / BEAT);
+        if (b !== tearBeat) {
+          tearBeat = b;
+          var plan = tearSchedule(b), block = Math.floor(b / TEAR_BLOCK);
+          if (plan && !(plan.long && block <= longDone) && !(tear && now < tear.until)) {
+            tear = planTear(plan, (b * BEAT + TEAR_AT) * 1000, block);
+            if (plan.long) longDone = block;
+          }
         }
       }
       var sheenAge = (now - sheenAt) / 1000;
       var sheening = live && sheenDir !== 0 && sheenAge < SHEEN_LIFE;
       // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
       var switching = live && now < glitchUntil;
-      var tearing = !switching && live && gear && !(touch && touch.dragging) && tear !== null && now < tear.until;
+      // a tear is drawn for at least one frame, even when frames come slower than 24 fps
+      var tearing = !switching && live && gear && !(touch && touch.dragging) && tear !== null && now >= tear.from &&
+        (now < tear.until || (!tear.drawn && now < tear.until + 250));
+      if (tearing) tear.drawn = true;
       var glitch = switching ? 1 : tearing ? tear.glitch : 0;
       tiles = glitch ? glitchTiles(Math.floor(t * 24), box, 3, function (x, y) { return maskAt(x, y) > 0.2; }).slice(0, switching ? 3 : tear.tiles) : [];
       tileFlat.fill(0);
@@ -860,13 +908,15 @@
       gl.uniform4f(U.u_span, left, right, box.size * 0.035, starChance);
       gl.uniform3fv(U.u_light, lights);
       gl.bindVertexArray(vao);
-      // while glitching, two faint afterimages sit 2 px either side of the figure
+      // while the switch glitches, two faint afterimages sit 2 px either side of the figure; a long tear leaves one
       if (switching || (tearing && tear.after)) {
         gl.uniform1f(U.u_alpha, 0.3);
-        gl.uniform2f(U.u_offset, -2, 0);
+        gl.uniform2f(U.u_offset, switching ? -2 : tear.after, 0);
         gl.drawArrays(gl.POINTS, 0, count);
-        gl.uniform2f(U.u_offset, 2, 0);
-        gl.drawArrays(gl.POINTS, 0, count);
+        if (switching) {
+          gl.uniform2f(U.u_offset, 2, 0);
+          gl.drawArrays(gl.POINTS, 0, count);
+        }
       }
       gl.uniform1f(U.u_alpha, 1);
       gl.uniform2f(U.u_offset, 0, 0);
@@ -914,7 +964,7 @@
       var phase = document.documentElement.getAttribute("data-phase");
       if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
       // leaving Gear Two: the tearing stops just after the palette comes back
-      if (was.gear && !colors.gear) glitchUntil = Math.min(glitchUntil, performance.now() + 140);
+      if (was.gear && !colors.gear) { glitchUntil = Math.min(glitchUntil, performance.now() + 140); tear = null; }
       if (was.gear !== colors.gear) ring = null;
       // the palette turning red rolls through the figure as a ripple from its centre
       if (!was.gear && colors.gear && canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2);
@@ -1031,6 +1081,7 @@
     smoothstep: smoothstep,
     hash: hash,
     heartbeat: heartbeat,
+    tearSchedule: tearSchedule,
     sway: sway,
     sheenPhase: sheenPhase,
     easeInOut: easeInOut,

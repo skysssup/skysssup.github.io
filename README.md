@@ -31,7 +31,9 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   click ripples, and Gear Two entirely in the vertex shader. At each turn of the sway a band of light crosses the
   figure and a burst of dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in
   Gear Two. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
-  white-hot, the ring breathes, and the glitch tears tiles out of the figure with two faint afterimages. It
+  white-hot, the ring breathes, and the glitch tears tiles out of the figure with two faint afterimages; while
+  Gear Two stays on, about a third of the heartbeats tear it again for a few frames, with a longer tear about
+  every 6 s. It
   pauses off-screen and draws one still frame under reduced motion. A small, preloaded `assets/hero/preview.webp`
   covers startup; without WebGL2 it shows the full-resolution `assets/hero/still.webp`. Both masks come from the
   same stipple render. Context restoration rebuilds GPU resources from cached geometry without fetching the

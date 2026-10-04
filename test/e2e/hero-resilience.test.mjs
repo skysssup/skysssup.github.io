@@ -412,6 +412,39 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
 });
 
+test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {
+  const { page } = await open(t);
+  await live(page);
+  await page.waitForTimeout(2500);
+  assert.ok((await state(page)).series.u_glitch.every(([, x]) => x === 0), 'light mode never tears');
+  const clicked = await page.evaluate(() => { document.querySelector('[data-gear-toggle]').click(); return performance.now(); });
+  await page.waitForFunction(at => window.__heroProbe.series.u_glitch.some(([time, x]) => time > at + 700 && x > 0), clicked, { timeout: 9000 });
+  const series = (await state(page)).series.u_glitch;
+  assert.ok(series.some(([time, x]) => time >= clicked && time < clicked + 700 && x === 1), 'switching on still glitches at full strength');
+  const [time, level] = series.find(([time, x]) => time > clicked + 700 && x > 0);
+  assert.ok(time - clicked < 6700, `a tear within 6 s of the switch window closing, came after ${Math.round(time - clicked)} ms`);
+  assert.ok(level === 0.6 || level === 0.8, `tears run lighter than the switch (${level})`);
+
+  const still = await open(t, { reduced: true });
+  await live(still.page);
+  await still.page.evaluate(() => window.skyGear.setGear(true));
+  await still.page.waitForTimeout(2500);
+  assert.ok((await state(still.page)).series.u_glitch.every(([, x]) => x === 0), 'reduced motion never tears');
+
+  const touched = await open(t, { touch: true });
+  await live(touched.page);
+  await touched.page.evaluate(() => window.skyGear.setGear(true));
+  const touch = await touchAt(touched.context, touched.page);
+  await touch.send('touchStart');
+  await touch.send('touchMove', touch.x + 60, touch.y + 4);
+  await touch.send('touchMove', touch.x + 120, touch.y + 6);
+  const dragging = await touched.page.evaluate(() => performance.now());
+  await touched.page.waitForTimeout(6000);
+  const during = (await state(touched.page)).series.u_glitch.filter(([time]) => time > dragging);
+  assert.ok(during.length > 3 && during.every(([, x]) => x === 0), 'no tears while a touch drag turns the figure');
+  await touch.send('touchEnd');
+});
+
 test('the public ripple API emits at the center without adding control semantics to the image', async t => {
   const { page } = await open(t);
   await live(page);

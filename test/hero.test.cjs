@@ -23,6 +23,25 @@ test('Gear Two heartbeat beats twice per 0.9 s and rests in between', () => {
   assert.ok(Math.abs(hero.heartbeat(0.08) - hero.heartbeat(0.98)) < 1e-9);
 });
 
+test('Gear Two tears on about a third of its heartbeats, with a long tear about every 6 s, the same way every time', () => {
+  const beats = 7000, plans = Array.from({ length: beats }, (_, b) => hero.tearSchedule(b));
+  assert.deepEqual(plans, Array.from({ length: beats }, (_, b) => hero.tearSchedule(b)), 'deterministic per beat');
+  const long = plans.map((p, b) => [p, b]).filter(([p]) => p && p.long).map(([, b]) => b);
+  const short = plans.filter(p => p && !p.long);
+  const share = short.length / (beats - long.length);
+  assert.ok(share > 0.32 && share < 0.38, `short tears on ${share} of the other beats`);
+  for (const p of short) {
+    assert.ok(p.frames >= 2 && p.frames <= 4 && (p.tiles === 1 || p.tiles === 2), `short tear ${JSON.stringify(p)}`);
+    assert.equal(p.glitch, 0.6);
+    assert.equal(p.after, false, 'short tears leave no afterimage');
+  }
+  for (let block = 0; block < beats / 7; block++) assert.equal(long.filter(b => Math.floor(b / 7) === block).length, 1, `one long tear in block ${block}`);
+  const gaps = long.slice(1).map((b, i) => (b - long[i]) * 0.9);
+  const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  assert.ok(Math.abs(mean - 6.3) < 0.1 && Math.min(...gaps) >= 4.5 && Math.max(...gaps) <= 8.1, `long tears every ${mean} s (${Math.min(...gaps)}-${Math.max(...gaps)})`);
+  assert.deepEqual(hero.tearSchedule(long[0]), { frames: 8, tiles: 3, glitch: 0.8, after: true, long: true });
+});
+
 test('the sheen fires as the assembly finishes, then at each turn of the sway, alternating sides', () => {
   const triggers = [];
   for (let c = 0, last = -1; c <= 70; c += 0.005) {
