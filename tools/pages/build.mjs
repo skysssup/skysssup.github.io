@@ -24,6 +24,7 @@ const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
 // A separator stays at the end of a line when a list wraps.
 const DOT = '&nbsp;· ';
+const DOWN = '&nbsp;<span aria-hidden="true">↓</span>';
 // Selected work alternates wide and narrow plates, mirrored from one band to the next.
 const PLATES = [['wide', 'left'], ['narrow', 'right'], ['wide', 'right'], ['narrow', 'left']];
 const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
@@ -371,18 +372,18 @@ function caseStudy(p, i) {
 ${header('work')}
 <main id="main">
   <div class="row case-head">
-    <p class="crumb t-label"><a href="/work/">Work</a> / ${pad(i + 1)}</p>
+    <p class="crumb"><a href="/work/">Work</a>${DOT}${pad(i + 1)}</p>
     <div class="case-title">
       <h1${vt(p)}>${esc(p.name)}</h1>
       <p>${esc(p.summary)}</p>
-      <div class="case-actions"><a class="action-link" href="#problem">Read case study <span aria-hidden="true">↓</span></a>${p.repo ? `<a class="link-ui" href="${p.repo}">View source${ARROW}</a>` : ''}</div>
+      <p class="case-actions"><a href="#problem">Read case study${DOWN}</a>${p.repo ? `<a href="${p.repo}">View source${ARROW}</a>` : ''}</p>
     </div>
     <div class="meta">
       <dl>
         <dt class="t-label">Role</dt><dd>Designed and built solo</dd>
         <dt class="t-label">Status</dt><dd>${esc(p.status)}</dd>
         <dt class="t-label">Themes</dt><dd>${themesOf(p)}</dd>
-        <dt class="t-label">Stack</dt><dd>${p.stack.map(esc).join(', ')}</dd>
+        <dt class="t-label">Stack</dt><dd>${p.stack.map(esc).join(DOT)}</dd>
         ${repoRow}
       </dl>
     </div>
@@ -413,16 +414,15 @@ ${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="$
       </section>
     </article>
     <aside class="aside" aria-label="Key numbers">
-      <div class="panel numbers">
-        <h2 class="panel-head">Numbers</h2>
-        <div class="panel-body">${body ? `\n${body.numbers}\n        ` : placeholder('Four to six verified facts from the code: counts, limits, sizes, test results.')}</div>
-      </div>
+      <div class="numbers">${body ? `\n${body.numbers}\n      ` : placeholder('Four to six verified facts from the code: counts, limits, sizes, test results.')}</div>
     </aside>
   </div>
 
   <nav class="row pager" aria-label="More projects">
-    <a class="c1-2" href="/work/${prev.slug}/"><span class="t-label muted">Previous</span><span class="t-s">${esc(prev.name)}</span></a>
-    <a class="c3-4 next" href="/work/${next.slug}/"><span class="t-label muted">Next</span><span class="t-s">${esc(next.name)}</span></a>
+    <ul class="hang-list">
+      <li><span>Previous</span><a href="/work/${prev.slug}/">${esc(prev.name)}${OPEN}</a></li>
+      <li><span>Next</span><a href="/work/${next.slug}/">${esc(next.name)}${OPEN}</a></li>
+    </ul>
   </nav>
 </main>
 ${footer()}
