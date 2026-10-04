@@ -126,8 +126,11 @@ test('the shipped hero data matches what the engine expects', () => {
   const chunks = [];
   for (let o = 8; o < png.length;) { const len = png.readUInt32BE(o); chunks.push(png.toString('ascii', o + 4, o + 8)); o += 12 + len; }
   for (const c of ['gAMA', 'iCCP', 'sRGB', 'cHRM']) assert.ok(!chunks.includes(c), `data.png must not carry ${c}, or browsers would color-manage the data`);
-  const total = ['data.png', 'bluenoise.png', 'hero.json'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
+  const total = ['data.png', 'bluenoise.png', 'hero.json', 'color.webp'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
   assert.ok(total < 200 * 1024, `hero data is ${total} bytes`);
+  const webp = fs.readFileSync(path.join(dir, 'color.webp'));
+  assert.equal(webp.toString('ascii', 0, 4), 'RIFF');
+  assert.equal(webp.toString('ascii', 8, 12), 'WEBP');
 });
 
 test('normals follow the depth map: flat ground faces the viewer, slopes tilt away from the rise, edges are one-sided', () => {
@@ -150,6 +153,24 @@ test('normals follow the depth map: flat ground faces the viewer, slopes tilt aw
   const many = hero.depthNormals(rgba, size, hero.stipple(rgba, size, Uint8Array.from({ length: 16 }, (_, i) => i * 16), 4, 24, 1, 0), 0.34);
   assert.equal(many.length % 2, 0);
   for (let i = 0; i < many.length; i += 2) assert.ok(many[i] * many[i] + many[i + 1] * many[i + 1] < 1, 'every normal has a positive z');
+});
+
+test('each dot samples the avatar color map bilinearly, sparkle included', () => {
+  const size = 4, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const i = (y * size + x) * 4;
+    rgba[i] = x < 2 ? 200 : 40;        // red on the left half
+    rgba[i + 1] = 90;
+    rgba[i + 2] = y < 2 ? 30 : 230;    // blue on the lower half
+    rgba[i + 3] = x === 3 && y === 3 ? 255 : 0;  // one sparkle in the corner
+  }
+  const at = (x, y) => [x / (size - 1), y / (size - 1), 0, 1];
+  const out = hero.sampleColors(rgba, size, new Float32Array([...at(0, 0), ...at(3, 3), ...at(1.5, 0), ...at(3, 2.5)]));
+  assert.deepEqual(Array.from(out.subarray(0, 4)), [200, 90, 30, 0]);
+  assert.deepEqual(Array.from(out.subarray(4, 8)), [40, 90, 230, 255]);
+  assert.deepEqual(Array.from(out.subarray(8, 12)), [120, 90, 30, 0], 'halfway between red and not-red');
+  assert.deepEqual(Array.from(out.subarray(12, 16)), [40, 90, 230, 127], 'halfway into the sparkle');
+  assert.equal(out.length, 16);
 });
 
 test('glitch tiles are deterministic per frame, land inside the box on the figure, and jump sideways', () => {

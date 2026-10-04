@@ -23,8 +23,10 @@ The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/d
   0.9 s heartbeat, the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring of project names. It stipples
   `assets/hero/data.png` (depth, ink, mask) against a blue-noise tile at load, derives a surface normal per dot
-  from the depth map, then animates sway, lighting, blinking, cursor push, click ripples, and Gear Two entirely
-  in the vertex shader. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
+  from the depth map, samples the avatar's color under each dot from `assets/hero/color.webp` (its hue, with
+  the brightness set by the paper, so marble stays ink and gold stays gold on light and dark alike; the map's
+  alpha carries the image's sparkles, which twinkle), then animates sway, lighting, blinking, cursor push,
+  click ripples, and Gear Two entirely in the vertex shader. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
   white-hot, the ring breathes, and the glitch tears tiles out of the figure with two faint afterimages. It
   pauses off-screen and draws one still frame under reduced motion. A small, preloaded `assets/hero/preview.webp`
   covers startup; without WebGL2 it shows the full-resolution `assets/hero/still.webp`. Both masks come from the
@@ -68,7 +70,8 @@ CI runs both on every push to `main`.
   CSS, JS, or tests also means regenerating.
 - Share images: `npm run og` (after changing a page title, summary, or cover).
 - Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). The depth map is cached in
-  `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Small (needs torch and transformers).
+  `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Small (needs torch and transformers);
+  `--color` rewrites only `assets/hero/color.webp`.
 
 ## Moving to aakashdahal.fun
 

@@ -3,14 +3,16 @@
 Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at load:
 
   assets/hero/data.png       RGB, 448x448: R = depth (near = bright), G = ink density, B = figure mask
+  assets/hero/color.webp     RGBA, 448x448: the avatar's own colors for the dots, A = its sparkle highlights
   assets/hero/bluenoise.png  64x64 void-and-cluster threshold map, tiled by the engine
   assets/hero/hero.json      figure bounds and centre of mass, used to frame the figure
   assets/hero/still.webp     transparent still frame, used before WebGL starts and without WebGL
 
 The depth map comes from Depth Anything V2 Small (Apache-2.0) and is cached in tools/hero/depth.png,
-so rebuilding only needs numpy and Pillow. Pass --depth to regenerate it (needs torch + transformers).
+so rebuilding only needs numpy and Pillow. Pass --depth to regenerate it (needs torch + transformers),
+or --color to rewrite only color.webp.
 
-    python3 tools/hero/build.py [--depth]
+    python3 tools/hero/build.py [--depth] [--color]
 """
 import json, os, sys
 import numpy as np
@@ -95,6 +97,26 @@ def maps():
     return dep, ink, mask, lum
 
 
+def color_map():
+    """The avatar's colors for the dots (saturation lifted a little, since each dot shows only a speck of it)
+    and, in alpha, its sparkles: small bright specks against their surroundings, which the engine twinkles."""
+    src = Image.open(os.path.join(ROOT, 'assets', 'avatar.jpg')).convert('RGB').resize((N, N), Image.LANCZOS)
+    rgb = np.asarray(src, np.float32) / 255
+    lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+    # Dots sit in the image's shadows, so a dot takes the color of its surroundings, not of the dark pixel
+    # under it: blur the color first, then lift its saturation.
+    soft = np.dstack([blurf(rgb[..., c], 4.0) for c in range(3)])
+    soft_lum = 0.2126 * soft[..., 0] + 0.7152 * soft[..., 1] + 0.0722 * soft[..., 2]
+    color = np.clip(soft_lum[..., None] + (soft - soft_lum[..., None]) * 1.8, 0, 1)
+    sparkle = np.clip((lum - blurf(lum, 2.5) - 0.10) / 0.22, 0, 1) * smoothstep(0.55, 0.85, lum)
+    sparkle = np.clip(blurf(sparkle, 0.7) * 1.4, 0, 1)
+    # Alpha carries the sparkle on top of an opaque floor (128 + sparkle * 127): browsers premultiply canvas
+    # pixels by alpha, so a fully transparent pixel would lose its color on the way to the engine.
+    rgba = np.dstack([color, 0.502 + sparkle * 0.498])
+    Image.fromarray(np.clip(np.round(rgba * 255), 0, 255).astype(np.uint8), 'RGBA').save(os.path.join(OUT, 'color.webp'), 'WEBP', quality=82, method=6, exact=True)
+    return sparkle
+
+
 def void_and_cluster(n=64, sigma=1.9, seed=7):
     rng = np.random.default_rng(seed)
     k = np.arange(n); k = np.minimum(k, n - k)
@@ -143,6 +165,10 @@ DENSITY = 0.56
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    sparkle = color_map()
+    if '--color' in sys.argv:
+        print('wrote color.webp;', int((sparkle > 0.5).sum()), 'sparkle pixels')
+        return
     dep, ink, mask, lum = maps()
     data = np.stack([dep, ink, mask], -1)
     Image.fromarray(np.clip(np.round(data * 255), 0, 255).astype(np.uint8), 'RGB').save(os.path.join(OUT, 'data.png'), optimize=True)

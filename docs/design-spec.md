@@ -97,7 +97,7 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
   - A depth map of the avatar from a monocular depth model (Depth Anything V2 Small, Apache-2.0).
   - A figure mask (statue, wings, caduceus; the clouds fade out; the starfield is dropped).
   - A tone map from luminance with local contrast.
-  - All three are packed into one PNG of about 150 KB or less.
+  - All three are packed into one PNG of about 150 KB or less, plus a 448 px color map (WebP, about 22 KB).
 - **Points.**
   - Blue-noise threshold stippling on the tone map inside the mask, so shadows read as dense dots and lit stone as sparse dots, like an engraving.
   - About 50k dots on desktop and 22k on mobile.
@@ -105,6 +105,7 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
 - **Render.**
   - One draw call of round anti-aliased dots. Dot size follows depth and Lambert light from the upper left, which is what makes it read as a sculpted object rather than a flat dither.
   - Ink is black on light, warm white on dark, red in Gear Two. DPR is capped at 2.
+  - **Color.** Each dot also carries the avatar's color around it (`assets/hero/color.webp`: the image blurred by 4 px, since dots sit in its shadows, with saturation lifted). The shader keeps the hue and sets the brightness from the paper (0.46 on light, 0.84 on dark), weighted by chroma: marble has none and stays ink; the wings, the caduceus, the hair, and the clouds keep their gold, peach, and blue. The map's alpha (above an opaque floor of 128, so browsers' premultiplication cannot erase the color) marks the image's own sparkles, which swell and brighten on a slow cycle of their own. Gear Two drops all color for red.
 - **Motion.** Slow yaw sway of ±16° over about 14 s and pitch of ±4°. Cursor tilt runs through a critically damped spring. All per-dot animation lives in the vertex shader.
 - **Lighting.** Each dot carries a surface normal derived at load from the depth map (central differences, one-sided at the mask edge, tilt capped so no normal lies flat). The vertex shader rotates it with the figure and lights it from the upper left: lit stone gets smaller, fainter dots; stone turning away gets heavier ones; grazing edges a little heavier still. This is what changes as the figure turns, and it is what makes the dots read as one solid.
 - **Blink.** Hash-seeded per dot. About 1.5% of dots are off at any moment, for 80–240 ms each. Gear Two doubles the rate and adds a double-pulse heartbeat to dot size.

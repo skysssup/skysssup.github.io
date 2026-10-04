@@ -84,12 +84,13 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
       if (probe.capture) {
         const pixels = new Uint8Array(this.drawingBufferWidth * this.drawingBufferHeight * 4);
         this.readPixels(0, 0, this.drawingBufferWidth, this.drawingBufferHeight, this.RGBA, this.UNSIGNED_BYTE, pixels);
-        let visible = 0, hash = 0;
+        let visible = 0, hash = 0, colored = 0;
         for (let i = 3; i < pixels.length; i += 4) {
           if (pixels[i]) visible++;
+          if (pixels[i] > 64 && Math.max(pixels[i - 3], pixels[i - 2], pixels[i - 1]) - Math.min(pixels[i - 3], pixels[i - 2], pixels[i - 1]) > 40) colored++;
           hash = (Math.imul(hash, 31) + pixels[i]) >>> 0;
         }
-        probe.pixels = { visible, hash, draw: probe.draws };
+        probe.pixels = { visible, hash, colored, draw: probe.draws };
         probe.capture = false;
       }
       return result;
@@ -396,6 +397,24 @@ test('the public ripple API emits at the center without adding control semantics
   assert.equal(uniforms.u_pointer[2], 0);
   assert.equal(await page.locator('#figure').getAttribute('role'), 'img');
   assert.equal(await page.locator('#figure').getAttribute('tabindex'), null);
+});
+
+test('the figure wears the avatar\'s colors, and draws in plain ink when the color map is missing', async t => {
+  const { page } = await open(t);
+  await live(page);
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
+  const painted = await capture(page);
+  assert.ok(painted.colored > 300, `${painted.colored} colored pixels: the wings and the caduceus should carry gold`);
+  assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
+  await page.evaluate(() => window.skyGear.setGear(true));
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_tint[0] === 0, null, { timeout: 3000 });
+  const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
+  await live(plain.page);
+  await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
+  const ink = await capture(plain.page);
+  assert.ok(ink.visible > 500);
+  assert.equal(ink.colored, 0, 'without the color map every dot is ink');
+  assert.deepEqual((await state(plain.page)).uniforms.u_tint, [0]);
 });
 
 for (const [name, asset, response] of [

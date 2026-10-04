@@ -126,6 +126,20 @@
     return out;
   }
 
+  // The avatar's color under each dot, bilinear from the size x size RGBA color map: [r, g, b, a] bytes
+  // per dot, where a is 128 plus the image's own sparkle (its highlights, which the shader twinkles).
+  function sampleColors(rgba, size, points) {
+    var n = points.length / 4, out = new Uint8Array(n * 4), last = size - 1;
+    for (var i = 0; i < n; i++) {
+      var u = clamp(points[i * 4] * last, 0, last), v = clamp(points[i * 4 + 1] * last, 0, last);
+      var j0 = Math.floor(u), i0 = Math.floor(v), fx = u - j0, fy = v - i0, j1 = Math.min(j0 + 1, last), i1 = Math.min(i0 + 1, last);
+      var a = (i0 * size + j0) * 4, b = (i0 * size + j1) * 4, c = (i1 * size + j0) * 4, d = (i1 * size + j1) * 4;
+      var w00 = (1 - fx) * (1 - fy), w01 = fx * (1 - fy), w10 = (1 - fx) * fy, w11 = fx * fy;
+      for (var k = 0; k < 4; k++) out[i * 4 + k] = Math.round(rgba[a + k] * w00 + rgba[b + k] * w01 + rgba[c + k] * w10 + rgba[d + k] * w11);
+    }
+    return out;
+  }
+
   // Gear Two glitch tiles for one 24 fps frame: up to `count` blocks of the figure that jump sideways,
   // each [x, y, w, h, dx, dy] in canvas px inside `box` ({x, y, size}). Deterministic per frame; `onFigure`
   // (optional) rejects candidates whose centre misses the figure, so blocks tear out of the statue, not the air.
@@ -201,6 +215,7 @@
     "precision highp float;",
     "layout(location = 0) in vec4 a_p;",
     "layout(location = 1) in vec2 a_n;",
+    "layout(location = 2) in vec4 a_c;",
     "uniform vec2 u_res;",
     "uniform vec3 u_box;",
     "uniform vec2 u_pivot;",
@@ -219,9 +234,13 @@
     "uniform vec2 u_shift[3];",
     "uniform vec2 u_offset;",
     "uniform float u_alpha;",
+    "uniform vec3 u_color;",
+    "uniform float u_tint;",
+    "uniform float u_dark;",
     "out float v_alpha;",
     "out float v_size;",
     "out float v_hot;",
+    "out vec3 v_color;",
     "uint h(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }",
     "float r01(uint x) { return float(h(x)) / 4294967296.0; }",
     "void main() {",
@@ -278,6 +297,19 @@
     "  }",
     // Gear Two heartbeat: a few dots run white-hot at each beat
     "  if (u_beat > 0.45 && r01(id * 5u + 3u) < 0.035) hot = max(hot, u_beat);",
+    // the avatar's own color where it has one (gold, pink, the cyan rim light); marble stays ink.
+    // On light paper the color is deepened so it holds against white; on dark paper it is lifted.
+    // the hue comes from the image; the brightness comes from the paper, so gold reads as gold on both
+    "  vec3 c = a_c.rgb;",
+    "  float cl = dot(c, vec3(0.2126, 0.7152, 0.0722));",
+    "  float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));",
+    "  float keep = u_tint * smoothstep(0.05, 0.2, chroma);",
+    "  vec3 shown = clamp(mix(0.46, 0.84, u_dark) + (c - cl) * 2.4, 0.0, 1.0);",
+    "  v_color = mix(u_color, shown, keep);",
+    // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
+    "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
+    "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853));",
+    "  hot = max(hot, tw * 0.9);",
     "  px += u_offset;",
     // blink
     "  float period = 3.2 / u_blink;",
@@ -290,7 +322,7 @@
     "  float dur = 0.08 + r01(key + 2u) * 0.16;",
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
-    "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim);",
+    "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim) * (1.0 + 0.9 * tw);",
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(1.0, 0.86, lam) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  if (off) v_alpha = 0.0;",
@@ -307,13 +339,14 @@
     "in float v_alpha;",
     "in float v_size;",
     "in float v_hot;",
-    "uniform vec3 u_color;",
+    "in vec3 v_color;",
+    "uniform vec3 u_hot;",
     "out vec4 o;",
     "void main() {",
     "  float d = length(gl_PointCoord - 0.5) * v_size;",
     "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0) * v_alpha;",
     "  if (a <= 0.0) discard;",
-    "  o = vec4(mix(u_color, vec3(1.0, 0.93, 0.9), v_hot * 0.9) * a, a);",
+    "  o = vec4(mix(v_color, u_hot, v_hot * 0.9) * a, a);",
     "}"
   ].join("\n");
 
@@ -322,7 +355,8 @@
   function readColors() {
     var s = getComputedStyle(document.documentElement);
     var get = function (name) { return s.getPropertyValue(name).trim(); };
-    return { ink: get("--figure-ink"), accent: get("--accent"), paper: get("--paper"), text: get("--ink"), gear: document.documentElement.getAttribute("data-gear") === "two" };
+    var paper = get("--paper"), p = rgb(paper);
+    return { ink: get("--figure-ink"), accent: get("--accent"), paper: paper, text: get("--ink"), gear: document.documentElement.getAttribute("data-gear") === "two", dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5 };
   }
 
   function rgb(css) {
@@ -390,10 +424,11 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var maps = null, noise = null, meta = null, points = null, vertices = null, count = 0, res = 0;
+    var maps = null, noise = null, meta = null, palette = null, points = null, vertices = null, count = 0, res = 0;
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
+    var tintNow = colors.gear ? 0 : 1, tintFrom = tintNow, tintTo = tintNow;
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
     var touch = null;
@@ -455,17 +490,20 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_dark", "u_hot"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
         if (!vao || !vbo || !query) throw new Error("hero buffers unavailable");
         gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        // per dot: x, y, z, ink (4 floats), normal (2 floats), color and sparkle (4 bytes): 28 bytes
         gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 24, 0);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 28, 0);
         gl.enableVertexAttribArray(1);
-        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 24, 16);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 28, 16);
+        gl.enableVertexAttribArray(2);
+        gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, 28, 24);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         ready = size();
@@ -515,12 +553,15 @@
         points = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
         count = points.length / 4;
         var normals = depthNormals(maps.data, maps.width, points, RELIEF);
-        vertices = new Float32Array(count * 6);
+        var tints = palette ? sampleColors(palette.data, palette.width, points) : null;
+        var buffer = new ArrayBuffer(count * 28), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer);
         for (var i = 0; i < count; i++) {
-          vertices.set(points.subarray(i * 4, i * 4 + 4), i * 6);
-          vertices[i * 6 + 4] = normals[i * 2];
-          vertices[i * 6 + 5] = normals[i * 2 + 1];
+          floats.set(points.subarray(i * 4, i * 4 + 4), i * 7);
+          floats[i * 7 + 4] = normals[i * 2];
+          floats[i * 7 + 5] = normals[i * 2 + 1];
+          if (tints) bytes.set(tints.subarray(i * 4, i * 4 + 4), i * 28 + 24);
         }
+        vertices = bytes;
         if (opts.onCount) opts.onCount(count);
       }
       if (!count) throw new Error("hero data is empty");
@@ -675,6 +716,7 @@
       if (inkAt) {
         var q = clamp((now - inkAt) / 320, 0, 1);
         inkNow = [0, 1, 2].map(function (c) { return inkFrom[c] + (inkTo[c] - inkFrom[c]) * q; });
+        tintNow = tintFrom + (tintTo - tintFrom) * q;
         if (q >= 1) inkAt = 0;
       }
       for (var i = 0; i < 4; i++) {
@@ -712,6 +754,11 @@
       gl.uniform4fv(U.u_tile, tileFlat);
       gl.uniform2fv(U.u_shift, shiftFlat);
       gl.uniform3f(U.u_color, inkNow[0], inkNow[1], inkNow[2]);
+      // no avatar color in Gear Two: the figure is red. Sparkles and hot dots run warm white on dark paper, gold on light.
+      gl.uniform1f(U.u_tint, palette ? tintNow : 0);
+      gl.uniform1f(U.u_dark, colors.dark ? 1 : 0);
+      if (colors.dark) gl.uniform3f(U.u_hot, 1.0, 0.95, 0.86);
+      else gl.uniform3f(U.u_hot, 0.86, 0.6, 0.16);
       gl.bindVertexArray(vao);
       // while glitching, two faint afterimages sit 2 px either side of the figure
       if (glitch) {
@@ -748,6 +795,7 @@
       if (!ready || !visible || document.hidden) return;
       if (motion.reduced()) {
         inkNow = rgb(colors.ink);
+        tintNow = tintTo = colors.gear ? 0 : 1;
         inkAt = 0;
         render(performance.now());
         if (queryPending) raf = requestAnimationFrame(frame);
@@ -759,9 +807,9 @@
     function onTheme() {
       var was = colors;
       colors = readColors();
-      var next = rgb(colors.ink);
-      if (motion.reduced() || !ready) { inkNow = next; inkAt = 0; }
-      else if (next.join() !== inkNow.join()) { inkFrom = inkNow; inkTo = next; inkAt = performance.now(); }
+      var next = rgb(colors.ink), tint = colors.gear ? 0 : 1;
+      if (motion.reduced() || !ready) { inkNow = next; tintNow = tintFrom = tintTo = tint; inkAt = 0; }
+      else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
       if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
       // leaving Gear Two: the tearing stops just after the palette comes back
@@ -851,7 +899,9 @@
       fetch(base + "hero.json").then(function (r) {
         if (!r.ok) throw new Error("hero metadata " + r.status);
         return r.json();
-      })
+      }),
+      // the color map is optional: without it every dot is ink
+      loadImageData(base + "color.webp").then(function (img) { return img.width === img.height ? img : null; }, function () { return null; })
     ]).then(function (all) {
       if (all[0].width < 2 || all[0].width !== all[0].height || all[1].width !== all[1].height) throw new Error("hero maps must be square");
       var data = all[2];
@@ -863,6 +913,7 @@
       maps = all[0];
       noise = { width: all[1].width, data: (function () { var d = all[1].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
       meta = data;
+      palette = all[3];
       initialize();
     }).catch(fallback);
 
@@ -884,6 +935,7 @@
     blinkOff: blinkOff,
     stipple: stipple,
     depthNormals: depthNormals,
+    sampleColors: sampleColors,
     glitchTiles: glitchTiles,
     resolutionFor: resolutionFor,
     fit: fit,
