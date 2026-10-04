@@ -53,3 +53,17 @@ test('cat runs to the edge the cursor left through and scratches that wall', () 
   for (let i = 0; i < 80; i++) sprite = cat.step(state, target, view, 10);
   assert.match(sprite, /^scratchR[12]$/);
 });
+
+test('cat stays between the header and the footer, and scratches the footer edge it is stopped by', () => {
+  const view = { w: 1000, h: 800, top: 56, bottom: 620 };
+  assert.equal(cat.wallOf(500, 80, view.w, view.h, view.top, view.bottom), 'U');
+  assert.equal(cat.wallOf(500, 600, view.w, view.h, view.top, view.bottom), 'D');
+  assert.equal(cat.wallOf(500, 300, view.w, view.h, view.top, view.bottom), null);
+  const state = { x: 500, y: 400, frame: 0, idle: 0, state: 'run', alertLeft: 0 };
+  let sprite = '';
+  for (let i = 0; i < 80; i++) sprite = cat.step(state, { x: 500, y: 784, edge: true }, view, 10);
+  assert.equal(state.y, view.bottom - 16);
+  assert.match(sprite, /^scratchD[12]$/);
+  for (let i = 0; i < 80; i++) cat.step(state, { x: 500, y: 10, edge: false }, view, 10);
+  assert.ok(state.y >= view.top + 16, `cat at ${state.y} went under the header`);
+});

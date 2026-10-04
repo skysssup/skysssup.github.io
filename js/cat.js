@@ -297,16 +297,21 @@
     return dx < 0 ? "L" : "R";
   }
 
-  function wallOf(x, y, w, h) {
+  // The cat walks the band between `top` and `bottom` (below the header, above the footer when it shows).
+  function wallOf(x, y, w, h, top, bottom) {
+    top = top || 0;
+    bottom = bottom == null ? h : bottom;
     if (x <= EDGE) return "L";
     if (x >= w - EDGE) return "R";
-    if (y <= EDGE) return "U";
-    if (y >= h - EDGE) return "D";
+    if (y <= top + EDGE) return "U";
+    if (y >= bottom - EDGE) return "D";
     return null;
   }
 
   // Pure state step so the behavior can be tested without a DOM.
   function step(cat, target, view, speed) {
+    var top = (view.top || 0) + 16, bottom = (view.bottom == null ? view.h : view.bottom) - 16;
+    target = { x: target.x, y: Math.max(top, Math.min(bottom, target.y)), edge: target.edge };
     var dx = target.x - cat.x, dy = target.y - cat.y;
     var distance = Math.hypot(dx, dy);
     cat.frame++;
@@ -324,11 +329,11 @@
       cat.x += (dx / distance) * move;
       cat.y += (dy / distance) * move;
       cat.x = Math.max(16, Math.min(view.w - 16, cat.x));
-      cat.y = Math.max(16, Math.min(view.h - 16, cat.y));
+      cat.y = Math.max(top, Math.min(bottom, cat.y));
       return "run" + heading(dx, dy) + (cat.frame % 2 ? "1" : "2");
     }
     cat.idle++;
-    var wall = wallOf(cat.x, cat.y, view.w, view.h);
+    var wall = wallOf(cat.x, cat.y, view.w, view.h, view.top, view.bottom);
     if (wall && target.edge) {
       cat.state = "scratch";
       return "scratch" + wall + (((cat.frame / 2) | 0) % 2 ? "1" : "2");
@@ -381,9 +386,18 @@
       }
     }
 
+    var header = document.querySelector(".site-header");
+    var footer = document.querySelector(".site-footer");
+
     function tick() {
       var gear = document.documentElement.getAttribute("data-gear") === "two";
-      var sprite = step(cat, target, { w: innerWidth, h: innerHeight }, gear ? SPEED * 1.8 : SPEED);
+      var view = {
+        w: innerWidth,
+        h: innerHeight,
+        top: header ? Math.max(0, header.getBoundingClientRect().bottom) : 0,
+        bottom: footer ? Math.min(innerHeight, footer.getBoundingClientRect().top) : innerHeight
+      };
+      var sprite = step(cat, target, view, gear ? SPEED * 1.8 : SPEED);
       paint(ctx, SPRITES[sprite] || SPRITES.sit, colors());
       canvas.style.transform = "translate(" + Math.round(cat.x - 16) + "px," + Math.round(cat.y - 16) + "px)";
       canvas.classList.toggle("is-alert", cat.state === "alert");
