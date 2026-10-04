@@ -125,3 +125,12 @@ test('/portfolio/ forwards to /work/', () => {
   assert.match(doc, /<meta http-equiv="refresh" content="0; url=\/work\/">/);
   assert.match(doc, /<link rel="canonical" href="https:\/\/skysssup\.github\.io\/work\/">/);
 });
+
+test('share images are current: each matches the title, summary, and visual of its page', () => {
+  const { cards, fingerprint } = require('../tools/og/cards.cjs');
+  const stamp = JSON.parse(fs.readFileSync(path.join(root, 'assets', 'og', 'stamp.json'), 'utf8'));
+  for (const card of cards(root)) {
+    assert.ok(card.title && card.summary, `${card.out} has a title and summary`);
+    assert.equal(stamp[card.out], fingerprint(root, card), `assets/og/${card.out} is stale: run npm run og`);
+  }
+});
