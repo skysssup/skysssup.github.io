@@ -1,11 +1,12 @@
-// Page generator used to stamp the shared chrome (header, footer, meta) into every page from
-// tools/pages/site.json and tools/pages/projects/*.json. The committed HTML is the source of truth:
-// case-study bodies are edited by hand, so re-run this only for chrome changes, and then re-apply
-// hand edits (or extend the generator to read per-project body files).  node tools/pages/build.mjs
+// Page generator: stamps the shared chrome (head, header, footer, case-study frame) into every page from
+// tools/pages/site.json and tools/pages/projects/*.json, and pastes each case study's hand-written body
+// from tools/pages/bodies/<slug>.html. Edit those files, run `node tools/pages/build.mjs`, and commit the
+// result; test/pages.test.cjs fails when a committed page and the generator disagree.
 import fs from 'node:fs';
 import path from 'node:path';
 
 const SRC = path.dirname(new URL(import.meta.url).pathname);
+const BODIES = path.join(SRC, 'bodies');
 const OUT = process.argv[2] || path.resolve(SRC, '..', '..');
 const site = JSON.parse(fs.readFileSync(path.join(SRC, 'site.json'), 'utf8'));
 const projects = site.order.map(slug => JSON.parse(fs.readFileSync(path.join(SRC, 'projects', slug + '.json'), 'utf8')));
@@ -237,10 +238,24 @@ function diagramPlaceholder() {
           </figure>`;
 }
 
+// A body file holds the case study's prose sections, then a `<!-- numbers -->` line, then the numbers <dl>.
+// Both parts are pasted verbatim; the section index is read from the sections' ids and headings.
+function bodyOf(slug) {
+  const file = path.join(BODIES, slug + '.html');
+  if (!fs.existsSync(file)) return null;
+  const text = fs.readFileSync(file, 'utf8').replace(/^<!--[\s\S]*?-->\n/, '');
+  const parts = text.split(/^<!-- numbers -->\n/m);
+  if (parts.length !== 2) throw new Error(`${file}: expected exactly one "<!-- numbers -->" line`);
+  const sections = [...parts[0].matchAll(/<section id="([a-z-]+)" aria-labelledby="\1-title">\s*<h2 id="\1-title">([^<]+)<\/h2>/g)].map(m => [m[1], m[2]]);
+  return { prose: parts[0].replace(/\s+$/, ''), numbers: parts[1].replace(/\s+$/, ''), sections };
+}
+
 function caseStudy(p, i) {
   const prev = projects[(i - 1 + projects.length) % projects.length];
   const next = projects[(i + 1) % projects.length];
   const url = `/work/${p.slug}/`;
+  const body = bodyOf(p.slug);
+  const toc = body ? body.sections : SECTIONS;
   const repoRow = p.repo
     ? `<dt class="t-label">Code</dt><dd><a href="${p.repo}">github.com/${site.github}/${p.slug}</a> ${ARROW}</dd>`
     : `<dt class="t-label">Code</dt><dd>Private repository</dd>`;
@@ -277,12 +292,12 @@ ${header('work')}
   <div class="row case-body">
     <nav class="toc" aria-label="On this page">
       <ol>
-${SECTIONS.map(([id, title]) => `        <li><a href="#${id}">${title}</a></li>`).join('\n')}
+${toc.map(([id, title]) => `        <li><a href="#${id}">${title}</a></li>`).join('\n')}
         <li><a href="#stack">Stack and links</a></li>
       </ol>
     </nav>
     <article class="prose">
-${SECTIONS.map(([id, title, guide]) => `      <section id="${id}" aria-labelledby="${id}-title">
+${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="${id}" aria-labelledby="${id}-title">
         <h2 id="${id}-title">${title}</h2>
         ${placeholder(guide)}${id === 'how' ? '\n          ' + diagramPlaceholder() : ''}
       </section>`).join('\n')}
@@ -295,7 +310,7 @@ ${SECTIONS.map(([id, title, guide]) => `      <section id="${id}" aria-labelledb
     <aside class="aside" aria-label="Key numbers">
       <div class="panel numbers">
         <h2 class="panel-head">Numbers</h2>
-        <div class="panel-body">${placeholder('Four to six verified facts from the code: counts, limits, sizes, test results.')}</div>
+        <div class="panel-body">${body ? `\n${body.numbers}\n        ` : placeholder('Four to six verified facts from the code: counts, limits, sizes, test results.')}</div>
       </div>
     </aside>
   </div>
@@ -307,7 +322,7 @@ ${SECTIONS.map(([id, title, guide]) => `      <section id="${id}" aria-labelledb
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', '/js/cat.js', '/js/page.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', ...(body && body.prose.includes('data-demo') ? ['/js/demo.js'] : []), '/js/cat.js', '/js/page.js'])}
 </body>
 </html>
 `;

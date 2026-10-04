@@ -46,8 +46,10 @@ npm run test:e2e              # every page at 1440/1280/768/390 in light, dark, 
 
 CI runs both on every push to `main`.
 
-## Regenerating assets
+## Regenerating pages and assets
 
+- Pages: `node tools/pages/build.mjs` after editing `tools/pages/` (site and project data, case-study bodies in
+  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match.
 - Share images: `npm run og` (after changing a page title, summary, or cover).
 - Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). The depth map is cached in
   `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Small (needs torch and transformers).

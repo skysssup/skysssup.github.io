@@ -1,8 +1,16 @@
 # Writing a case study
 
-Each project page lives at `work/<slug>/index.html`. It is plain HTML: edit it directly, no build step.
-Every unwritten part is a placeholder marked `data-placeholder`, with a **To write** tag and a note on what
-belongs there. Replace the whole `<p class="placeholder" …>` element with real content.
+Each project page lives at `work/<slug>/index.html`, and it is generated: the chrome (head, header, case-study
+header, lead figure, section index, stack and links, pager, footer) comes from `tools/pages/site.json` and
+`tools/pages/projects/<slug>.json`, and the hand-written part comes from `tools/pages/bodies/<slug>.html`.
+
+1. Edit `tools/pages/bodies/<slug>.html`: the prose sections in order, then a line `<!-- numbers -->`, then the
+   numbers `<dl>`. Both parts are pasted into the page verbatim, so keep the indentation and never indent inside
+   `<pre>`. The section index is read from each section's `id` and `h2`.
+2. Run `node tools/pages/build.mjs` and commit the body file together with the regenerated pages.
+   `npm test` fails when a committed page differs from the generator's output.
+
+A project without a body file gets placeholder sections, each marked `data-placeholder` with a **To write** tag.
 
 ## Sections
 
@@ -45,7 +53,7 @@ Key decisions:
 
 A bulleted list: `<ul class="list"><li>…</li></ul>`
 
-Numbers panel (replace the placeholder inside `.numbers .panel-body`):
+Numbers panel (after the `<!-- numbers -->` line):
 
 ```html
 <dl>
