@@ -469,8 +469,9 @@ html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal]::before {
   transition: transform .9s var(--ease-out);
 }
 html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal].is-seen::before { transform: none; }
-html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal] { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out), border-color .2s; }
-html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal].is-seen { clip-path: inset(0 0 0 0); }
+/* the frame is observed and stays whole; what it holds wipes in (a clipped element never intersects) */
+html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal] > :is(img, video, .media-type) { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out), transform .6s var(--ease-out); }
+html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal].is-seen > :is(img, video, .media-type) { clip-path: inset(0 0 0 0); }
 
 /* ── stack matrix: technologies × projects ─────────────── */
 /* The label column runs from the inset to the fourth minor line; each project column is one minor column. */
@@ -870,7 +871,8 @@ html.index-is-open { scrollbar-gutter: stable; }
   .index-content { padding-left: 16px; padding-right: 16px; }
   .index-projects a { gap: 12px; }
   .index-footer { padding-left: 16px; padding-right: 16px; }
-  .index-pages a { padding-left: 8px; padding-right: 8px; }
+  .index-pages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .index-pages a { padding-left: 10px; padding-right: 10px; }
   .index-enter { display: none; }
 }
 
@@ -928,11 +930,13 @@ html.index-is-open { scrollbar-gutter: stable; }
   height: var(--reach);
   margin: calc(var(--reach) / -2) 0 0 calc(var(--reach) / -2);
   border: 2px solid var(--split-a);
+  outline: 1px solid rgba(255, 59, 48, .35);
+  outline-offset: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 40px rgba(255, 59, 48, .35), inset 0 0 40px rgba(255, 59, 48, .25);
   pointer-events: none;
   transform: scale(0);
   opacity: 0;
+  will-change: transform, opacity;
   animation: shockwave .9s var(--ease-out) 1 forwards;
 }
 @keyframes shockwave {
@@ -986,6 +990,7 @@ html.index-is-open { scrollbar-gutter: stable; }
   pointer-events: none;
   background: radial-gradient(circle at 50% 56%, rgba(255, 59, 48, .34) 0%, rgba(255, 59, 48, .11) 30%, rgba(255, 59, 48, 0) 64%);
   opacity: .5;
+  will-change: transform, opacity;
   animation: glow-beat .9s linear infinite;
   animation-delay: var(--beat-delay, 0s);
 }
@@ -1064,7 +1069,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .skip, .header-mid, .header-end, .site-footer .end, .toc, .fig-ctrl, .copy, .cat, .hero-figure canvas, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .site-footer .end, .toc, .fig-ctrl, .copy, .cat, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

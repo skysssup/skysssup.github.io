@@ -349,20 +349,21 @@ test('the stack matrix draws in once seen, lights a column on hover, and reads a
 
 test('section rules draw in, media wipes in, and the colophon counts up, except under reduced motion', async () => {
   const { page, context } = await open('/');
-  const head = page.locator('#selected .section-head');
-  assert.equal(await head.evaluate(el => el.classList.contains('is-seen')), false);
+  assert.equal(await page.locator('#stack .section-head').evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
+  assert.equal(await page.locator('#stack .section-head').evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
   const figure = page.locator('.figures dt').first();
   const printed = await figure.textContent();
   await page.locator('#colophon').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector('.figures').classList.contains('is-seen'));
   await page.waitForFunction(printed => document.querySelector('.figures dt').textContent === printed, printed, { timeout: 3000 });
   assert.equal(await page.evaluate(() => document.querySelector('#colophon .section-head').classList.contains('is-seen')), true);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#colophon .section-head'), '::before').transform === 'none');
   await page.locator('#selected .card-media').first().scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector('#selected .card-media').classList.contains('is-seen'));
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .card-media')).clipPath === 'inset(0px)');
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .card-media > img')).clipPath === 'inset(0px)');
   await context.close();
   const still = await open('/', { reduced: true });
-  assert.equal(await still.page.locator('#selected .card-media').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
+  assert.equal(await still.page.locator('#selected .card-media > img').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
   assert.equal(await still.page.locator('.matrix-cell[data-on] .dot').first().evaluate(el => getComputedStyle(el).transform), 'none', 'dots are simply there under reduced motion');
   assert.equal(await still.page.locator('.figures dt').first().textContent(), printed, 'the printed number stands as is');
   await still.context.close();

@@ -108,7 +108,7 @@ function siteIndex() {
     <nav class="index-pages" aria-label="Pages">
       <a href="/" data-index-item data-search="home aakash dahal">Home ${NEXT}</a>
       <a href="/work/" data-index-item data-search="all work projects portfolio">All work ${NEXT}</a>
-      <a href="/#stack" data-index-item data-search="stack technologies matrix typescript python">Stack ${NEXT}</a>
+      <a href="/#stack" data-index-item data-search="stack technologies matrix languages">Stack ${NEXT}</a>
       <a href="/#contact" data-index-item data-search="contact email github social">Contact ${NEXT}</a>
     </nav>
     <nav aria-label="Projects">
