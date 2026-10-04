@@ -14,9 +14,9 @@
   "Rapier",
   "MediaPipe"
  ],
- "tagline": "Draw ramps, balls, and platforms; Rapier simulates them in 2.5D.",
- "description": "Browser-based 2.5D sketch-to-physics playground with mouse drawing, optional webcam gestures, and JSON scene import/export.",
- "summary": "A browser physics sandbox: drawn strokes become ramps, balls, and platforms that Rapier simulates at a fixed 60 Hz.",
+ "tagline": "Draw ramps, balls, platforms, and curves; Rapier simulates them in 2.5D.",
+ "description": "Browser-based 2.5D sketch-to-physics playground with mouse drawing, curved tracks, motion marks, optional webcam gestures, and scene files and links.",
+ "summary": "A browser physics sandbox: drawn strokes become ramps, balls, platforms, and curved tracks that Rapier simulates at a fixed 120 Hz.",
  "cover": {
   "src": "/work/airforge/media/cover",
   "w": 1344,
