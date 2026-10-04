@@ -92,7 +92,7 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
           if (pixels[i] > 64 && Math.max(pixels[i - 3], pixels[i - 2], pixels[i - 1]) - Math.min(pixels[i - 3], pixels[i - 2], pixels[i - 1]) > 40) colored++;
           hash = (Math.imul(hash, 31) + pixels[i]) >>> 0;
         }
-        probe.pixels = { visible, hash, colored, draw: probe.draws };
+        probe.pixels = { visible, hash, colored, draw: probe.draws, sheen: (probe.uniforms.u_sheen || [0, 0, 0, 0]).slice() };
         probe.capture = false;
       }
       return result;
@@ -108,7 +108,7 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
   const errors = [], assets = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => {
-    if (/\/assets\/hero\/(data\.png|bluenoise\.png|hero\.json)$/.test(request.url())) assets.push(request.url());
+    if (/\/assets\/hero\/(ink\.webp|depth\.webp|bluenoise\.png|hero\.json)$/.test(request.url())) assets.push(request.url());
   });
   t.after(() => assert.deepEqual(errors, [], 'the hero must not abort page initialization or event handlers'));
   if (setup) await setup(page);
@@ -135,6 +135,16 @@ async function capture(page, redraw) {
   if (redraw) await page.evaluate(redraw);
   await page.waitForFunction(n => window.__heroProbe.pixels?.draw > n, before);
   return (await state(page)).pixels;
+}
+
+// A frame with no sheen or star burst in it, for checks on the figure's own colours.
+async function captureWithoutSheen(page) {
+  for (let i = 0; i < 60; i++) {
+    const pixels = await capture(page);
+    if (pixels.sheen[1] === 0) return pixels;
+    await page.waitForTimeout(100);
+  }
+  throw new Error('every captured frame carried a sheen');
 }
 
 async function lose(page) {
@@ -168,7 +178,7 @@ test('loading waits for data and the first drawn figure before announcing a live
   let release;
   const held = new Promise(resolve => { release = resolve; });
   t.after(release);
-  const { page } = await open(t, { setup: page => page.route('**/assets/hero/data.png', async route => { await held; await route.continue(); }) });
+  const { page } = await open(t, { setup: page => page.route('**/assets/hero/ink.webp', async route => { await held; await route.continue(); }) });
   await page.waitForFunction(() => !!window.__heroApi);
   assert.equal((await state(page)).draws, 0);
   assert.equal(await page.locator('#figure').evaluate(el => el.classList.contains('is-live')), false);
@@ -208,24 +218,24 @@ test('real context loss pauses rendering and repeated restoration rebuilds cache
   assert.ok(await page.locator('.hero-words').evaluate(canvas => {
     const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
     return pixels.some((n, i) => i % 4 === 3 && n > 0);
-  }), 'the project-name ring must return too');
+  }), 'the ring must return too');
 });
 
 test('assets finishing during context loss are retained for restoration', async t => {
   let release;
   const held = new Promise(resolve => { release = resolve; });
   t.after(release);
-  const { page, assets } = await open(t, { setup: page => page.route('**/assets/hero/data.png', async route => { await held; await route.continue(); }) });
+  const { page, assets } = await open(t, { setup: page => page.route('**/assets/hero/ink.webp', async route => { await held; await route.continue(); }) });
   await page.waitForSelector('.hero-dots', { state: 'attached' });
   await lose(page);
-  const loaded = page.waitForResponse('**/assets/hero/data.png');
+  const loaded = page.waitForResponse('**/assets/hero/ink.webp');
   release();
   await loaded;
   await stillDrawing(page);
   await page.evaluate(() => window.__loseHero.restoreContext());
   await live(page);
   assert.ok((await capture(page)).visible > 0);
-  assert.equal(assets.length, 3);
+  assert.equal(assets.length, 4);
 });
 
 test('reduced motion cancels active mouse push and ripples, and never advances the still', async t => {
@@ -402,6 +412,63 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
 });
 
+test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {
+  const { page } = await open(t);
+  await live(page);
+  await page.waitForTimeout(2500);
+  assert.ok((await state(page)).series.u_glitch.every(([, x]) => x === 0), 'light mode never tears');
+  const clicked = await page.evaluate(() => { document.querySelector('[data-gear-toggle]').click(); return performance.now(); });
+  // the switch glitches at full strength (1) until its window closes, which a busy main thread can push late;
+  // tears run lighter (0.6 or 0.8), so the series itself says where the window ended
+  await page.waitForFunction(at => window.__heroProbe.series.u_glitch.some(([time, x]) => time > at && x > 0 && x < 1), clicked, { timeout: 12000 });
+  const series = (await state(page)).series.u_glitch;
+  const switched = series.filter(([time, x]) => time >= clicked && x === 1);
+  assert.ok(switched.length > 0, 'switching on still glitches at full strength');
+  const closed = switched.at(-1)[0];
+  const [time, level] = series.find(([time, x]) => time > closed && x > 0);
+  assert.ok(time - closed < 6000, `a tear within 6 s of the switch window closing, came after ${Math.round(time - closed)} ms`);
+  assert.ok(level === 0.6 || level === 0.8, `tears run lighter than the switch (${level})`);
+
+  const still = await open(t, { reduced: true });
+  await live(still.page);
+  await still.page.evaluate(() => window.skyGear.setGear(true));
+  await still.page.waitForTimeout(2500);
+  assert.ok((await state(still.page)).series.u_glitch.every(([, x]) => x === 0), 'reduced motion never tears');
+
+  const touched = await open(t, { touch: true });
+  await live(touched.page);
+  await touched.page.evaluate(() => window.skyGear.setGear(true));
+  const touch = await touchAt(touched.context, touched.page);
+  await touch.send('touchStart');
+  await touch.send('touchMove', touch.x + 60, touch.y + 4);
+  await touch.send('touchMove', touch.x + 120, touch.y + 6);
+  const dragging = await touched.page.evaluate(() => performance.now());
+  await touched.page.waitForTimeout(6000);
+  const during = (await state(touched.page)).series.u_glitch.filter(([time]) => time > dragging);
+  assert.ok(during.length > 3 && during.every(([, x]) => x === 0), 'no tears while a touch drag turns the figure');
+  await touch.send('touchEnd');
+});
+
+test('the material map names five materials inside the figure', async t => {
+  const { page } = await open(t);
+  await live(page);
+  const counts = await page.evaluate(async () => {
+    const decode = async url => {
+      const bitmap = await createImageBitmap(await (await fetch(url)).blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+      const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d');
+      ctx.drawImage(bitmap, 0, 0);
+      return ctx.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    };
+    const color = await decode('/assets/hero/color.webp'), depth = await decode('/assets/hero/depth.webp');
+    const found = {};
+    for (let i = 0; i < color.length; i += 4) if (depth[i] > 0) { const m = Math.round(color[i] / 51); found[m] = (found[m] || 0) + 1; }
+    return found;
+  });
+  assert.deepEqual(Object.keys(counts).map(Number).sort(), [0, 1, 2, 3, 4], 'gold, marble, cloud, lightning, glint');
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
+});
+
 test('the public ripple API emits at the center without adding control semantics to the image', async t => {
   const { page } = await open(t);
   await live(page);
@@ -415,7 +482,7 @@ test('the public ripple API emits at the center without adding control semantics
   assert.equal(await page.locator('#figure').getAttribute('tabindex'), null);
 });
 
-test('the figure wears the avatar\'s colors, and draws in plain ink when the color map is missing', async t => {
+test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, and draws in plain ink without the map', async t => {
   const { page } = await open(t);
   await live(page);
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
@@ -423,21 +490,22 @@ test('the figure wears the avatar\'s colors, and draws in plain ink when the col
   assert.ok(painted.colored > 300, `${painted.colored} colored pixels: the wings and the caduceus should carry gold`);
   assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
   await page.evaluate(() => window.skyGear.setGear(true));
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_tint[0] === 0, null, { timeout: 3000 });
+  await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
-  const ink = await capture(plain.page);
+  const ink = await captureWithoutSheen(plain.page);
   assert.ok(ink.visible > 500);
   assert.equal(ink.colored, 0, 'without the color map every dot is ink');
   assert.deepEqual((await state(plain.page)).uniforms.u_tint, [0]);
 });
 
 for (const [name, asset, response] of [
-  ['network failure', 'data.png', null],
+  ['network failure', 'ink.webp', null],
+  ['missing depth map', 'depth.webp', null],
   ['undecodable image', 'bluenoise.png', { status: 200, contentType: 'image/png', body: 'not an image' }],
   ['failed metadata response with a valid JSON body', 'hero.json', { status: 503, contentType: 'application/json', body: fs.readFileSync(path.join(root, 'assets/hero/hero.json'), 'utf8') }],
-  ['invalid metadata geometry', 'hero.json', { status: 200, contentType: 'application/json', body: '{"size":448,"bounds":[0,0,0,0],"center":[0.5,0.5],"density":0.56}' }],
+  ['invalid metadata geometry', 'hero.json', { status: 200, contentType: 'application/json', body: '{"size":896,"depth":448,"bounds":[0,0,0,0],"center":[0.5,0.5],"density":0.6}' }],
 ]) {
   test(`the static fallback survives ${name}`, async t => {
     const { page } = await open(t, { setup: page => page.route(`**/assets/hero/${asset}`, route => response ? route.fulfill(response) : route.abort('failed')) });

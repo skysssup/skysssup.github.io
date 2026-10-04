@@ -251,13 +251,38 @@ test('the theme filter on /work shows matching projects, updates the URL, and re
   await context.close();
 });
 
-test('the home theme links light up their projects on the figure', async () => {
+test('the home theme links brighten the ring for a moment, and the figure takes a click', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
   const count = await page.textContent('[data-dot-count]');
   assert.ok(Number(count.replace(/,/g, '')) > 5000, `dot count ${count}`);
+  assert.match(await page.getAttribute('#figure', 'aria-label'), new RegExp(`a ring that reads: ${await page.getAttribute('#figure', 'data-ring')}\\.$`));
+  await page.waitForTimeout(2200);
+  // per frame, how strongly the ring draws its glyphs (the sum of their alphas): steady while it turns, higher while brightened
+  await page.evaluate(() => {
+    const proto = CanvasRenderingContext2D.prototype, fill = proto.fillText, clear = proto.clearRect;
+    let sum = 0;
+    window.__ring = [];
+    proto.clearRect = function (...args) {
+      if (this.canvas.classList.contains('hero-words')) { if (sum) window.__ring.push([performance.now(), sum]); sum = 0; }
+      return clear.apply(this, args);
+    };
+    proto.fillText = function (...args) {
+      if (this.canvas.classList.contains('hero-words')) sum += this.globalAlpha;
+      return fill.apply(this, args);
+    };
+  });
+  await page.waitForTimeout(600);
+  const hovered = await page.evaluate(() => performance.now());
   await page.hover('[data-theme-link="developer-tools"]');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(1100);
+  const frames = await page.evaluate(() => window.__ring);
+  const median = list => list.slice().sort((a, b) => a - b)[list.length >> 1];
+  const rest = median(frames.filter(([time]) => time < hovered).map(([, v]) => v));
+  const peak = Math.max(...frames.filter(([time]) => time > hovered && time < hovered + 500).map(([, v]) => v));
+  const after = median(frames.filter(([time]) => time > hovered + 700).map(([, v]) => v));
+  assert.ok(peak > rest * 1.3, `hovering a theme brightens the ring (${rest.toFixed(1)} -> ${peak.toFixed(1)})`);
+  assert.ok(after < rest * 1.1, `and it settles back within 400 ms (${peak.toFixed(1)} -> ${after.toFixed(1)})`);
   const fig = page.locator('#figure');
   const box = await fig.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 5 });

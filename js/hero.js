@@ -1,4 +1,4 @@
-/* Hero: the GitHub avatar as a stippled sculpture in WebGL2, wrapped in a ring of project names.
+/* Hero: the GitHub avatar as a stippled sculpture in WebGL2, wrapped in a ring that carries one line in its voice.
    Data comes from tools/hero/build.py (depth, ink and mask maps plus a blue-noise threshold tile).
    Pure helpers are exported for Node tests; the browser gets window.SkyHero. */
 (function (global) {
@@ -28,6 +28,18 @@
   function heartbeat(t) {
     var p = (((t % 0.9) + 0.9) % 0.9) / 0.9;
     return Math.exp(-Math.pow((p - 0.08) / 0.045, 2)) + 0.6 * Math.exp(-Math.pow((p - 0.3) / 0.05, 2));
+  }
+
+  // Gear Two's tears, one plan per heartbeat (beats are numbered on the heartbeat's clock, seconds / 0.9).
+  // Each block of seven beats (6.3 s) gives its third, fourth, or fifth beat a long tear: 8 frames at 24 fps,
+  // 3 tiles, one afterimage. About 35% of the other beats get a short one: 2-4 frames, 1-2 tiles. Every tear
+  // starts at its beat's first peak. Returns null for a clean beat; the same beat always gets the same plan.
+  var BEAT = 0.9, TEAR_AT = 0.072, TEAR_BLOCK = 7, TEAR_CHANCE = 0.35;
+  function longTearBeat(block) { return block * TEAR_BLOCK + 2 + Math.floor(hash(block * 7 + 101) * 3); }
+  function tearSchedule(beat) {
+    if (beat === longTearBeat(Math.floor(beat / TEAR_BLOCK))) return { frames: 8, tiles: 3, glitch: 0.8, after: true, long: true };
+    if (hash(beat * 5 + 3) >= TEAR_CHANCE) return null;
+    return { frames: 2 + Math.floor(hash(beat * 5 + 4) * 3), tiles: hash(beat * 5 + 5) < 0.5 ? 1 : 2, glitch: 0.6, after: false, long: false };
   }
 
   // The base sway: ±16° of yaw over 14 s on the sway clock (which runs 1.6× in Gear Two).
@@ -88,9 +100,9 @@
     return local >= start && local < start + dur;
   }
 
-  // Threshold stippling: every cell of a res x res grid over the figure keeps a dot when its ink
-  // (bilinear from the size x size map) beats the tiled blue-noise threshold. Output is
-  // [x, y, z, ink] per dot with x, y in figure units (0..1) and z the depth (0..1, near = 1).
+  // Threshold stippling: every cell of a res x res grid over the figure keeps a dot when its ink (green
+  // channel, bilinear from the size x size map) beats the tiled blue-noise threshold. Output is [x, y, ink]
+  // per dot with x, y in figure units (0..1); what else a dot carries is sampled from the other maps.
   function stipple(rgba, size, noise, noiseSize, res, density, jitter) {
     var out = [];
     var scale = (size - 1) / res;
@@ -106,26 +118,52 @@
         if (ink <= 0) continue;
         var threshold = noise[(gy % noiseSize) * noiseSize + (gx % noiseSize)] / 255;
         if (ink * density <= threshold) continue;
-        var depth = (rgba[a] * w00 + rgba[b] * w01 + rgba[c] * w10 + rgba[d] * w11) / 255;
         var k = gy * res + gx;
         var jx = jitter ? (hash(k * 2 + 1) - 0.5) * jitter : 0;
         var jy = jitter ? (hash(k * 2 + 2) - 0.5) * jitter : 0;
-        out.push((gx + 0.5 + jx) / res, (gy + 0.5 + jy) / res, depth, ink);
+        out.push((gx + 0.5 + jx) / res, (gy + 0.5 + jy) / res, ink);
       }
     }
     return new Float32Array(out);
   }
 
-  // Grid resolution for a figure drawn `px` CSS pixels wide: about one cell per pixel, within limits.
-  function resolutionFor(px) { return Math.round(clamp(px * 0.8, 280, 640)); }
+  // Grid resolution for a figure drawn `px` CSS pixels wide: a little over one cell per pixel, within limits.
+  function resolutionFor(px) { return Math.round(clamp(px * 1.4, 320, 1200)); }
 
-  // A surface normal per dot from the depth map (red channel) by central differences, one-sided at the
-  // mask's edge (blue channel), with the depth scaled to `relief` figure units like the vertex shader does.
-  // Output is [nx, ny] per dot in world space (y up); the shader rebuilds nz = sqrt(1 - nx² - ny²).
-  function depthNormals(rgba, size, points, relief) {
-    var n = points.length / 4, out = new Float32Array(n * 2), step = 2, last = size - 1;
-    var depth = function (x, y) { return rgba[(y * size + x) * 4] / 255; };
-    var inside = function (x, y) { return x >= 0 && y >= 0 && x <= last && y <= last && rgba[(y * size + x) * 4 + 2] > 12; };
+  // The depth map (red channel, 0 outside the figure) as a float field, smoothed inside the figure by a
+  // Gaussian of `sigma` px normalised by how much of the kernel lies inside, so the sky never drags the
+  // silhouette back. Smoothing removes the 8-bit steps that would otherwise terrace the normals into bands.
+  // Pixels outside the figure are -1.
+  function reliefField(rgba, size, sigma) {
+    var n = size * size, val = new Float32Array(n), wgt = new Float32Array(n), out = new Float32Array(n);
+    for (var i = 0; i < n; i++) if (rgba[i * 4] > 0) { val[i] = rgba[i * 4] / 255; wgt[i] = 1; }
+    var r = Math.ceil(sigma * 3), kernel = [], sum = 0, j;
+    for (j = -r; j <= r; j++) { kernel.push(sigma > 0 ? Math.exp(-j * j / (2 * sigma * sigma)) : j === 0 ? 1 : 0); sum += kernel[j + r]; }
+    var pass = function (src, dst, along) {
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+        var acc = 0;
+        for (j = -r; j <= r; j++) {
+          var xx = along ? x + j : x, yy = along ? y : y + j;
+          if (xx >= 0 && yy >= 0 && xx < size && yy < size) acc += src[yy * size + xx] * kernel[j + r];
+        }
+        dst[y * size + x] = acc / sum;
+      }
+    };
+    var tv = new Float32Array(n), tw = new Float32Array(n), sv = new Float32Array(n), sw = new Float32Array(n);
+    pass(val, tv, true); pass(tv, sv, false);
+    pass(wgt, tw, true); pass(tw, sw, false);
+    for (i = 0; i < n; i++) out[i] = wgt[i] ? sv[i] / sw[i] : -1;
+    return out;
+  }
+
+  // A surface normal per dot from the relief field by central differences, one-sided at the figure's edge,
+  // with the depth scaled to `relief` figure units like the vertex shader does, and each dot's depth from the
+  // field (bilinear over the pixels inside the figure). `points` holds `stride` floats per dot, x and y first.
+  // Output is [nx, ny, z] per dot, normals in world space (y up); the shader rebuilds nz = sqrt(1 - nx² - ny²).
+  function depthNormals(field, size, points, stride, relief) {
+    var n = points.length / stride, out = new Float32Array(n * 3), step = 2, last = size - 1;
+    var depth = function (x, y) { return field[y * size + x]; };
+    var inside = function (x, y) { return x >= 0 && y >= 0 && x <= last && y <= last && field[y * size + x] >= 0; };
     var slope = function (x, y, dx, dy) {
       var a = inside(x - dx, y - dy), b = inside(x + dx, y + dy);
       if (a && b) return (depth(x + dx, y + dy) - depth(x - dx, y - dy)) / (2 * step);
@@ -134,15 +172,22 @@
       return 0;
     };
     for (var i = 0; i < n; i++) {
-      var x = clamp(Math.round(points[i * 4] * last), 0, last), y = clamp(Math.round(points[i * 4 + 1] * last), 0, last);
+      var u = clamp(points[i * stride] * last, 0, last), v = clamp(points[i * stride + 1] * last, 0, last);
+      var x = Math.round(u), y = Math.round(v);
       var gx = slope(x, y, step, 0) * last * relief, gy = slope(x, y, 0, step) * last * relief;
       var nx = -gx, ny = gy, len = Math.sqrt(nx * nx + ny * ny + 1);
       nx /= len;
       ny /= len;
       var tilt = Math.sqrt(nx * nx + ny * ny), limit = 0.94;
       if (tilt > limit) { nx *= limit / tilt; ny *= limit / tilt; }
-      out[i * 2] = nx;
-      out[i * 2 + 1] = ny;
+      var x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0, z = 0, zw = 0;
+      for (var c = 0; c < 4; c++) {
+        var cx = Math.min(x0 + (c & 1), last), cy = Math.min(y0 + (c >> 1), last), w = (c & 1 ? fx : 1 - fx) * (c >> 1 ? fy : 1 - fy);
+        if (field[cy * size + cx] >= 0 && w > 0) { z += field[cy * size + cx] * w; zw += w; }
+      }
+      out[i * 3] = nx;
+      out[i * 3 + 1] = ny;
+      out[i * 3 + 2] = zw > 0 ? z / zw : inside(x, y) ? depth(x, y) : 0;
     }
     return out;
   }
@@ -152,19 +197,28 @@
   var STARS = 40, LIGHT = [-0.45, 0.6, 0.66];
   function litDots(normals) {
     var l = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2]), lit = 0;
-    for (var i = 0; i < normals.length; i += 2) {
+    for (var i = 0; i < normals.length; i += 3) {
       var nx = normals[i], ny = normals[i + 1], nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
       if (nz > 0.3 && (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / l > 0.5) lit++;
     }
     return lit;
   }
 
-  // The avatar's color under each dot, bilinear from the size x size RGBA color map: [r, g, b, a] bytes
-  // per dot, where a is 128 plus the image's own sparkle (its highlights, which the shader twinkles).
-  function sampleColors(rgba, size, points) {
-    var n = points.length / 4, out = new Uint8Array(n * 4), last = size - 1;
+  // The material under a point of the color map: its red channel at the nearest pixel (index x 51). Never
+  // interpolated, since the average of two material indices would name a third.
+  var MARBLE = 51;
+  function materialAt(rgba, size, x, y) {
+    var last = size - 1;
+    return rgba[(Math.round(clamp(y, 0, 1) * last) * size + Math.round(clamp(x, 0, 1) * last)) * 4];
+  }
+
+  // A map's four channels under each dot, bilinear from the size x size RGBA map: bytes per dot. For the color
+  // map that is [material, weight, -, a], where a is 128 plus the image's own sparkle (its highlights, which the
+  // shader twinkles). `points` holds `stride` floats per dot, x and y first.
+  function sampleColors(rgba, size, points, stride) {
+    var n = points.length / stride, out = new Uint8Array(n * 4), last = size - 1;
     for (var i = 0; i < n; i++) {
-      var u = clamp(points[i * 4] * last, 0, last), v = clamp(points[i * 4 + 1] * last, 0, last);
+      var u = clamp(points[i * stride] * last, 0, last), v = clamp(points[i * stride + 1] * last, 0, last);
       var j0 = Math.floor(u), i0 = Math.floor(v), fx = u - j0, fy = v - i0, j1 = Math.min(j0 + 1, last), i1 = Math.min(i0 + 1, last);
       var a = (i0 * size + j0) * 4, b = (i0 * size + j1) * 4, c = (i1 * size + j0) * 4, d = (i1 * size + j1) * 4;
       var w00 = (1 - fx) * (1 - fy), w01 = fx * (1 - fy), w10 = (1 - fx) * fy, w11 = fx * fy;
@@ -207,21 +261,14 @@
     };
   }
 
-  // The ring text: every name once per lap, separated by a middle dot, repeated to fill the circumference.
-  function ringText(words, circumference, advance) {
-    var lap = words.join(" · ") + " · ";
+  // The ring text: the line repeated as many whole times as fill the circumference, each repeat closed by a
+  // middle dot, so a word is never cut. Glyphs are spread evenly around the ring, so spacing flexes a little.
+  function ringText(line, circumference, advance) {
+    var lap = line.trim().split(/\s+/).join(" ") + " · ";
     var reps = Math.max(1, Math.round(circumference / (lap.length * advance)));
-    var glyphs = [], owner = [];
-    for (var r = 0; r < reps; r++) {
-      var w = 0;
-      for (var i = 0; i < lap.length; i++) {
-        var ch = lap.charAt(i);
-        glyphs.push(ch);
-        owner.push(ch === " " || ch === "·" ? -1 : w);
-        if (ch === "·") w++;
-      }
-    }
-    return { glyphs: glyphs, owner: owner, reps: reps };
+    var glyphs = [];
+    for (var r = 0; r < reps; r++) for (var i = 0; i < lap.length; i++) glyphs.push(lap.charAt(i));
+    return { glyphs: glyphs, reps: reps };
   }
 
   // Rotate a point by yaw (around y) then pitch (around x). Points use y up, z towards the viewer.
@@ -269,7 +316,9 @@
     "uniform float u_alpha;",
     "uniform vec3 u_color;",
     "uniform float u_tint;",
-    "uniform float u_dark;",
+    "uniform vec3 u_palette[5];",
+    "uniform vec3 u_lit[5];",
+    "uniform float u_deep;",
     "uniform vec3 u_hot;",
     "uniform vec4 u_sheen;",
     "uniform vec4 u_span;",
@@ -334,15 +383,13 @@
     "  }",
     // Gear Two heartbeat: a few dots run white-hot at each beat
     "  if (u_beat > 0.45 && r01(id * 5u + 3u) < 0.035) hot = max(hot, u_beat);",
-    // the avatar's own color where it has one (gold, pink, the cyan rim light); marble stays ink.
-    // On light paper the color is deepened so it holds against white; on dark paper it is lifted.
-    // the hue comes from the image; the brightness comes from the paper, so gold reads as gold on both
-    "  vec3 c = a_c.rgb;",
-    "  float cl = dot(c, vec3(0.2126, 0.7152, 0.0722));",
-    "  float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));",
-    "  float keep = u_tint * smoothstep(0.05, 0.2, chroma);",
-    "  vec3 shown = clamp(mix(0.46, 0.84, u_dark) + (c - cl) * 2.4, 0.0, 1.0);",
-    "  vec3 col = mix(u_color, shown, keep);",
+    // the dot's material in the mode's designed palette (gold, marble, cloud, lightning, glint), moving from
+    // its base color to its lit one as the surface turns to the light; marble carries no weight, so it stays ink
+    "  int m = int(a_c.r * 5.0 + 0.5);",
+    "  vec3 mat = mix(u_palette[m], u_lit[m], smoothstep(0.15, 0.9, lam));",
+    // on light paper the densest dots of a material lean toward the ink, so gold has bronze in its crevices
+    "  mat = mix(mat, u_color, u_deep * smoothstep(0.45, 0.95, a_p.w));",
+    "  vec3 col = mix(u_color, mat, a_c.g * u_tint);",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853));",
@@ -377,6 +424,8 @@
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
     "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim) * (1.0 + 0.9 * tw) * (1.0 + 0.35 * band) * (1.0 + 1.2 * star);",
+    // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones
+    "  size *= mix(1.0, 0.82, a_c.b);",
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(1.0, 0.86, lam) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  v_alpha = mix(v_alpha, u_alpha, max(band, star));",
@@ -420,6 +469,10 @@
 
   /* ── engine ───────────────────────────────────────────── */
 
+  // How much of its materials' colors the figure wears: all of it on light and dark paper; in Gear Two 40%, over
+  // a palette that is red but for its gold, so only the wings and the caduceus keep a trace of their own.
+  function tintFor(colors) { return colors.gear ? 0.4 : 1; }
+
   function readColors() {
     var s = getComputedStyle(document.documentElement);
     var get = function (name) { return s.getPropertyValue(name).trim(); };
@@ -428,6 +481,9 @@
       ink: get("--figure-ink"), accent: get("--accent"), paper: paper, text: get("--ink"),
       // the sheen's fringe and core and the stars of its burst, one hue family per mode
       light: [get("--figure-sheen"), get("--figure-sheen-core"), get("--figure-star")],
+      // each material's base and lit color, in index order; marble is the figure's ink
+      palette: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m); }),
+      lit: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m + "-lit"); }),
       gear: document.documentElement.getAttribute("data-gear") === "two", dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5
     };
   }
@@ -476,7 +532,7 @@
   function mount(el, opts) {
     var motion = opts.motion || { reduced: function () { return false; }, subscribe: function () {} };
     var base = opts.base || "/assets/hero/";
-    var words = opts.words || [];
+    var line = (opts.line || "").toUpperCase();
     var canvas = document.createElement("canvas");
     var overlay = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
@@ -497,23 +553,28 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var maps = null, noise = null, meta = null, palette = null, points = null, vertices = null, count = 0, res = 0;
+    var maps = null, relief = null, field = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0;
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
-    var tintNow = colors.gear ? 0 : 1, tintFrom = tintNow, tintTo = tintNow;
+    var tintNow = tintFor(colors), tintFrom = tintNow, tintTo = tintNow;
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
     var touch = null;
     var ripples = [[0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0]], nextRipple = 0;
     var ripFlat = new Float32Array(16);
     var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
-    var ring = null, ringFont = 0, fontReady = false, highlighted = null;
-    var glitchUntil = 0, tear = null, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
+    var ring = null, ringFont = 0, fontReady = false, ringLitAt = 0;
+    var glitchUntil = 0, tear = null, tearBeat = -1, longDone = -1, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
     var sheenIndex = -1, sheenAt = 0, sheenDir = 0, sheenNumber = 0, starChance = 0, lights = new Float32Array(9);
+    var materials = new Float32Array(15), materialsLit = new Float32Array(15);
     var cpuMs = 0, telemetryAt = 0;
 
-    function paintLights() { colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); }); }
+    function paintLights() {
+      colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); });
+      colors.palette.forEach(function (css, i) { materials.set(rgb(css), i * 3); });
+      colors.lit.forEach(function (css, i) { materialsLit.set(rgb(css), i * 3); });
+    }
     paintLights();
 
     function releaseTouch(event, cancelled) {
@@ -568,14 +629,14 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_dark", "u_hot", "u_sheen", "u_span", "u_light"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_light"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
         if (!vao || !vbo || !query) throw new Error("hero buffers unavailable");
         gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        // per dot: x, y, z, ink (4 floats), normal (2 floats), color and sparkle (4 bytes): 28 bytes
+        // per dot: x, y, z, ink (4 floats), normal (2 floats), material, its weight, detail, and sparkle (4 bytes): 28 bytes
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 28, 0);
         gl.enableVertexAttribArray(1);
@@ -628,16 +689,25 @@
       var want = resolutionFor(place.scale);
       if (want !== res) {
         res = want;
-        points = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
-        count = points.length / 4;
-        var normals = depthNormals(maps.data, maps.width, points, RELIEF);
-        var tints = palette ? sampleColors(palette.data, palette.width, points) : null;
+        var spots = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
+        count = spots.length / 3;
+        var normals = depthNormals(field, relief.width, spots, 3, RELIEF);
+        var details = sampleColors(relief.data, relief.width, spots, 3);
+        var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
         var buffer = new ArrayBuffer(count * 28), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer);
         for (var i = 0; i < count; i++) {
-          floats.set(points.subarray(i * 4, i * 4 + 4), i * 7);
-          floats[i * 7 + 4] = normals[i * 2];
-          floats[i * 7 + 5] = normals[i * 2 + 1];
-          if (tints) bytes.set(tints.subarray(i * 4, i * 4 + 4), i * 28 + 24);
+          floats[i * 7] = spots[i * 3];
+          floats[i * 7 + 1] = spots[i * 3 + 1];
+          floats[i * 7 + 2] = normals[i * 3 + 2];
+          floats[i * 7 + 3] = spots[i * 3 + 2];
+          floats[i * 7 + 4] = normals[i * 3];
+          floats[i * 7 + 5] = normals[i * 3 + 1];
+          // material (nearest, never blended), how strongly the dot belongs to it, its detail, its sparkle
+          var o = i * 28 + 24;
+          bytes[o] = palette ? materialAt(palette.data, palette.width, spots[i * 3], spots[i * 3 + 1]) : MARBLE;
+          bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
+          bytes[o + 2] = details[i * 4 + 1];
+          bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
         }
         vertices = bytes;
         starChance = Math.min(1, STARS / Math.max(1, litDots(normals)));
@@ -667,8 +737,8 @@
     function maskAt(sx, sy) {
       var u = (sx - box.x - place.x) / place.scale, v = (sy - box.y - place.y) / place.scale;
       if (u < 0 || v < 0 || u >= 1 || v >= 1) return 0;
-      var n = maps.width, i = (Math.floor(v * n) * n + Math.floor(u * n)) * 4;
-      return maps.data[i + 2] / 255;
+      var n = relief.width, i = (Math.floor(v * n) * n + Math.floor(u * n)) * 4;
+      return relief.data[i] > 0 ? 1 : 0;
     }
 
     // Gear Two glitch tiles on the overlay: a thin accent frame around each torn-out block, drawn where it lands.
@@ -681,6 +751,9 @@
       for (var i = 0; i < tiles.length; i++) {
         var tl = tiles[i];
         var x = Math.round(tl[0] + tl[4]) + 0.5, y = Math.round(tl[1] + tl[5]) + 0.5, w = Math.round(tl[2]), h = Math.round(tl[3]);
+        // a faint frame where the block was torn from, and a firm one where it landed
+        ctx.globalAlpha = 0.35;
+        ctx.strokeRect(Math.round(tl[0]) + 0.5, Math.round(tl[1]) + 0.5, w, h);
         ctx.globalAlpha = 0.08;
         ctx.fillRect(x, y, w, h);
         ctx.globalAlpha = 0.9;
@@ -690,11 +763,11 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    function drawRing(t, yawNow, pitchNow, fade, beat) {
+    function drawRing(yawNow, pitchNow, fade, beat, glow) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
       drawTiles();
-      if (!fontReady || fade <= 0.01 || !words.length) return;
+      if (!fontReady || fade <= 0.01 || !line) return;
       var spec = meta.ring || {};
       // the ring breathes with the Gear Two heartbeat
       var R = (spec.r || 0.42) * (1 + 0.02 * beat), tilt = spec.tilt == null ? 0.3 : spec.tilt;
@@ -704,10 +777,9 @@
       var font = ringFont;
       ctx.font = "400 " + font + "px \"Fragment Mono\", ui-monospace, monospace";
       var advance = ctx.measureText("M").width * 1.32;
-      if (!ring) ring = ringText(words, TAU * Rpx, advance);
+      if (!ring) ring = ringText(line, TAU * Rpx, advance);
       var n = ring.glyphs.length;
       var accent = colors.gear ? colors.text : colors.accent;
-      var muted = colors.text;
       var ct = Math.cos(tilt), st = Math.sin(tilt);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -737,17 +809,16 @@
         var front = nrm[2] > 0;
         var facing = Math.abs(nrm[2]);
         if (!front && maskAt(sx, sy) > 0.3) continue;
-        var owner = ring.owner[i];
-        var lit = highlighted && owner >= 0 && highlighted.indexOf(words[owner]) >= 0;
-        var dim = highlighted && !lit;
-        var alpha = (front ? 1 : 0.3) * fade * (dim ? 0.3 : 1) * (0.35 + 0.65 * Math.pow(facing, 0.6));
+        var alpha = (front ? 1 : 0.3) * (0.35 + 0.65 * Math.pow(facing, 0.6));
+        // a brighten lifts every glyph toward full strength, the dim ones behind the figure most
+        alpha = (alpha + (1 - alpha) * glow) * fade;
         if (alpha < 0.02) continue;
         var k = pr[2];
         var tx = tg[0] * k, ty = -tg[1] * k, ux = -up[0] * k, uy = up[1] * k;
         ctx.setTransform(tx * dpr, ty * dpr, ux * dpr, uy * dpr, sx * dpr, sy * dpr);
         ctx.globalAlpha = alpha;
         if (front) ctx.strokeText(ch, 0, 0);
-        ctx.fillStyle = dim ? muted : accent;
+        ctx.fillStyle = accent;
         ctx.fillText(ch, 0, 0);
       }
       ctx.globalAlpha = 1;
@@ -765,6 +836,24 @@
       }
       render(now);
       if (ready) raf = requestAnimationFrame(frame);
+    }
+
+    function planTear(plan, from, block) {
+      return { from: from, until: from + plan.frames * 1000 / 24, tiles: plan.tiles, glitch: plan.glitch, after: plan.after ? (block % 2 ? 2 : -2) : 0, drawn: false };
+    }
+
+    // At a sheen in Gear Two the burst tears with it: the long tear moves to meet it when due within a second,
+    // otherwise one frame tears.
+    function tearAtSheen(now, t) {
+      var block = Math.floor(t / BEAT / TEAR_BLOCK);
+      for (var k = Math.max(block, longDone + 1); k <= block + 1; k++) {
+        if (Math.abs(longTearBeat(k) * BEAT + TEAR_AT - t) < 1) {
+          tear = planTear(tearSchedule(longTearBeat(k)), now, k);
+          longDone = k;
+          return;
+        }
+      }
+      tear = { from: now, until: now + 1000 / 24, tiles: 1, glitch: 0.6, after: 0, drawn: false };
     }
 
     function render(now) {
@@ -813,14 +902,29 @@
           sheenAt = now;
           sheenDir = turn.dir;
           sheenNumber = turn.index + 1;
-          if (gear) tear = { until: now + 1000 / 24, glitch: 0.6, tiles: 1, after: false };
+          if (gear && built > 2) tearAtSheen(now, t);
+        }
+      }
+      // Gear Two tears the figure on some heartbeats, from the beat's first peak, once it has assembled
+      if (live && gear && built > 2) {
+        var b = Math.floor(t / BEAT);
+        if (b !== tearBeat) {
+          tearBeat = b;
+          var plan = tearSchedule(b), block = Math.floor(b / TEAR_BLOCK);
+          if (plan && !(plan.long && block <= longDone) && !(tear && now < tear.until)) {
+            tear = planTear(plan, (b * BEAT + TEAR_AT) * 1000, block);
+            if (plan.long) longDone = block;
+          }
         }
       }
       var sheenAge = (now - sheenAt) / 1000;
       var sheening = live && sheenDir !== 0 && sheenAge < SHEEN_LIFE;
       // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
       var switching = live && now < glitchUntil;
-      var tearing = !switching && live && gear && !(touch && touch.dragging) && tear !== null && now < tear.until;
+      // a tear is drawn for at least one frame, even when frames come slower than 24 fps
+      var tearing = !switching && live && gear && !(touch && touch.dragging) && tear !== null && now >= tear.from &&
+        (now < tear.until || (!tear.drawn && now < tear.until + 250));
+      if (tearing) tear.drawn = true;
       var glitch = switching ? 1 : tearing ? tear.glitch : 0;
       tiles = glitch ? glitchTiles(Math.floor(t * 24), box, 3, function (x, y) { return maskAt(x, y) > 0.2; }).slice(0, switching ? 3 : tear.tiles) : [];
       tileFlat.fill(0);
@@ -849,9 +953,12 @@
       gl.uniform4fv(U.u_tile, tileFlat);
       gl.uniform2fv(U.u_shift, shiftFlat);
       gl.uniform3f(U.u_color, inkNow[0], inkNow[1], inkNow[2]);
-      // no avatar color in Gear Two: the figure is red. Sparkles and hot dots run warm white on dark paper, gold on light.
+      // the materials' colors (Gear Two keeps only its gold, at 40%); without the material map every dot is ink.
+      // Sparkles and hot dots run warm white on dark paper, gold on light.
       gl.uniform1f(U.u_tint, palette ? tintNow : 0);
-      gl.uniform1f(U.u_dark, colors.dark ? 1 : 0);
+      gl.uniform3fv(U.u_palette, materials);
+      gl.uniform3fv(U.u_lit, materialsLit);
+      gl.uniform1f(U.u_deep, colors.dark ? 0 : 0.45);
       if (colors.dark) gl.uniform3f(U.u_hot, 1.0, 0.95, 0.86);
       else gl.uniform3f(U.u_hot, 0.86, 0.6, 0.16);
       if (sheening) gl.uniform4f(U.u_sheen, easeInOut(clamp(sheenAge / SHEEN_SWEEP, 0, 1)), sheenDir, sheenNumber, sheenAge);
@@ -860,13 +967,15 @@
       gl.uniform4f(U.u_span, left, right, box.size * 0.035, starChance);
       gl.uniform3fv(U.u_light, lights);
       gl.bindVertexArray(vao);
-      // while glitching, two faint afterimages sit 2 px either side of the figure
+      // while the switch glitches, two faint afterimages sit 2 px either side of the figure; a long tear leaves one
       if (switching || (tearing && tear.after)) {
         gl.uniform1f(U.u_alpha, 0.3);
-        gl.uniform2f(U.u_offset, -2, 0);
+        gl.uniform2f(U.u_offset, switching ? -2 : tear.after, 0);
         gl.drawArrays(gl.POINTS, 0, count);
-        gl.uniform2f(U.u_offset, 2, 0);
-        gl.drawArrays(gl.POINTS, 0, count);
+        if (switching) {
+          gl.uniform2f(U.u_offset, 2, 0);
+          gl.drawArrays(gl.POINTS, 0, count);
+        }
       }
       gl.uniform1f(U.u_alpha, 1);
       gl.uniform2f(U.u_offset, 0, 0);
@@ -875,7 +984,10 @@
       gl.drawArrays(gl.POINTS, 0, count);
       if (measure) { gl.endQuery(gl.ANY_SAMPLES_PASSED); queryPending = true; }
       var fade = live ? smoothstep(1.2, 1.9, built) : 1;
-      drawRing(t, yaw.x, pitch.x, fade, beat);
+      // a theme hover brightens the ring for 400 ms: up in the first 100, back down by the end
+      var lit = live && ringLitAt ? (now - ringLitAt) / 400 : 1;
+      var glow = lit < 0.25 ? smoothstep(0, 0.25, lit) : 1 - smoothstep(0.25, 1, lit);
+      drawRing(yaw.x, pitch.x, fade, beat, glow);
       if (!drawChecked) {
         drawChecked = true;
         if (gl.getError() !== gl.NO_ERROR) fallback();
@@ -895,7 +1007,7 @@
       if (!ready || !visible || document.hidden) return;
       if (motion.reduced()) {
         inkNow = rgb(colors.ink);
-        tintNow = tintTo = colors.gear ? 0 : 1;
+        tintNow = tintTo = tintFor(colors);
         inkAt = 0;
         render(performance.now());
         if (queryPending) raf = requestAnimationFrame(frame);
@@ -908,13 +1020,13 @@
       var was = colors;
       colors = readColors();
       paintLights();
-      var next = rgb(colors.ink), tint = colors.gear ? 0 : 1;
+      var next = rgb(colors.ink), tint = tintFor(colors);
       if (motion.reduced() || !ready) { inkNow = next; tintNow = tintFrom = tintTo = tint; inkAt = 0; }
       else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
       if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
       // leaving Gear Two: the tearing stops just after the palette comes back
-      if (was.gear && !colors.gear) glitchUntil = Math.min(glitchUntil, performance.now() + 140);
+      if (was.gear && !colors.gear) { glitchUntil = Math.min(glitchUntil, performance.now() + 140); tear = null; }
       if (was.gear !== colors.gear) ring = null;
       // the palette turning red rolls through the figure as a ripple from its centre
       if (!was.gear && colors.gear && canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2);
@@ -995,7 +1107,8 @@
     } else fontReady = true;
 
     Promise.all([
-      loadImageData(base + "data.png"),
+      loadImageData(base + "ink.webp"),
+      loadImageData(base + "depth.webp"),
       loadImageData(base + "bluenoise.png"),
       fetch(base + "hero.json").then(function (r) {
         if (!r.ok) throw new Error("hero metadata " + r.status);
@@ -1004,22 +1117,26 @@
       // the color map is optional: without it every dot is ink
       loadImageData(base + "color.webp").then(function (img) { return img.width === img.height ? img : null; }, function () { return null; })
     ]).then(function (all) {
-      if (all[0].width < 2 || all[0].width !== all[0].height || all[1].width !== all[1].height) throw new Error("hero maps must be square");
-      var data = all[2];
+      var square = function (img) { return img.width >= 2 && img.width === img.height; };
+      if (!square(all[0]) || !square(all[1]) || !square(all[2])) throw new Error("hero maps must be square");
+      var data = all[3];
       var normalized = function (n) { return Number.isFinite(n) && n >= 0 && n <= 1; };
-      if (!data || data.size !== all[0].width || !Array.isArray(data.bounds) || data.bounds.length !== 4 || !data.bounds.every(normalized) ||
+      if (!data || data.size !== all[0].width || data.depth !== all[1].width || !Array.isArray(data.bounds) || data.bounds.length !== 4 || !data.bounds.every(normalized) ||
           data.bounds[2] <= data.bounds[0] || data.bounds[3] <= data.bounds[1] ||
           !Array.isArray(data.center) || data.center.length !== 2 || !data.center.every(normalized) ||
           !normalized(data.density) || data.density <= 0) throw new Error("hero metadata is invalid");
       maps = all[0];
-      noise = { width: all[1].width, data: (function () { var d = all[1].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
+      relief = all[1];
+      field = reliefField(relief.data, relief.width, 1.5);
+      noise = { width: all[2].width, data: (function () { var d = all[2].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
       meta = data;
-      palette = all[3];
+      palette = all[4];
       initialize();
     }).catch(fallback);
 
     return {
-      highlight: function (list) { highlighted = list && list.length ? list : null; if (motion.reduced()) sync(); },
+      // brighten the ring once (nothing moves under reduced motion; the still is simply redrawn)
+      highlight: function () { if (canInteract()) ringLitAt = performance.now(); else if (motion.reduced()) sync(); },
       count: function () { return count; },
       ripple: function () { if (canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2); }
     };
@@ -1031,6 +1148,7 @@
     smoothstep: smoothstep,
     hash: hash,
     heartbeat: heartbeat,
+    tearSchedule: tearSchedule,
     sway: sway,
     sheenPhase: sheenPhase,
     easeInOut: easeInOut,
@@ -1038,8 +1156,11 @@
     rippleWeight: rippleWeight,
     blinkOff: blinkOff,
     stipple: stipple,
+    reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,
+    materialAt: materialAt,
+    tintFor: tintFor,
     glitchTiles: glitchTiles,
     resolutionFor: resolutionFor,
     fit: fit,

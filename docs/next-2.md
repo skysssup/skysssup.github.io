@@ -1,5 +1,15 @@
 # Handoff 2: the hero's next pass
 
+> **Done.** All six upgrades shipped to `main` in order: the cat removed (`081b2d3`), the sheen and star burst
+> (`9b521b1`, with a test fix in `199f1d9`), tears through all of Gear Two (`273248e`), face and hand detail
+> (`e26227b`), the ring line (`2454fc5`), and the material palette (`9ac82d4`). Where the build departed from
+> this brief, the design spec says why: no larger original of the avatar exists, so the 424 px source is
+> upscaled 4× (Real-ESRGAN blended with Real-ESRNet); the ink map ships as lossless WebP beside a separate
+> 448 px depth map, and normals come from that depth smoothed inside the figure, because 8-bit depth at 896 px
+> terraced them; stippling runs at 1.4 cells per pixel, not 1.1, which the face needed; the material map is
+> zoned by the avatar's layout and decided by color inside each zone, because a five-way k-means split this
+> image by lightness; and the ring line was chosen without a round of drafts, at the owner's request.
+
 You are taking over Aakash Dahal's portfolio at https://skysssup.github.io (repo `skysssup/skysssup.github.io`,
 GitHub Pages from `main`, plain HTML/CSS/JS, no build step). Commit straight to `main`; the owner does not want
 pull requests. The site goes to Andreessen Horowitz program reviewers, so everything must read as serious,

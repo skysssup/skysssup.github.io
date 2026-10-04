@@ -7,7 +7,8 @@
   "tz": "Asia/Kathmandu",
   "bio": "I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.",
   "essentially": "I build instruments for AI systems: a harness that catches an agent refunding twice, a proxy that traces every LLM call, and a gate that scans what a coding agent is about to push. Also physics software you can draw into. Next: reinforcement learning and robotics.",
-  "dots": "22,730",
+  "dots": "93,015",
+  "ringLine": "I stole Apollo’s cattle on day one. Your agent won’t sneak one past me",
   "themes": [
     { "id": "ai-systems", "name": "AI systems" },
     { "id": "developer-tools", "name": "Developer tools" },

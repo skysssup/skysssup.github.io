@@ -27,6 +27,15 @@
   --figure-sheen: #2c62ff;
   --figure-sheen-core: #9db8ff;
   --figure-star: #2c62ff;
+  /* the figure's materials, base and lit (marble is --figure-ink); see docs/design-spec.md §5 */
+  --mat-gold: #b8860b;
+  --mat-gold-lit: #d4a017;
+  --mat-cloud: #c76b6b;
+  --mat-cloud-lit: #dc9a9a;
+  --mat-lightning: #1f7fd6;
+  --mat-lightning-lit: #62adee;
+  --mat-glint: #2c62ff;
+  --mat-glint-lit: #7f9dff;
   --split-a: #ff3b30;
   --split-b: #00c2ff;
 
@@ -55,6 +64,14 @@
   --figure-sheen: #38d9ff;
   --figure-sheen-core: #bff4ff;
   --figure-star: #8ae8ff;
+  --mat-gold: #f2c14e;
+  --mat-gold-lit: #ffe08a;
+  --mat-cloud: #f0a8b8;
+  --mat-cloud-lit: #ffd3dd;
+  --mat-lightning: #55e6ff;
+  --mat-lightning-lit: #b8f5ff;
+  --mat-glint: #8ab4ff;
+  --mat-glint-lit: #c4d8ff;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -70,6 +87,14 @@
     --figure-sheen: #38d9ff;
     --figure-sheen-core: #bff4ff;
     --figure-star: #8ae8ff;
+    --mat-gold: #f2c14e;
+    --mat-gold-lit: #ffe08a;
+    --mat-cloud: #f0a8b8;
+    --mat-cloud-lit: #ffd3dd;
+    --mat-lightning: #55e6ff;
+    --mat-lightning-lit: #b8f5ff;
+    --mat-glint: #8ab4ff;
+    --mat-glint-lit: #c4d8ff;
   }
 }
 :root[data-gear="two"] {
@@ -85,6 +110,14 @@
   --figure-sheen: #ff8a7a;
   --figure-sheen-core: #ffe9e0;
   --figure-star: #ff8a7a;
+  --mat-gold: #ff9e80;
+  --mat-gold-lit: #ffc9b8;
+  --mat-cloud: #ff3b30;
+  --mat-cloud-lit: #ff3b30;
+  --mat-lightning: #ff3b30;
+  --mat-lightning-lit: #ff3b30;
+  --mat-glint: #ff3b30;
+  --mat-glint-lit: #ff3b30;
 }
 
 @media (max-width: 1199px) {

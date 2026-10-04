@@ -96,7 +96,15 @@ Mount demos inside the case-study `.fig-frame` behind a "Load demo" button (so t
 
 The hero is good; make it exceptional without making it heavier.
 
-- **Dot density and depth.** `DENSITY = 0.56` in `tools/hero/build.py`, `resolutionFor` 0.8×scale in `js/hero.js`. Try a two-layer approach: a dense fine layer for form plus a sparse larger layer for highlights; or anisotropic point sizes along the depth gradient so the engraving reads as hatching. Keep ≤ 2 draw calls and judge on 2× screenshots at 1440 and 390 in all three modes.
+> **Status after the second hero pass ([next-2.md](next-2.md)), all on `main`:** the cat is gone; a band of light
+> and a burst of four-point stars cross the figure at each turn of the sway; Gear Two keeps tearing the figure
+> on about a third of its heartbeats, with a long tear about every 6 s; the source is the 424 px avatar
+> upscaled 4×, with Depth Anything V2 Base depth and an 896 px ink map, so the face and hands read
+> (22,730 → 93,015 dots at 1440 × 900, 6,292 → 25,707 at 390, JS still 0.3–0.4 ms a frame); the ring carries
+> one line in the statue's voice and brightens on a theme hover; and the figure is colored from a material map
+> and a palette designed per mode. The design spec (§5, §7–§9, §14) describes the result.
+
+- **Dot density and depth.** Done in the second pass: `DENSITY = 0.85` on an 896 px ink map weighted by local contrast, `resolutionFor` 1.4×scale (320–1200 cells), and a detail value that shrinks dots on fine features. Try a two-layer approach: a dense fine layer for form plus a sparse larger layer for highlights; or anisotropic point sizes along the depth gradient so the engraving reads as hatching. Keep ≤ 2 draw calls and judge on 2× screenshots at 1440 and 390 in all three modes.
 - **Lighting.** Done: a normal per dot is derived from the depth map at load (`depthNormals` in `js/hero.js`) and interleaved into the one vertex buffer; the vertex shader rotates it with the figure and applies a Lambert term from the upper left plus a rim term, so the shading moves as the figure turns.
 - **Load.** The assemble-from-shell is 1.4 s; try center-out with a slight overshoot and make the ring fade in after the figure settles (currently 1.2–1.9 s). Avoid any flash of empty space: show `still.webp` under the canvas until the first WebGL frame (`is-live` already toggles it; verify there's no gap at 390).
 - **Ring.** Letters at the back currently draw mirrored and dim. Consider culling back glyphs entirely when they overlap the figure (done) and rendering the rest with a 3D-correct skew; also test one lap of smaller text (10px at 390) for legibility. Keep names whole, always.
