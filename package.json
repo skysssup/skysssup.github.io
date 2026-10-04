@@ -1,0 +1,15 @@
+{
+  "name": "skysssup.github.io",
+  "private": true,
+  "description": "Aakash Dahal's site. Static HTML, CSS, and JS served by GitHub Pages; these scripts are for tests and asset generation only.",
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "test:e2e": "node --test --test-concurrency=1 test/e2e/*.test.mjs",
+    "og": "node tools/og/render.mjs",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "playwright": "^1.63.0"
+  }
+}

@@ -1,133 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Aakash Dahal</title>
-  <meta name="description" content="Aakash Dahal (Sky) builds developer tools, agent harnesses, and interactive physics software in TypeScript and Python.">
-  <meta name="theme-color" content="#ffffff">
-  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="preload" href="assets/fonts/space-grotesk-700.woff" as="font" type="font/woff" crossorigin>
-  <link rel="preload" href="assets/avatar.jpg" as="image">
-  <script>try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}document.documentElement.classList.add("js")</script>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aakash Dahal</title>
+<meta name="description" content="I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.">
+<link rel="canonical" href="https://skysssup.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aakash Dahal">
+<meta property="og:title" content="Aakash Dahal">
+<meta property="og:description" content="I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.">
+<meta property="og:url" content="https://skysssup.github.io/">
+<meta property="og:image" content="https://skysssup.github.io/assets/og/home.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Aakash Dahal: developer tools and interactive physics software">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@skysssup">
+<meta name="twitter:creator" content="@skysssup">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
+<link rel="stylesheet" href="/css/site.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics."}</script>
 </head>
-<body class="is-loading">
-  <a class="skip" href="#work">Skip to work</a>
-  <div class="fx-flash" aria-hidden="true"></div>
-  <div class="fx-scan" aria-hidden="true"></div>
-  <div class="fx-vignette" aria-hidden="true"></div>
-  <canvas class="fx-particles" aria-hidden="true"></canvas>
-  <div class="blueprint glitchable" aria-hidden="true"></div>
-
-  <header class="site-header glitchable">
-    <div class="header-left">
-      <a class="logo" href="./" aria-current="page">AAKASHDAHAL.FUN</a>
-      <a class="header-link" href="portfolio/">/PORTFOLIO</a>
+<body class="page-home">
+<a class="skip" href="#main">Skip to content</a>
+<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+<div class="fx-flash" aria-hidden="true"></div>
+<header class="site-header">
+  <div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="row">
+    <nav class="nav" aria-label="Primary">
+      <a class="home" href="/" aria-current="page">Aakash Dahal</a>
+      <a href="/work/">Work</a>
+      <a class="contact-link" href="/#contact">Contact</a>
+    </nav>
+    <div class="header-mid">
+      <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
     </div>
-    <div class="header-center">
-      <button class="gear chroma" id="gear" type="button" aria-pressed="false">[ <span id="gear-label">GEAR TWO</span> ]</button>
+    <div class="header-end">
+      <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
+      <button class="lamp" type="button" aria-pressed="true" aria-label="Lights" data-lamp><span class="lamp-label" aria-hidden="true">Lights</span><span class="lamp-track" aria-hidden="true"><span class="lamp-knob"></span></span></button>
     </div>
-    <div class="clock">
-      <span class="clock-label">LOCAL TIME</span>
-      <span class="clock-value"><span class="dim">KTM</span> <time id="clock">--:--</time></span>
-    </div>
-  </header>
-
-  <main id="top">
-    <section class="hero glitchable" aria-labelledby="hero-title">
-      <div class="intro reveal-left">
-        <h1 class="intro-name" id="hero-title">AAKASH DAHAL</h1>
-        <p class="intro-bio">I BUILD DEVELOPER TOOLS AND INTERACTIVE PHYSICS SOFTWARE IN TYPESCRIPT AND PYTHON. INTERESTED IN REINFORCEMENT LEARNING AND ROBOTICS.</p>
+  </div>
+</header>
+<main id="main">
+  <section class="hero" aria-labelledby="hero-name">
+    <div class="row">
+      <div class="intro">
+        <h1 id="hero-name">Aakash Dahal</h1>
+        <p>I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.</p>
       </div>
-
-      <div class="hero-figure" id="figure" data-parallax="80" role="img" aria-label="Aakash's GitHub avatar, a dithered statue raising a torch, rendered as moving dots and words">
-        <img class="figure-fallback" src="assets/avatar.jpg" alt="" width="424" height="424">
+      <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring of project names" data-words="AGENTCRUCIBLE,AIRFORGE,SHIPGATE,RECALL,SPANFORGE,LOCALPULSE,GHOST-NOTETAKER,MOLTDAO">
+        <div class="still" aria-hidden="true"></div>
       </div>
-
-
-      <aside class="panel essentially reveal-right" aria-label="Essentially">
-        <h2 class="panel-head">ESSENTIALLY</h2>
-        <p class="panel-body">MY PASSION IS TO PUSH THE BOUNDARIES OF WHAT IS POSSIBLE WITH AI. RESEARCHING AND BUILDING AI SYSTEMS IS MY FAVORITE THING TO DO.</p>
+      <aside class="essentially panel" aria-labelledby="essentially">
+        <h2 class="panel-head" id="essentially">Essentially</h2>
+        <p class="panel-body">I build instruments for AI systems: a harness that catches an agent refunding twice, a proxy that traces every LLM call, and a gate that scans what a coding agent is about to push. Also physics software you can draw into. Next: reinforcement learning and robotics.</p>
       </aside>
-
-      <nav class="threads reveal-left" aria-label="Core threads of my work">
-        <h2 class="threads-title">[ CORE THREADS OF MY WORK ]</h2>
-        <ul>
-          <li><button type="button" data-thread="ai" aria-pressed="false"><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="1.6"/><path d="M10 1v4M10 15v4M1 10h4M15 10h4"/></svg></span><span class="thread-text"><small>01.</small>AI SYSTEMS</span><span class="thread-count">04</span></button></li>
-          <li><button type="button" data-thread="tools" aria-pressed="false"><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 4h15v12h-15z"/><path d="M5.5 8l2.5 2-2.5 2M10 12.5h4"/></svg></span><span class="thread-text"><small>02.</small>DEVELOPER TOOLS</span><span class="thread-count">03</span></button></li>
-          <li><button type="button" data-thread="physics" aria-pressed="false"><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="10" rx="8" ry="3.2"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(60 10 10)"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(-60 10 10)"/><circle cx="10" cy="10" r="1.3"/></svg></span><span class="thread-text"><small>03.</small>PHYSICS SOFTWARE</span><span class="thread-count">01</span></button></li>
-        </ul>
+      <nav class="themes" aria-labelledby="themes-title">
+        <h2 class="t-label muted" id="themes-title">Work by theme</h2>
+        <ol>
+          <li><a href="/work/?theme=ai-systems" data-theme-link="ai-systems" data-names="AGENTCRUCIBLE,SPANFORGE,LOCALPULSE,MOLTDAO"><span class="t-label muted">01</span><span class="t-small">AI systems</span><span class="t-label muted num">04</span></a></li>
+          <li><a href="/work/?theme=developer-tools" data-theme-link="developer-tools" data-names="SHIPGATE,RECALL,SPANFORGE,LOCALPULSE,GHOST-NOTETAKER"><span class="t-label muted">02</span><span class="t-small">Developer tools</span><span class="t-label muted num">05</span></a></li>
+          <li><a href="/work/?theme=physics-software" data-theme-link="physics-software" data-names="AIRFORGE"><span class="t-label muted">03</span><span class="t-small">Physics software</span><span class="t-label muted num">01</span></a></li>
+        </ol>
       </nav>
+      <p class="fig-note"><span class="t-label muted">Fig. 0</span><span class="t-small">My GitHub avatar as <span data-dot-count>50,000</span> dots, lifted into 3D with a monocular depth map. Move the cursor to push them; click to send a ripple.</span></p>
+    </div>
+  </section>
 
-      <aside class="panel about reveal-right" id="about" aria-label="Contact">
-        <h2 class="panel-head"><span>CONTACT</span><button class="panel-close" id="about-close" type="button" aria-label="Close contact panel">×</button></h2>
-        <div class="panel-body">
-          <div class="chips"><a href="https://x.com/skysssup">X / TWITTER</a><a href="https://github.com/skysssup">GITHUB</a><a href="mailto:hello@aakashdahal.fun">EMAIL</a></div>
-        </div>
-      </aside>
-      <button class="about-reopen" id="about-open" type="button" aria-controls="about" aria-expanded="true" hidden>[ + ]</button>
-    </section>
+  <section class="section" id="selected" aria-labelledby="selected-title">
+    <div class="row section-head rule">
+      <h2 class="c1" id="selected-title">Selected work</h2>
+      <a class="end link-ui" href="/work/">All work (08)</a>
+    </div>
+    <div class="row cards">
+      <article class="card c1-2" data-project="agentcrucible">
+        <div class="card-media"><img src="/work/agentcrucible/media/cover-672.webp" srcset="/work/agentcrucible/media/cover-672.webp 672w, /work/agentcrucible/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async"></div>
+        <p class="card-meta t-label"><span>01</span><span>AI systems</span><span>Public</span></p>
+        <h3><a href="/work/agentcrucible/">AgentCrucible</a></h3>
+        <p>Fault-tests tool-using agents against scripted mock worlds.</p>
+      </article>
+      <article class="card c3-4" data-project="airforge">
+        <div class="card-media"><img src="/work/airforge/media/cover-672.webp" srcset="/work/airforge/media/cover-672.webp 672w, /work/airforge/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async"></div>
+        <p class="card-meta t-label"><span>02</span><span>Physics software</span><span>Public</span></p>
+        <h3><a href="/work/airforge/">AirForge</a></h3>
+        <p>Draw ramps and balls; Rapier simulates them in 2.5D.</p>
+      </article>
+      <article class="card c1-2" data-project="shipgate">
+        <div class="card-media"><img src="/work/shipgate/media/cover-672.webp" srcset="/work/shipgate/media/cover-672.webp 672w, /work/shipgate/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async"></div>
+        <p class="card-meta t-label"><span>03</span><span>Developer tools</span><span>Public</span></p>
+        <h3><a href="/work/shipgate/">Shipgate</a></h3>
+        <p>A Git gate that scans what a coding agent is about to push.</p>
+      </article>
+      <article class="card c3-4" data-project="recall-ai">
+        <div class="card-media"><div class="media-empty"><span class="t-label">Visual to come</span></div></div>
+        <p class="card-meta t-label"><span>04</span><span>Developer tools</span><span>Public</span></p>
+        <h3><a href="/work/recall-ai/">Recall</a></h3>
+        <p>Spaced repetition for algorithm practice, kept on your machine.</p>
+      </article>
+    </div>
+  </section>
 
-    <section class="editorial glitchable" aria-labelledby="statement">
-      <div class="editorial-left reveal-up">
-        <div class="dither" id="dither" role="img" aria-label="Close crop of the same avatar, dithered into blinking pixels"></div>
-        <div class="spec">
-          <div class="spec-head"><span class="stripes" aria-hidden="true"></span><span>/01</span></div>
-          <p>BUILDING AI SYSTEMS THAT CLOSE THE GAP BETWEEN HUMANS AND MACHINES.</p>
-        </div>
-      </div>
-      <div class="editorial-right">
-        <h2 class="statement reveal-up" id="statement">I build things. Mostly AI.<br>Sometimes they work.</h2>
-        <div class="facts">
-          <p class="reveal-up"><b>08</b>PROJECTS IN 2026. FOUR ARE PUBLIC ON GITHUB.</p>
-          <p class="reveal-up"><b>02</b>LANGUAGES I WORK IN: TYPESCRIPT AND PYTHON.</p>
-          <p class="reveal-up"><b>NEXT</b>REINFORCEMENT LEARNING AND ROBOTICS.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="work glitchable" id="work" aria-labelledby="work-title">
-      <div class="work-head reveal-up">
-        <h2 id="work-title">[ THINGS I SHIPPED ]</h2>
-        <a href="portfolio/">FULL PORTFOLIO</a>
-      </div>
-      <div class="work-inner">
-        <ol class="work-list" id="work-list"></ol>
-        <aside class="work-detail" id="work-detail" aria-live="polite"></aside>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer glitchable">
-    <div class="footer-grid">
-      <div class="footer-col reveal-up">
-        <h2 class="footer-label">[ CONTACT ]</h2>
-        <p class="footer-note">REACH OUT TO ME OVER HERE AT:</p>
-        <a class="row" href="https://x.com/skysssup"><span>X / TWITTER</span><span class="row-arrow">↗</span></a>
-        <a class="row" href="https://github.com/skysssup"><span>GITHUB</span><span class="row-arrow">↗</span></a>
-        <a class="row" href="mailto:hello@aakashdahal.fun"><span>EMAIL</span><span class="row-arrow">↗</span></a>
-      </div>
-      <div class="footer-col reveal-up">
-        <h2 class="footer-label">[ PORTFOLIO ]</h2>
-        <p class="footer-note">ALL EIGHT PROJECTS, PUBLIC AND PRIVATE.</p>
-        <a class="row" href="portfolio/"><span>PORTFOLIO</span><span class="row-meta">08 PROJECTS</span></a>
+  <section class="section" id="contact" aria-labelledby="contact-title">
+    <div class="row section-head rule">
+      <h2 class="c1" id="contact-title">Contact</h2>
+    </div>
+    <div class="row">
+      <p class="c1 t-small contact-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is <span data-time>--:--</span> now.</p>
+      <div class="c2-4 contact-rows">
+        <div><span class="t-label muted">Email</span><a class="v" href="mailto:hello@aakashdahal.fun">hello@aakashdahal.fun</a><button class="copy t-label" type="button" data-copy="hello@aakashdahal.fun">Copy</button></div>
+        <a href="https://x.com/skysssup"><span class="t-label muted">X</span><span class="v">@skysssup</span><span class="ext" aria-hidden="true">↗</span></a>
+        <a href="https://github.com/skysssup"><span class="t-label muted">GitHub</span><span class="v">skysssup</span><span class="ext" aria-hidden="true">↗</span></a>
       </div>
     </div>
-    <div class="footer-bottom">
-      <span>© <span class="year">2026</span> AAKASH DAHAL</span>
-    </div>
-  </footer>
-
-  <button class="light-switch" id="flip" type="button" aria-label="Toggle color theme" aria-pressed="false">
-    <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
-    <span class="switch-label" data-theme-label>LIGHTS ON</span>
-  </button>
-
-  <script src="site.js"></script>
-  <script src="assets/vendor/lenis.min.js"></script>
-  <script src="js/dotfield.js"></script>
-  <script src="js/cat.js"></script>
-  <script src="js/main.js"></script>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="row">
+    <p class="t-label muted c1">© 2026 Aakash Dahal</p>
+    <p class="t-label c2"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a></p>
+    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+  </div>
+</footer>
+<span class="vh" aria-live="polite" data-announce></span>
+<script src="/js/theme.js" defer></script>
+<script src="/assets/vendor/lenis.min.js" defer></script>
+<script src="/js/motion.js" defer></script>
+<script src="/js/hero.js" defer></script>
+<script src="/js/cat.js" defer></script>
+<script src="/js/page.js" defer></script>
 </body>
 </html>

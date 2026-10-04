@@ -1,21 +1,58 @@
 # skysssup.github.io
 
-Source for [skysssup.github.io](https://skysssup.github.io/), the staging home of aakashdahal.fun. Plain HTML, CSS, and JavaScript with no build step; every asset is served from this repository.
+Aakash Dahal's site, staged here before it moves to aakashdahal.fun. Plain HTML, CSS, and JavaScript served by
+GitHub Pages straight from `main`, with no build step. Every asset is in this repository.
 
-- **Home** (`index.html`): the GitHub avatar as a slowly turning 3D relief of black stipple dots. Blue words wrap whatever part of the figure faces the viewer, the dots blink, scatter from the cursor, and ripple on click. A closer crop below blinks as an ordered dither. The core threads filter the project list.
-- **Portfolio** (`portfolio/`): the arch mark from aakashdahal.fun as a 3D solid built from every project name, dissolving and reassembling on a loop, with an index and a card per project. Private repositories are listed without links.
-- **Gear Two**: the header button flashes, glitches, and settles into a red mode with a heartbeat and embers rising off the figure.
-- **Lights**: the switch on the right edge saves the light/dark choice in `localStorage` and reveals the new theme with a soft circle from the switch.
-- **Extras**: eased scrolling (Lenis 1.3.26, vendored), and a small pixel cat that chases the cursor, naps when idle, and scratches the wall when the cursor leaves the window.
+## Pages
 
-Reduced-motion preferences turn every animation into a still frame, and canvases pause while off-screen or in a background tab.
+- `/` — the hero, a short "Essentially" statement, selected work, and contact.
+- `/work/` — all projects, filterable by theme (`?theme=ai-systems`, `developer-tools`, `physics-software`).
+- `/work/<slug>/` — one case study per project. See [docs/case-studies.md](docs/case-studies.md) for how to fill one in.
+- `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
 
-Serve the folder with any static file server, for example `python3 -m http.server 8080`, then open `http://localhost:8080`. Canvas effects read the avatar image, so they need HTTP rather than `file://`.
+The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/design-spec.md).
 
-Tests use Node.js 22 or later and have no dependencies:
+## How it works
+
+- `css/site.css` — tokens for light, dark, and Gear Two; the sheet grid; every component.
+- `js/theme.js` — the light switch: saved choice, OS sync, cross-tab sync.
+- `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), Gear Two's flash → glitch → settle,
+  the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
+- `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring of project names. It stipples
+  `assets/hero/data.png` (depth, ink, mask) against a blue-noise tile at load, then animates sway, blinking,
+  cursor push, click ripples, and Gear Two entirely in the vertex shader. It pauses off-screen and draws one still
+  frame under reduced motion; without WebGL2 it shows `assets/hero/still.webp`.
+- `js/page.js` — Kathmandu time, copy-to-clipboard, the /work filter, the case-study section index, video
+  play/pause, and mounting the hero and the cat (`js/cat.js`).
+- `js/diagram.js` — draws case-study diagrams from their JSON specs.
+
+Fonts are Instrument Sans and Fragment Mono (SIL OFL, `assets/fonts/`), subset to Latin with arrows.
+Lenis 1.3.26 is vendored under MIT (`assets/vendor/`).
+
+## Run it
 
 ```sh
-node --test test/*.test.cjs
+python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
-Space Grotesk is distributed under the bundled OFL license in `assets/fonts/`; Lenis under the bundled MIT license in `assets/vendor/`.
+## Tests
+
+```sh
+npm test                      # unit and content tests, no dependencies needed
+npm ci && npx playwright install chrome
+npm run test:e2e              # every page at 1440/1280/768/390 in light, dark, and Gear Two:
+                              # console errors, overflow, axe-core, interactions, links
+```
+
+CI runs both on every push to `main`.
+
+## Regenerating assets
+
+- Share images: `npm run og` (after changing a page title, summary, or cover).
+- Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). The depth map is cached in
+  `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Small (needs torch and transformers).
+
+## Moving to aakashdahal.fun
+
+Canonical and share URLs use `https://skysssup.github.io`. Replace that origin in every HTML file and in
+`test/content.test.cjs`, then run `npm test`.

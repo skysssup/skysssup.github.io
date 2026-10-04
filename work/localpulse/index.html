@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LocalPulse — Aakash Dahal</title>
+<meta name="description" content="Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata is retained.">
+<link rel="canonical" href="https://skysssup.github.io/work/localpulse/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Aakash Dahal">
+<meta property="og:title" content="LocalPulse — Aakash Dahal">
+<meta property="og:description" content="Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata is retained.">
+<meta property="og:url" content="https://skysssup.github.io/work/localpulse/">
+<meta property="og:image" content="https://skysssup.github.io/assets/og/localpulse.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="LocalPulse: Token usage, latency, and cost for LLM calls, on disk.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@skysssup">
+<meta name="twitter:creator" content="@skysssup">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="page-case" data-project="localpulse">
+<a class="skip" href="#main">Skip to content</a>
+<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+<div class="fx-flash" aria-hidden="true"></div>
+<header class="site-header">
+  <div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="row">
+    <nav class="nav" aria-label="Primary">
+      <a class="home" href="/">Aakash Dahal</a>
+      <a href="/work/" aria-current="page">Work</a>
+      <a class="contact-link" href="/#contact">Contact</a>
+    </nav>
+    <div class="header-mid">
+      <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
+    </div>
+    <div class="header-end">
+      <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
+      <button class="lamp" type="button" aria-pressed="true" aria-label="Lights" data-lamp><span class="lamp-label" aria-hidden="true">Lights</span><span class="lamp-track" aria-hidden="true"><span class="lamp-knob"></span></span></button>
+    </div>
+  </div>
+</header>
+<main id="main">
+  <div class="row case-head">
+    <p class="crumb t-label"><a href="/work/">Work</a> / 06</p>
+    <div class="case-title">
+      <h1>LocalPulse</h1>
+      <p>Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata is retained.</p>
+    </div>
+    <div class="meta">
+      <dl>
+        <dt class="t-label">Role</dt><dd>Designed and built solo</dd>
+        <dt class="t-label">Status</dt><dd>Prototype</dd>
+        <dt class="t-label">Themes</dt><dd>AI systems · Developer tools</dd>
+        <dt class="t-label">Stack</dt><dd>TypeScript, Node.js, React</dd>
+        <dt class="t-label">Code</dt><dd>Private repository</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="row lead-media">
+    <figure class="fig c2-4">
+        <div class="fig-frame"><video class="" src="/work/localpulse/media/overview.mp4" poster="/work/localpulse/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of the LocalPulse dashboard showing total cost, p95 latency, error rate and token counts, a cost and latency chart, and anomaly flags, using synthetic demo data." data-autoplay></video></div>
+        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">The dashboard on its bundled synthetic metrics: totals, cost and latency over time, anomaly flags.</span></figcaption>
+      </figure>
+  </div>
+
+  <div class="row case-body">
+    <nav class="toc" aria-label="On this page">
+      <ol>
+        <li><a href="#problem">The problem</a></li>
+        <li><a href="#built">What I built</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#decisions">Key decisions</a></li>
+        <li><a href="#hard">What’s hard</a></li>
+        <li><a href="#status">Status and next</a></li>
+        <li><a href="#stack">Stack and links</a></li>
+      </ol>
+    </nav>
+    <article class="prose">
+      <section id="problem" aria-labelledby="problem-title">
+        <h2 id="problem-title">The problem</h2>
+        <p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">The concrete failure or gap this project addresses, in engineering terms: who runs into it, what goes wrong, and why existing tools miss it. 80–140 words.</span></p>
+      </section>
+      <section id="built" aria-labelledby="built-title">
+        <h2 id="built-title">What I built</h2>
+        <p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">What exists today: the main pieces and what someone actually does with them. 100–180 words.</span></p>
+      </section>
+      <section id="how" aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">The pipeline or mechanism, using the real module names, data structures, algorithms, and thresholds from the code. 120–220 words, plus the diagram below.</span></p>
+          <figure class="diagram wide" data-diagram data-placeholder>
+            <script type="application/json">{"direction":"LR","nodes":[{"id":"in","label":"Input","sub":"what comes in"},{"id":"core","label":"Core mechanism","sub":"what the code does"},{"id":"out","label":"Result","sub":"what comes out"}],"edges":[{"from":"in","to":"core"},{"from":"core","to":"out"}]}</script>
+            <ol class="diagram-steps t-small"><li>Input: what comes in</li><li>Core mechanism: what the code does</li><li>Result: what comes out</li></ol>
+            <figcaption><span class="t-label muted">Fig. 2</span><span class="t-small">Placeholder diagram: 3–7 nodes in one direction, readable in ten seconds.</span></figcaption>
+          </figure>
+      </section>
+      <section id="decisions" aria-labelledby="decisions-title">
+        <h2 id="decisions-title">Key decisions</h2>
+        <p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">Three or four decisions. For each: the decision in one sentence, why it was made, and what it cost. 40–70 words each.</span></p>
+      </section>
+      <section id="hard" aria-labelledby="hard-title">
+        <h2 id="hard-title">What’s hard</h2>
+        <p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">Two or three genuinely difficult problems in this codebase (correctness, concurrency, numerics, security, UX under uncertainty) and how the code handles them. 40–80 words each.</span></p>
+      </section>
+      <section id="status" aria-labelledby="status-title">
+        <h2 id="status-title">Status and next</h2>
+        <p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">What works now, its honest limits, and two or three next steps that follow from documented limitations. 60–120 words.</span></p>
+      </section>
+      <section id="stack" aria-labelledby="stack-title">
+        <h2 id="stack-title">Stack and links</h2>
+        <ul class="stack-list"><li>TypeScript</li><li>Node.js</li><li>React</li></ul>
+        <p class="links">The repository is private.</p>
+      </section>
+    </article>
+    <aside class="aside" aria-label="Key numbers">
+      <div class="panel numbers">
+        <h2 class="panel-head">Numbers</h2>
+        <div class="panel-body"><p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">Four to six verified facts from the code: counts, limits, sizes, test results.</span></p></div>
+      </div>
+    </aside>
+  </div>
+
+  <nav class="row pager" aria-label="More projects">
+    <a class="c1-2" href="/work/spanforge/"><span class="t-label muted">Previous</span><span class="t-s">Spanforge</span></a>
+    <a class="c3-4 next" href="/work/ghost-notetaker/"><span class="t-label muted">Next</span><span class="t-s">Ghost Notetaker</span></a>
+  </nav>
+</main>
+<footer class="site-footer">
+  <div class="row">
+    <p class="t-label muted c1">© 2026 Aakash Dahal</p>
+    <p class="t-label c2"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a></p>
+    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+  </div>
+</footer>
+<span class="vh" aria-live="polite" data-announce></span>
+<script src="/js/theme.js" defer></script>
+<script src="/assets/vendor/lenis.min.js" defer></script>
+<script src="/js/motion.js" defer></script>
+<script src="/js/diagram.js" defer></script>
+<script src="/js/cat.js" defer></script>
+<script src="/js/page.js" defer></script>
+</body>
+</html>

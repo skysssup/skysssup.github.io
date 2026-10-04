@@ -1,0 +1,131 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const hero = require('../js/hero.js');
+
+test('the hash is deterministic and spreads evenly over [0, 1)', () => {
+  assert.equal(hero.hash(42), hero.hash(42));
+  const buckets = new Array(10).fill(0);
+  for (let i = 0; i < 20000; i++) {
+    const v = hero.hash(i);
+    assert.ok(v >= 0 && v < 1);
+    buckets[Math.floor(v * 10)]++;
+  }
+  for (const b of buckets) assert.ok(b > 1700 && b < 2300, `bucket ${b}`);
+});
+
+test('Gear Two heartbeat beats twice per 0.9 s and rests in between', () => {
+  const samples = Array.from({ length: 90 }, (_, i) => hero.heartbeat(i / 100));
+  const peaks = samples.filter((v, i) => i > 0 && i < samples.length - 1 && v > samples[i - 1] && v >= samples[i + 1] && v > 0.3);
+  assert.equal(peaks.length, 2);
+  assert.ok(hero.heartbeat(0.6) < 0.05);
+  assert.ok(Math.abs(hero.heartbeat(0.08) - hero.heartbeat(0.98)) < 1e-9);
+});
+
+test('the spring settles on its target without overshooting, at any frame time', () => {
+  for (const dt of [1 / 240, 1 / 60, 1 / 20, 0.05]) {
+    const s = { x: 0, v: 0 };
+    let max = 0;
+    for (let t = 0; t < 4; t += dt) { hero.spring(s, 1, dt, 6); max = Math.max(max, s.x); }
+    assert.ok(Math.abs(s.x - 1) < 1e-3, `dt ${dt} ended at ${s.x}`);
+    assert.ok(max <= 1 + 1e-9, `dt ${dt} overshot to ${max}`);
+  }
+});
+
+test('a ripple is a band that travels outward and fades out', () => {
+  const at = (d, a) => hero.rippleWeight(d, a, 900, 46, 1.3);
+  assert.ok(at(90, 0.1) > 0.85);
+  assert.ok(at(450, 0.5) > at(90, 0.5));
+  assert.ok(at(450, 0.5) < at(90, 0.1));
+  assert.equal(at(100, -0.01), 0);
+  assert.equal(at(100, 1.31), 0);
+  assert.ok(at(0, 0.5) < 1e-6);
+});
+
+test('about 1.5% of dots are blinked off at any moment, and blinks are short', () => {
+  let off = 0, total = 0;
+  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) { total++; if (hero.blinkOff(id, k * 0.37, 1)) off++; }
+  const share = off / total;
+  assert.ok(share > 0.008 && share < 0.025, `share ${share}`);
+  let doubled = 0;
+  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) if (hero.blinkOff(id, k * 0.37, 2)) doubled++;
+  assert.ok(doubled / total > share * 1.5, 'Gear Two blinks more often');
+  let longest = 0;
+  for (let id = 0; id < 300; id++) {
+    let run = 0;
+    for (let t = 0; t < 30; t += 0.01) { run = hero.blinkOff(id, t, 1) ? run + 0.01 : 0; longest = Math.max(longest, run); }
+  }
+  assert.ok(longest <= 0.25 + 0.02, `longest blink ${longest}`);
+});
+
+test('stippling keeps dots where the ink beats the threshold and nowhere else', () => {
+  const size = 8, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const i = (y * size + x) * 4;
+    rgba[i] = 200;
+    rgba[i + 1] = x < 4 ? 255 : 0;
+    rgba[i + 2] = 255;
+  }
+  const noise = Uint8Array.from({ length: 16 }, (_, i) => i * 16);
+  const pts = hero.stipple(rgba, size, noise, 4, 32, 1, 0);
+  assert.equal(pts.length % 4, 0);
+  assert.ok(pts.length > 0);
+  // ink is 1 in map columns 0-3 and 0 from column 4; bilinear sampling fades it out by u = 4 of 7
+  for (let i = 0; i < pts.length; i += 4) {
+    assert.ok(pts[i] * 7 < 4 + 1e-6, `dot at x=${pts[i]} lies where the ink is zero`);
+    assert.ok(Math.abs(pts[i + 2] - 200 / 255) < 1e-6);
+  }
+  assert.ok(Array.from({ length: pts.length / 4 }, (_, i) => pts[i * 4]).some(x => x < 0.25), 'the inked side is stippled');
+  const again = hero.stipple(rgba, size, noise, 4, 32, 1, 0.7);
+  assert.deepEqual(Array.from(again), Array.from(hero.stipple(rgba, size, noise, 4, 32, 1, 0.7)));
+});
+
+test('denser grids for bigger figures, within limits', () => {
+  assert.equal(hero.resolutionFor(100), 280);
+  assert.equal(hero.resolutionFor(5000), 640);
+  assert.ok(hero.resolutionFor(700) > hero.resolutionFor(400));
+});
+
+test('the figure is centred in its box with the requested margin', () => {
+  const placed = hero.fit([0.1, 0.2, 0.7, 0.9], 700, 14);
+  const w = 0.6 * placed.scale, h = 0.7 * placed.scale;
+  assert.ok(Math.abs(h - (700 - 28)) < 1e-9);
+  assert.ok(Math.abs(placed.x + 0.1 * placed.scale - (700 - w) / 2) < 1e-9);
+  assert.ok(Math.abs(placed.y + 0.2 * placed.scale - 14) < 1e-9);
+});
+
+test('the ring repeats whole names, separated by middle dots, and knows which name owns each glyph', () => {
+  const words = ['AGENTCRUCIBLE', 'AIRFORGE', 'SHIPGATE'];
+  const ring = hero.ringText(words, 2000, 8);
+  const text = ring.glyphs.join('');
+  assert.equal(ring.reps, Math.round(2000 / ((words.join(' · ') + ' · ').length * 8)));
+  for (const lap of text.split(' · ').filter(Boolean)) assert.ok(words.includes(lap), `fragment "${lap}"`);
+  const first = ring.glyphs.indexOf('S');
+  assert.equal(words[ring.owner[first]], 'SHIPGATE');
+  assert.equal(ring.owner[ring.glyphs.indexOf('·')], -1);
+  assert.equal(hero.ringText(words, 10, 8).reps, 1);
+});
+
+test('rotation keeps lengths, and perspective magnifies what is nearer', () => {
+  const p = hero.rotate([0.3, -0.2, 0.1], 0.4, -0.15);
+  assert.ok(Math.abs(Math.hypot(...p) - Math.hypot(0.3, -0.2, 0.1)) < 1e-12);
+  assert.ok(hero.project([0, 0, 0.2])[2] > hero.project([0, 0, -0.2])[2]);
+});
+
+test('the shipped hero data matches what the engine expects', () => {
+  const dir = path.join(__dirname, '..', 'assets', 'hero');
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, 'hero.json'), 'utf8'));
+  const [x0, y0, x1, y1] = meta.bounds;
+  assert.ok(x0 >= 0 && y0 >= 0 && x1 <= 1 && y1 <= 1 && x1 > x0 && y1 > y0);
+  assert.ok(meta.density > 0 && meta.density <= 1);
+  assert.ok(meta.ring.r > 0 && meta.ring.r < 0.5);
+  const png = fs.readFileSync(path.join(dir, 'data.png'));
+  assert.equal(png.readUInt32BE(16), meta.size);
+  assert.equal(png.readUInt32BE(20), meta.size);
+  const chunks = [];
+  for (let o = 8; o < png.length;) { const len = png.readUInt32BE(o); chunks.push(png.toString('ascii', o + 4, o + 8)); o += 12 + len; }
+  for (const c of ['gAMA', 'iCCP', 'sRGB', 'cHRM']) assert.ok(!chunks.includes(c), `data.png must not carry ${c}, or browsers would color-manage the data`);
+  const total = ['data.png', 'bluenoise.png', 'hero.json'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
+  assert.ok(total < 200 * 1024, `hero data is ${total} bytes`);
+});
