@@ -135,6 +135,14 @@ test('share images are current: each matches the title, summary, and visual of i
   }
 });
 
+test('the sitemap lists every indexable page by its canonical URL, and robots.txt points to it', () => {
+  const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+  const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]).sort();
+  const canonical = pages.filter(p => p !== '404.html').map(p => html[p].match(/<link rel="canonical" href="([^"]+)">/)[1]).sort();
+  assert.deepEqual(listed, canonical);
+  assert.match(fs.readFileSync(path.join(root, 'robots.txt'), 'utf8'), new RegExp(`^Sitemap: ${ORIGIN}/sitemap\\.xml$`, 'm'));
+});
+
 test('every file in a project media folder is used by some page', () => {
   const all = Object.values(html).join('\n');
   for (const p of caseStudies) {

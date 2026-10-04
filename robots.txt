@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /docs/
+Disallow: /research/
+Disallow: /test/
+Disallow: /tools/
+
+Sitemap: https://skysssup.github.io/sitemap.xml

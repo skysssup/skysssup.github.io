@@ -74,9 +74,9 @@
           say(n + " projects shown for " + label);
         }
       };
-      filters.hidden = false;
       buttons.forEach(function (b) { b.addEventListener("click", function () { apply(b.getAttribute("data-filter"), true); }); });
       apply(themeFromSearch(win.location.search), false);
+      doc.documentElement.removeAttribute("data-filter");
     }
 
     /* case-study section index */

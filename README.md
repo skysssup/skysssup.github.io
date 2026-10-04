@@ -56,5 +56,6 @@ CI runs both on every push to `main`.
 
 ## Moving to aakashdahal.fun
 
-Canonical and share URLs use `https://skysssup.github.io`. Replace that origin in every HTML file and in
-`test/content.test.cjs`, then run `npm test`.
+Canonical, share, and sitemap URLs use `https://skysssup.github.io`. To move, change `origin` in
+`tools/pages/site.json`, run `node tools/pages/build.mjs` (pages, `sitemap.xml`, `robots.txt`) and `npm run og`
+(share images print the host), set `ORIGIN` in `test/content.test.cjs`, then run `npm test`.

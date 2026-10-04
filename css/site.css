@@ -444,6 +444,7 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
 .page-head h1 { font: 500 24px/32px var(--sans); letter-spacing: -0.01em; }
 .page-head .count { margin-top: 4px; color: var(--muted); }
 .filters { grid-column: 2 / span 3; display: flex; flex-wrap: wrap; gap: 8px; }
+html:not(.js) .filters { display: none; }
 .filter { height: 28px; padding: 0 10px; border: 1px solid var(--line-strong); font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; transition: border-color .2s, color .2s, background-color .2s; }
 .filter .k { color: var(--muted); }
 .filter:hover { border-color: var(--ink); }
@@ -454,6 +455,9 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
 }
 
 .projects { border-top: 1px solid var(--line); margin: 0 var(--m); position: relative; z-index: 1; }
+html[data-filter="ai-systems"] .project:not([data-themes~="ai-systems"]),
+html[data-filter="developer-tools"] .project:not([data-themes~="developer-tools"]),
+html[data-filter="physics-software"] .project:not([data-themes~="physics-software"]) { display: none; }
 .project {
   position: relative;
   display: grid;

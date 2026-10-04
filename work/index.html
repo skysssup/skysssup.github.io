@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
+<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r){var m=/[?&]theme=(ai-systems|developer-tools|physics-software)(&|$)/.exec(location.search);if(m)r.setAttribute("data-filter",m[1])})(document.documentElement);</script>
 <link rel="stylesheet" href="/css/site.css">
 </head>
 <body class="page-work">
@@ -55,7 +55,7 @@
       <h1>Work</h1>
       <p class="count t-label"><span data-count>08</span> of 08 projects</p>
     </div>
-    <div class="filters" role="group" aria-label="Filter by theme" data-filters hidden>
+    <div class="filters" role="group" aria-label="Filter by theme" data-filters>
       <button class="filter" type="button" aria-pressed="true" data-filter="all">All <span class="k num">08</span></button>
       <button class="filter" type="button" aria-pressed="false" data-filter="ai-systems">AI systems <span class="k num">04</span></button>
       <button class="filter" type="button" aria-pressed="false" data-filter="developer-tools">Developer tools <span class="k num">05</span></button>

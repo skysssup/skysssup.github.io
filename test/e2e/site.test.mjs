@@ -130,6 +130,24 @@ test('section links land each section just under the header, with smooth scrolli
 });
 
 
+test('a /work link with a theme shows only that theme from the first paint, without a layout shift', async () => {
+  const { page, context } = await open('/work/?theme=physics-software', { width: 1440, height: 900 });
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  const shifts = await page.evaluate(() => new Promise(done => {
+    let sum = 0;
+    new PerformanceObserver(list => { for (const e of list.getEntries()) sum += e.value; }).observe({ type: 'layout-shift', buffered: true });
+    setTimeout(() => done(sum), 300);
+  }));
+  assert.ok(shifts < 0.01, `layout shift ${shifts}`);
+  assert.deepEqual(await page.$$eval('.project', rows => rows.filter(r => r.offsetParent).map(r => r.dataset.project)), ['airforge']);
+  assert.equal(await page.getAttribute('[data-filter="physics-software"]', 'aria-pressed'), 'true');
+  assert.equal(await page.evaluate(() => document.documentElement.hasAttribute('data-filter')), false);
+  await page.click('[data-filter="all"]');
+  assert.equal(await page.$$eval('.project', rows => rows.filter(r => r.offsetParent).length), slugs.length);
+  await context.close();
+});
+
+
 test('Gear Two flashes, glitches, settles, turns the page red, and survives navigation', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForTimeout(1500);

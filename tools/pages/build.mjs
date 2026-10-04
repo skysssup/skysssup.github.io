@@ -20,7 +20,7 @@ const md = s => esc(s)
 const year = 2026;
 const ARROW = '<span class="ext" aria-hidden="true">↗</span>';
 
-function head({ title, description, url, image, imageAlt, type = 'website', extra = '' }) {
+function head({ title, description, url, image, imageAlt, type = 'website', boot = '', extra = '' }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,7 +48,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', extr
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<script>${BOOT}</script>
+<script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 ${extra}</head>`;
 }
@@ -103,13 +103,13 @@ function media(m, { eager = false, cls = '' } = {}) {
   if (m.kind === 'video') {
     return `<video class="${cls}" src="${m.src}" poster="${m.poster}" width="${m.w}" height="${m.h}" muted loop playsinline controls preload="none" aria-label="${esc(m.alt)}" data-autoplay></video>`;
   }
-  return `<img class="${cls}" src="${m.src}" alt="${esc(m.alt || '')}" width="${m.w}" height="${m.h}" loading="${load}" decoding="async">`;
+  return `<img class="${cls}" src="${m.src}" alt="${esc(m.alt || '')}" width="${m.w}" height="${m.h}" loading="${load}" decoding="async"${eager ? ' fetchpriority="high"' : ''}>`;
 }
 
-function cover(p, sizes) {
+function cover(p, sizes, priority = '') {
   if (!p.cover) return `<div class="media-empty"><span class="t-label">Visual to come</span></div>`;
   const b = p.cover.src;
-  return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async">`;
+  return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}>`;
 }
 
 /* ── home ─────────────────────────────────────────── */
@@ -151,7 +151,7 @@ ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-t
     </div>
     <div class="row cards">
 ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}" data-project="${p.slug}">
-        <div class="card-media">${cover(p, '(max-width: 767px) 100vw, 50vw')}</div>
+        <div class="card-media">${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}</div>
         <p class="card-meta t-label"><span>${pad(site.order.indexOf(p.slug) + 1)}</span><span>${themesOf(p)}</span><span>${p.visibility}</span></p>
         <h3><a href="/work/${p.slug}/">${esc(p.name)}</a></h3>
         <p>${esc(p.tagline)}</p>
@@ -184,7 +184,8 @@ ${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/
 /* ── work index ───────────────────────────────────── */
 function work() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
-  return `${head({ title: 'Work — Aakash Dahal', description: 'Eight projects by Aakash Dahal across AI systems, developer tools, and physics software, each with a case study.', url: '/work/', image: '/assets/og/work.png', imageAlt: 'Work by Aakash Dahal: eight projects' })}
+  const filterBoot = `(function(r){var m=/[?&]theme=(${site.themes.map(t => t.id).join('|')})(&|$)/.exec(location.search);if(m)r.setAttribute("data-filter",m[1])})(document.documentElement);`;
+  return `${head({ title: 'Work — Aakash Dahal', description: 'Eight projects by Aakash Dahal across AI systems, developer tools, and physics software, each with a case study.', url: '/work/', image: '/assets/og/work.png', imageAlt: 'Work by Aakash Dahal: eight projects', boot: filterBoot })}
 <body class="page-work">
 ${header('work')}
 <main id="main">
@@ -193,7 +194,7 @@ ${header('work')}
       <h1>Work</h1>
       <p class="count t-label"><span data-count>${pad(projects.length)}</span> of ${pad(projects.length)} projects</p>
     </div>
-    <div class="filters" role="group" aria-label="Filter by theme" data-filters hidden>
+    <div class="filters" role="group" aria-label="Filter by theme" data-filters>
       <button class="filter" type="button" aria-pressed="true" data-filter="all">All <span class="k num">${pad(projects.length)}</span></button>
 ${site.themes.map(t => `      <button class="filter" type="button" aria-pressed="false" data-filter="${t.id}">${t.name} <span class="k num">${pad(counts[t.id])}</span></button>`).join('\n')}
     </div>
@@ -264,7 +265,8 @@ function caseStudy(p, i) {
         <div class="fig-frame${lead ? '' : ' is-empty'}">${lead ? media(lead, { eager: true }) : '<div class="media-empty"><span class="t-label">Visual to come</span></div>'}</div>
         <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${lead ? esc(lead.caption) : 'To come: a screenshot, recording, or demo of the real product.'}</span></figcaption>
       </figure>`;
-  return `${head({ title: `${p.name} — Aakash Dahal`, description: p.summary, url, image: `/assets/og/${p.slug}.png`, imageAlt: `${p.name}: ${p.tagline}`, type: 'article' })}
+  const preload = lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '';
+  return `${head({ title: `${p.name} — Aakash Dahal`, description: p.summary, url, image: `/assets/og/${p.slug}.png`, imageAlt: `${p.name}: ${p.tagline}`, type: 'article', extra: preload })}
 <body class="page-case" data-project="${p.slug}">
 ${header('work')}
 <main id="main">
@@ -376,4 +378,18 @@ write('work/index.html', work());
 projects.forEach((p, i) => write(`work/${p.slug}/index.html`, caseStudy(p, i)));
 write('404.html', notFound());
 write('portfolio/index.html', redirect('/work/'));
-console.log('wrote', 4 + projects.length, 'pages');
+const urls = ['/', '/work/', ...projects.map(p => `/work/${p.slug}/`)];
+write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(u => `  <url><loc>${site.origin}${u}</loc></url>`).join('\n')}
+</urlset>
+`);
+write('robots.txt', `User-agent: *
+Disallow: /docs/
+Disallow: /research/
+Disallow: /test/
+Disallow: /tools/
+
+Sitemap: ${site.origin}/sitemap.xml
+`);
+console.log('wrote', 4 + projects.length, 'pages, sitemap.xml, and robots.txt');
