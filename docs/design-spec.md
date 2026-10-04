@@ -182,12 +182,13 @@ Each page gets a unique title and description, a canonical URL on `https://skyss
 
 ## 14. Testing and QA
 - **Node tests (`node --test`).**
-  - Hero math: projection, ripple, blink schedule, stipple sampler, word layout.
+  - Hero math: projection, ripple, blink schedule, stipple sampler, ring text (whole repeats of the line), the sheen's triggers at the turns of the sway, Gear Two's tear schedule, the relief smoothing that keeps 8-bit depth from terracing the normals, the nearest-pixel material lookup, and the shipped hero data (map sizes, lossless WebP with no color profile, the 200 KB budget).
   - Gear Two, theme, motion preference, filter ↔ URL state, scrollspy.
   - Content integrity on every page: meta and OG tags, one `h1`, alt text, internal links resolve, assets exist, banned-word list, no uppercase paragraphs.
 - **Playwright.**
   - All 11 pages × 4 widths × 3 modes: zero console errors, no horizontal overflow, the grid-alignment assertion, and screenshots.
   - Interactions: Gear Two, the theme reveal, filters and URL, keyboard paths, video pause, demo loading, and the reduced-motion paths.
+  - The hero through a WebGL probe: one program, one buffer, one VAO per context restoration with identical bytes; a sweep of light within 8 s of load and none under reduced motion; tears after Gear Two's switch and never on light paper, under reduced motion, or during a touch drag; the ring brightening on a theme hover; all five materials in the shipped map; 40% color in Gear Two and plain ink without the map.
   - An internal and external link check.
 - **axe-core** in every mode.
 - **CI.** GitHub Actions runs all of it on every push to `main`.
