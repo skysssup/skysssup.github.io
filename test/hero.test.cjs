@@ -112,21 +112,22 @@ test('stippling keeps dots where the ink beats the threshold and nowhere else', 
   }
   const noise = Uint8Array.from({ length: 16 }, (_, i) => i * 16);
   const pts = hero.stipple(rgba, size, noise, 4, 32, 1, 0);
-  assert.equal(pts.length % 4, 0);
+  assert.equal(pts.length % 3, 0);
   assert.ok(pts.length > 0);
   // ink is 1 in map columns 0-3 and 0 from column 4; bilinear sampling fades it out by u = 4 of 7
-  for (let i = 0; i < pts.length; i += 4) {
+  for (let i = 0; i < pts.length; i += 3) {
     assert.ok(pts[i] * 7 < 4 + 1e-6, `dot at x=${pts[i]} lies where the ink is zero`);
-    assert.ok(Math.abs(pts[i + 2] - 200 / 255) < 1e-6);
+    assert.ok(pts[i + 2] > 0 && pts[i + 2] <= 1, 'each dot carries the ink under it');
   }
-  assert.ok(Array.from({ length: pts.length / 4 }, (_, i) => pts[i * 4]).some(x => x < 0.25), 'the inked side is stippled');
+  assert.ok(Array.from({ length: pts.length / 3 }, (_, i) => pts[i * 3]).some(x => x < 0.25), 'the inked side is stippled');
   const again = hero.stipple(rgba, size, noise, 4, 32, 1, 0.7);
   assert.deepEqual(Array.from(again), Array.from(hero.stipple(rgba, size, noise, 4, 32, 1, 0.7)));
 });
 
 test('denser grids for bigger figures, within limits', () => {
-  assert.equal(hero.resolutionFor(100), 280);
-  assert.equal(hero.resolutionFor(5000), 640);
+  assert.equal(hero.resolutionFor(100), 320);
+  assert.equal(hero.resolutionFor(5000), 1200);
+  assert.equal(hero.resolutionFor(760), 1064, 'a little more than one cell per pixel of the figure');
   assert.ok(hero.resolutionFor(700) > hero.resolutionFor(400));
 });
 
@@ -163,13 +164,19 @@ test('the shipped hero data matches what the engine expects', () => {
   assert.ok(x0 >= 0 && y0 >= 0 && x1 <= 1 && y1 <= 1 && x1 > x0 && y1 > y0);
   assert.ok(meta.density > 0 && meta.density <= 1);
   assert.ok(meta.ring.r > 0 && meta.ring.r < 0.5);
-  const png = fs.readFileSync(path.join(dir, 'data.png'));
-  assert.equal(png.readUInt32BE(16), meta.size);
-  assert.equal(png.readUInt32BE(20), meta.size);
-  const chunks = [];
-  for (let o = 8; o < png.length;) { const len = png.readUInt32BE(o); chunks.push(png.toString('ascii', o + 4, o + 8)); o += 12 + len; }
-  for (const c of ['gAMA', 'iCCP', 'sRGB', 'cHRM']) assert.ok(!chunks.includes(c), `data.png must not carry ${c}, or browsers would color-manage the data`);
-  const total = ['data.png', 'bluenoise.png', 'hero.json', 'color.webp'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
+  // the data maps are lossless WebP (VP8L) with no color profile, so browsers hand the engine the exact bytes
+  const lossless = file => {
+    const webp = fs.readFileSync(path.join(dir, file));
+    assert.equal(webp.toString('ascii', 0, 4), 'RIFF', file);
+    assert.equal(webp.toString('ascii', 8, 16), 'WEBPVP8L', `${file} must be a simple lossless WebP, with no ICC profile to color-manage the data`);
+    assert.equal(webp[20], 0x2f);
+    const bits = webp.readUInt32LE(21);
+    return [(bits & 0x3fff) + 1, ((bits >> 14) & 0x3fff) + 1];
+  };
+  assert.deepEqual(lossless('ink.webp'), [meta.size, meta.size]);
+  assert.deepEqual(lossless('depth.webp'), [meta.depth, meta.depth]);
+  assert.ok(meta.size >= 896, `the ink map is ${meta.size} px`);
+  const total = ['ink.webp', 'depth.webp', 'bluenoise.png', 'hero.json', 'color.webp'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
   assert.ok(total < 200 * 1024, `hero data is ${total} bytes`);
   const webp = fs.readFileSync(path.join(dir, 'color.webp'));
   assert.equal(webp.toString('ascii', 0, 4), 'RIFF');
@@ -180,22 +187,40 @@ test('normals follow the depth map: flat ground faces the viewer, slopes tilt aw
   const size = 16, rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const i = (y * size + x) * 4;
-    rgba[i] = x < 8 ? 128 : Math.min(255, 128 + (x - 7) * 30);  // flat on the left, rising to the right
-    rgba[i + 1] = 255;
-    rgba[i + 2] = y < 14 ? 255 : 0;                               // the last two rows are outside the mask
+    rgba[i] = y >= 14 ? 0 : x < 8 ? 128 : Math.min(255, 128 + (x - 7) * 30);  // flat on the left, rising to the right; the last two rows are outside the figure
   }
-  const at = (x, y) => new Float32Array([x / (size - 1), y / (size - 1), 0, 1]);
-  const flat = hero.depthNormals(rgba, size, at(3, 6), 0.34);
-  assert.deepEqual(Array.from(flat).map(Math.abs), [0, 0]);
-  const slope = hero.depthNormals(rgba, size, at(11, 6), 0.34);
+  const field = hero.reliefField(rgba, size, 0);
+  assert.equal(field[15 * size + 3], -1, 'outside the figure');
+  assert.ok(Math.abs(field[6 * size + 3] - 128 / 255) < 1e-6);
+  const at = (x, y) => new Float32Array([x / (size - 1), y / (size - 1), 1]);
+  const flat = hero.depthNormals(field, size, at(3, 6), 3, 0.34);
+  assert.deepEqual(Array.from(flat.subarray(0, 2)).map(Math.abs), [0, 0]);
+  assert.ok(Math.abs(flat[2] - 128 / 255) < 1e-6, 'each dot gets the depth under it');
+  const slope = hero.depthNormals(field, size, at(11, 6), 3, 0.34);
   assert.ok(slope[0] < -0.3, `a surface rising to the right tilts left, got nx ${slope[0]}`);
   assert.ok(Math.abs(slope[1]) < 1e-6, 'no tilt along y on a pure x ramp');
   assert.ok(Math.hypot(slope[0], slope[1]) <= 0.94 + 1e-6, 'tilt stays under the limit so nz is never zero');
-  const edge = hero.depthNormals(rgba, size, at(11, 13), 0.34);
-  assert.ok(Math.abs(edge[0] - slope[0]) < 1e-6, 'the row above the mask edge still gets its x slope from a one-sided y sample');
-  const many = hero.depthNormals(rgba, size, hero.stipple(rgba, size, Uint8Array.from({ length: 16 }, (_, i) => i * 16), 4, 24, 1, 0), 0.34);
-  assert.equal(many.length % 2, 0);
-  for (let i = 0; i < many.length; i += 2) assert.ok(many[i] * many[i] + many[i + 1] * many[i + 1] < 1, 'every normal has a positive z');
+  const edge = hero.depthNormals(field, size, at(11, 13), 3, 0.34);
+  assert.ok(Math.abs(edge[0] - slope[0]) < 1e-6, 'the row above the figure\'s edge still gets its x slope from a one-sided y sample');
+  const rim = hero.depthNormals(field, size, new Float32Array([3 / 15, 13.6 / 15, 1]), 3, 0.34);
+  assert.ok(Math.abs(rim[2] - 128 / 255) < 1e-6, 'a dot on the edge takes its depth from the figure, never from the empty pixels beside it');
+  const many = hero.depthNormals(field, size, hero.stipple(rgba.map((v, i) => i % 4 === 1 ? 255 : v), size, Uint8Array.from({ length: 16 }, (_, i) => i * 16), 4, 24, 1, 0), 3, 0.34);
+  assert.equal(many.length % 3, 0);
+  for (let i = 0; i < many.length; i += 3) assert.ok(many[i] * many[i] + many[i + 1] * many[i + 1] < 1, 'every normal has a positive z');
+});
+
+test('smoothing the depth inside the figure removes the 8-bit terraces from the normals, and never pulls in the sky', () => {
+  // a gentle ramp, one level every 3 px, then the sky; 128 px with the relief scaled up 3.5x behaves like the 448 px map
+  const size = 128, relief = 0.34 * 447 / 127, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) rgba[(y * size + x) * 4] = x < 96 ? Math.round(100 + x / 3) : 0;
+  const row = field => Array.from({ length: 60 }, (_, k) => hero.depthNormals(field, size, new Float32Array([(16 + k) / 127, 0.5, 1]), 3, relief)[0]);
+  const spread = list => { const m = list.reduce((a, b) => a + b, 0) / list.length; return Math.sqrt(list.reduce((a, b) => a + (b - m) ** 2, 0) / list.length); };
+  const raw = row(hero.reliefField(rgba, size, 0)), smooth = row(hero.reliefField(rgba, size, 1.5));
+  assert.ok(spread(raw) > 0.02, `the raw 8-bit ramp terraces (spread ${spread(raw)})`);
+  assert.ok(spread(smooth) < spread(raw) / 4, `smoothed normals are steady (spread ${spread(smooth)} vs ${spread(raw)})`);
+  const field = hero.reliefField(rgba, size, 1.5);
+  assert.ok(Math.abs(field[64 * size + 95] - (100 + 95 / 3) / 255) < 0.01, 'the last pixel before the sky keeps its depth');
+  assert.equal(field[64 * size + 96], -1);
 });
 
 test('each dot samples the avatar color map bilinearly, sparkle included', () => {
@@ -208,7 +233,7 @@ test('each dot samples the avatar color map bilinearly, sparkle included', () =>
     rgba[i + 3] = x === 3 && y === 3 ? 255 : 0;  // one sparkle in the corner
   }
   const at = (x, y) => [x / (size - 1), y / (size - 1), 0, 1];
-  const out = hero.sampleColors(rgba, size, new Float32Array([...at(0, 0), ...at(3, 3), ...at(1.5, 0), ...at(3, 2.5)]));
+  const out = hero.sampleColors(rgba, size, new Float32Array([...at(0, 0), ...at(3, 3), ...at(1.5, 0), ...at(3, 2.5)]), 4);
   assert.deepEqual(Array.from(out.subarray(0, 4)), [200, 90, 30, 0]);
   assert.deepEqual(Array.from(out.subarray(4, 8)), [40, 90, 230, 255]);
   assert.deepEqual(Array.from(out.subarray(8, 12)), [120, 90, 30, 0], 'halfway between red and not-red');

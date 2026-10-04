@@ -100,9 +100,9 @@
     return local >= start && local < start + dur;
   }
 
-  // Threshold stippling: every cell of a res x res grid over the figure keeps a dot when its ink
-  // (bilinear from the size x size map) beats the tiled blue-noise threshold. Output is
-  // [x, y, z, ink] per dot with x, y in figure units (0..1) and z the depth (0..1, near = 1).
+  // Threshold stippling: every cell of a res x res grid over the figure keeps a dot when its ink (green
+  // channel, bilinear from the size x size map) beats the tiled blue-noise threshold. Output is [x, y, ink]
+  // per dot with x, y in figure units (0..1); what else a dot carries is sampled from the other maps.
   function stipple(rgba, size, noise, noiseSize, res, density, jitter) {
     var out = [];
     var scale = (size - 1) / res;
@@ -118,26 +118,52 @@
         if (ink <= 0) continue;
         var threshold = noise[(gy % noiseSize) * noiseSize + (gx % noiseSize)] / 255;
         if (ink * density <= threshold) continue;
-        var depth = (rgba[a] * w00 + rgba[b] * w01 + rgba[c] * w10 + rgba[d] * w11) / 255;
         var k = gy * res + gx;
         var jx = jitter ? (hash(k * 2 + 1) - 0.5) * jitter : 0;
         var jy = jitter ? (hash(k * 2 + 2) - 0.5) * jitter : 0;
-        out.push((gx + 0.5 + jx) / res, (gy + 0.5 + jy) / res, depth, ink);
+        out.push((gx + 0.5 + jx) / res, (gy + 0.5 + jy) / res, ink);
       }
     }
     return new Float32Array(out);
   }
 
-  // Grid resolution for a figure drawn `px` CSS pixels wide: about one cell per pixel, within limits.
-  function resolutionFor(px) { return Math.round(clamp(px * 0.8, 280, 640)); }
+  // Grid resolution for a figure drawn `px` CSS pixels wide: a little over one cell per pixel, within limits.
+  function resolutionFor(px) { return Math.round(clamp(px * 1.4, 320, 1200)); }
 
-  // A surface normal per dot from the depth map (red channel) by central differences, one-sided at the
-  // mask's edge (blue channel), with the depth scaled to `relief` figure units like the vertex shader does.
-  // Output is [nx, ny] per dot in world space (y up); the shader rebuilds nz = sqrt(1 - nx² - ny²).
-  function depthNormals(rgba, size, points, relief) {
-    var n = points.length / 4, out = new Float32Array(n * 2), step = 2, last = size - 1;
-    var depth = function (x, y) { return rgba[(y * size + x) * 4] / 255; };
-    var inside = function (x, y) { return x >= 0 && y >= 0 && x <= last && y <= last && rgba[(y * size + x) * 4 + 2] > 12; };
+  // The depth map (red channel, 0 outside the figure) as a float field, smoothed inside the figure by a
+  // Gaussian of `sigma` px normalised by how much of the kernel lies inside, so the sky never drags the
+  // silhouette back. Smoothing removes the 8-bit steps that would otherwise terrace the normals into bands.
+  // Pixels outside the figure are -1.
+  function reliefField(rgba, size, sigma) {
+    var n = size * size, val = new Float32Array(n), wgt = new Float32Array(n), out = new Float32Array(n);
+    for (var i = 0; i < n; i++) if (rgba[i * 4] > 0) { val[i] = rgba[i * 4] / 255; wgt[i] = 1; }
+    var r = Math.ceil(sigma * 3), kernel = [], sum = 0, j;
+    for (j = -r; j <= r; j++) { kernel.push(sigma > 0 ? Math.exp(-j * j / (2 * sigma * sigma)) : j === 0 ? 1 : 0); sum += kernel[j + r]; }
+    var pass = function (src, dst, along) {
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+        var acc = 0;
+        for (j = -r; j <= r; j++) {
+          var xx = along ? x + j : x, yy = along ? y : y + j;
+          if (xx >= 0 && yy >= 0 && xx < size && yy < size) acc += src[yy * size + xx] * kernel[j + r];
+        }
+        dst[y * size + x] = acc / sum;
+      }
+    };
+    var tv = new Float32Array(n), tw = new Float32Array(n), sv = new Float32Array(n), sw = new Float32Array(n);
+    pass(val, tv, true); pass(tv, sv, false);
+    pass(wgt, tw, true); pass(tw, sw, false);
+    for (i = 0; i < n; i++) out[i] = wgt[i] ? sv[i] / sw[i] : -1;
+    return out;
+  }
+
+  // A surface normal per dot from the relief field by central differences, one-sided at the figure's edge,
+  // with the depth scaled to `relief` figure units like the vertex shader does, and each dot's depth from the
+  // field (bilinear over the pixels inside the figure). `points` holds `stride` floats per dot, x and y first.
+  // Output is [nx, ny, z] per dot, normals in world space (y up); the shader rebuilds nz = sqrt(1 - nx² - ny²).
+  function depthNormals(field, size, points, stride, relief) {
+    var n = points.length / stride, out = new Float32Array(n * 3), step = 2, last = size - 1;
+    var depth = function (x, y) { return field[y * size + x]; };
+    var inside = function (x, y) { return x >= 0 && y >= 0 && x <= last && y <= last && field[y * size + x] >= 0; };
     var slope = function (x, y, dx, dy) {
       var a = inside(x - dx, y - dy), b = inside(x + dx, y + dy);
       if (a && b) return (depth(x + dx, y + dy) - depth(x - dx, y - dy)) / (2 * step);
@@ -146,15 +172,22 @@
       return 0;
     };
     for (var i = 0; i < n; i++) {
-      var x = clamp(Math.round(points[i * 4] * last), 0, last), y = clamp(Math.round(points[i * 4 + 1] * last), 0, last);
+      var u = clamp(points[i * stride] * last, 0, last), v = clamp(points[i * stride + 1] * last, 0, last);
+      var x = Math.round(u), y = Math.round(v);
       var gx = slope(x, y, step, 0) * last * relief, gy = slope(x, y, 0, step) * last * relief;
       var nx = -gx, ny = gy, len = Math.sqrt(nx * nx + ny * ny + 1);
       nx /= len;
       ny /= len;
       var tilt = Math.sqrt(nx * nx + ny * ny), limit = 0.94;
       if (tilt > limit) { nx *= limit / tilt; ny *= limit / tilt; }
-      out[i * 2] = nx;
-      out[i * 2 + 1] = ny;
+      var x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0, z = 0, zw = 0;
+      for (var c = 0; c < 4; c++) {
+        var cx = Math.min(x0 + (c & 1), last), cy = Math.min(y0 + (c >> 1), last), w = (c & 1 ? fx : 1 - fx) * (c >> 1 ? fy : 1 - fy);
+        if (field[cy * size + cx] >= 0 && w > 0) { z += field[cy * size + cx] * w; zw += w; }
+      }
+      out[i * 3] = nx;
+      out[i * 3 + 1] = ny;
+      out[i * 3 + 2] = zw > 0 ? z / zw : inside(x, y) ? depth(x, y) : 0;
     }
     return out;
   }
@@ -164,19 +197,20 @@
   var STARS = 40, LIGHT = [-0.45, 0.6, 0.66];
   function litDots(normals) {
     var l = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2]), lit = 0;
-    for (var i = 0; i < normals.length; i += 2) {
+    for (var i = 0; i < normals.length; i += 3) {
       var nx = normals[i], ny = normals[i + 1], nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
       if (nz > 0.3 && (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / l > 0.5) lit++;
     }
     return lit;
   }
 
-  // The avatar's color under each dot, bilinear from the size x size RGBA color map: [r, g, b, a] bytes
-  // per dot, where a is 128 plus the image's own sparkle (its highlights, which the shader twinkles).
-  function sampleColors(rgba, size, points) {
-    var n = points.length / 4, out = new Uint8Array(n * 4), last = size - 1;
+  // A map's four channels under each dot, bilinear from the size x size RGBA map: bytes per dot. For the color
+  // map that is [r, g, b, a], where a is 128 plus the image's own sparkle (its highlights, which the shader
+  // twinkles). `points` holds `stride` floats per dot, x and y first.
+  function sampleColors(rgba, size, points, stride) {
+    var n = points.length / stride, out = new Uint8Array(n * 4), last = size - 1;
     for (var i = 0; i < n; i++) {
-      var u = clamp(points[i * 4] * last, 0, last), v = clamp(points[i * 4 + 1] * last, 0, last);
+      var u = clamp(points[i * stride] * last, 0, last), v = clamp(points[i * stride + 1] * last, 0, last);
       var j0 = Math.floor(u), i0 = Math.floor(v), fx = u - j0, fy = v - i0, j1 = Math.min(j0 + 1, last), i1 = Math.min(i0 + 1, last);
       var a = (i0 * size + j0) * 4, b = (i0 * size + j1) * 4, c = (i1 * size + j0) * 4, d = (i1 * size + j1) * 4;
       var w00 = (1 - fx) * (1 - fy), w01 = fx * (1 - fy), w10 = (1 - fx) * fy, w11 = fx * fy;
@@ -349,11 +383,11 @@
     // the avatar's own color where it has one (gold, pink, the cyan rim light); marble stays ink.
     // On light paper the color is deepened so it holds against white; on dark paper it is lifted.
     // the hue comes from the image; the brightness comes from the paper, so gold reads as gold on both
-    "  vec3 c = a_c.rgb;",
-    "  float cl = dot(c, vec3(0.2126, 0.7152, 0.0722));",
+    "  vec2 rb = a_c.rg * 2.0 - 1.0;",
+    "  vec3 c = vec3(rb.x, -(0.2126 * rb.x + 0.0722 * rb.y) / 0.7152, rb.y);",
     "  float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));",
     "  float keep = u_tint * smoothstep(0.05, 0.2, chroma);",
-    "  vec3 shown = clamp(mix(0.46, 0.84, u_dark) + (c - cl) * 2.4, 0.0, 1.0);",
+    "  vec3 shown = clamp(mix(0.46, 0.84, u_dark) + c * 2.4, 0.0, 1.0);",
     "  vec3 col = mix(u_color, shown, keep);",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
@@ -389,6 +423,8 @@
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
     "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim) * (1.0 + 0.9 * tw) * (1.0 + 0.35 * band) * (1.0 + 1.2 * star);",
+    // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones
+    "  size *= mix(1.0, 0.82, a_c.b);",
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(1.0, 0.86, lam) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  v_alpha = mix(v_alpha, u_alpha, max(band, star));",
@@ -509,7 +545,7 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var maps = null, noise = null, meta = null, palette = null, points = null, vertices = null, count = 0, res = 0;
+    var maps = null, relief = null, field = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0;
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
@@ -587,7 +623,7 @@
         if (!vao || !vbo || !query) throw new Error("hero buffers unavailable");
         gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        // per dot: x, y, z, ink (4 floats), normal (2 floats), color and sparkle (4 bytes): 28 bytes
+        // per dot: x, y, z, ink (4 floats), normal (2 floats), color offset, detail, and sparkle (4 bytes): 28 bytes
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 28, 0);
         gl.enableVertexAttribArray(1);
@@ -640,16 +676,31 @@
       var want = resolutionFor(place.scale);
       if (want !== res) {
         res = want;
-        points = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
-        count = points.length / 4;
-        var normals = depthNormals(maps.data, maps.width, points, RELIEF);
-        var tints = palette ? sampleColors(palette.data, palette.width, points) : null;
+        var spots = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
+        count = spots.length / 3;
+        var normals = depthNormals(field, relief.width, spots, 3, RELIEF);
+        var details = sampleColors(relief.data, relief.width, spots, 3);
+        var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
         var buffer = new ArrayBuffer(count * 28), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer);
         for (var i = 0; i < count; i++) {
-          floats.set(points.subarray(i * 4, i * 4 + 4), i * 7);
-          floats[i * 7 + 4] = normals[i * 2];
-          floats[i * 7 + 5] = normals[i * 2 + 1];
-          if (tints) bytes.set(tints.subarray(i * 4, i * 4 + 4), i * 28 + 24);
+          floats[i * 7] = spots[i * 3];
+          floats[i * 7 + 1] = spots[i * 3 + 1];
+          floats[i * 7 + 2] = normals[i * 3 + 2];
+          floats[i * 7 + 3] = spots[i * 3 + 2];
+          floats[i * 7 + 4] = normals[i * 3];
+          floats[i * 7 + 5] = normals[i * 3 + 1];
+          // color as its offset from grey (red and blue against luminance, so it fits two bytes), then the
+          // detail value and the sparkle
+          var o = i * 28 + 24, cr = 0, cb = 0;
+          if (tints) {
+            var lum = 0.2126 * tints[i * 4] + 0.7152 * tints[i * 4 + 1] + 0.0722 * tints[i * 4 + 2];
+            cr = (tints[i * 4] - lum) / 2;
+            cb = (tints[i * 4 + 2] - lum) / 2;
+          }
+          bytes[o] = Math.round(127.5 + cr);
+          bytes[o + 1] = Math.round(127.5 + cb);
+          bytes[o + 2] = details[i * 4 + 1];
+          bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
         }
         vertices = bytes;
         starChance = Math.min(1, STARS / Math.max(1, litDots(normals)));
@@ -679,8 +730,8 @@
     function maskAt(sx, sy) {
       var u = (sx - box.x - place.x) / place.scale, v = (sy - box.y - place.y) / place.scale;
       if (u < 0 || v < 0 || u >= 1 || v >= 1) return 0;
-      var n = maps.width, i = (Math.floor(v * n) * n + Math.floor(u * n)) * 4;
-      return maps.data[i + 2] / 255;
+      var n = relief.width, i = (Math.floor(v * n) * n + Math.floor(u * n)) * 4;
+      return relief.data[i] > 0 ? 1 : 0;
     }
 
     // Gear Two glitch tiles on the overlay: a thin accent frame around each torn-out block, drawn where it lands.
@@ -1045,7 +1096,8 @@
     } else fontReady = true;
 
     Promise.all([
-      loadImageData(base + "data.png"),
+      loadImageData(base + "ink.webp"),
+      loadImageData(base + "depth.webp"),
       loadImageData(base + "bluenoise.png"),
       fetch(base + "hero.json").then(function (r) {
         if (!r.ok) throw new Error("hero metadata " + r.status);
@@ -1054,17 +1106,20 @@
       // the color map is optional: without it every dot is ink
       loadImageData(base + "color.webp").then(function (img) { return img.width === img.height ? img : null; }, function () { return null; })
     ]).then(function (all) {
-      if (all[0].width < 2 || all[0].width !== all[0].height || all[1].width !== all[1].height) throw new Error("hero maps must be square");
-      var data = all[2];
+      var square = function (img) { return img.width >= 2 && img.width === img.height; };
+      if (!square(all[0]) || !square(all[1]) || !square(all[2])) throw new Error("hero maps must be square");
+      var data = all[3];
       var normalized = function (n) { return Number.isFinite(n) && n >= 0 && n <= 1; };
-      if (!data || data.size !== all[0].width || !Array.isArray(data.bounds) || data.bounds.length !== 4 || !data.bounds.every(normalized) ||
+      if (!data || data.size !== all[0].width || data.depth !== all[1].width || !Array.isArray(data.bounds) || data.bounds.length !== 4 || !data.bounds.every(normalized) ||
           data.bounds[2] <= data.bounds[0] || data.bounds[3] <= data.bounds[1] ||
           !Array.isArray(data.center) || data.center.length !== 2 || !data.center.every(normalized) ||
           !normalized(data.density) || data.density <= 0) throw new Error("hero metadata is invalid");
       maps = all[0];
-      noise = { width: all[1].width, data: (function () { var d = all[1].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
+      relief = all[1];
+      field = reliefField(relief.data, relief.width, 1.5);
+      noise = { width: all[2].width, data: (function () { var d = all[2].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
       meta = data;
-      palette = all[3];
+      palette = all[4];
       initialize();
     }).catch(fallback);
 
@@ -1089,6 +1144,7 @@
     rippleWeight: rippleWeight,
     blinkOff: blinkOff,
     stipple: stipple,
+    reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,
     glitchTiles: glitchTiles,

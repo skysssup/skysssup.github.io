@@ -24,8 +24,9 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   with the red ring that leaves the switch and the `--beat-delay` that phases every CSS pulse to the hero's
   0.9 s heartbeat, the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring of project names. It stipples
-  `assets/hero/data.png` (depth, ink, mask) against a blue-noise tile at load, derives a surface normal per dot
-  from the depth map, samples the avatar's color under each dot from `assets/hero/color.webp` (its hue, with
+  `assets/hero/ink.webp` (896 px) against a blue-noise tile at load, takes each dot's depth, surface normal, and
+  detail from `assets/hero/depth.webp` (the depth smoothed inside the figure first, so the lighting never bands),
+  samples the avatar's color under each dot from `assets/hero/color.webp` (its hue, with
   the brightness set by the paper, so marble stays ink and gold stays gold on light and dark alike; the map's
   alpha carries the image's sparkles, which twinkle), then animates sway, lighting, blinking, cursor push,
   click ripples, and Gear Two entirely in the vertex shader. At each turn of the sway a band of light crosses the
@@ -75,9 +76,11 @@ CI runs both on every push to `main`.
   colophon prints numbers the generator measures (test counts, gzipped CSS and JS, font sizes), so changing
   CSS, JS, or tests also means regenerating.
 - Share images: `npm run og` (after changing a page title, summary, or cover).
-- Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). The depth map is cached in
-  `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Small (needs torch and transformers);
-  `--color` rewrites only `assets/hero/color.webp`.
+- Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). Its source, `assets/avatar.jpg`, is the
+  424 px GitHub avatar (`tools/hero/avatar-424.jpg`) upscaled 4× by Real-ESRGAN and Real-ESRNet; `--upscale`
+  redoes that (torch and spandrel; the weights are fetched and checked against their SHA-256). The depth map is
+  cached as 16-bit in `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Base (torch and
+  transformers). `--color` rewrites only `assets/hero/color.webp`.
 
 ## Moving to aakashdahal.fun
 

@@ -108,7 +108,7 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
   const errors = [], assets = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => {
-    if (/\/assets\/hero\/(data\.png|bluenoise\.png|hero\.json)$/.test(request.url())) assets.push(request.url());
+    if (/\/assets\/hero\/(ink\.webp|depth\.webp|bluenoise\.png|hero\.json)$/.test(request.url())) assets.push(request.url());
   });
   t.after(() => assert.deepEqual(errors, [], 'the hero must not abort page initialization or event handlers'));
   if (setup) await setup(page);
@@ -178,7 +178,7 @@ test('loading waits for data and the first drawn figure before announcing a live
   let release;
   const held = new Promise(resolve => { release = resolve; });
   t.after(release);
-  const { page } = await open(t, { setup: page => page.route('**/assets/hero/data.png', async route => { await held; await route.continue(); }) });
+  const { page } = await open(t, { setup: page => page.route('**/assets/hero/ink.webp', async route => { await held; await route.continue(); }) });
   await page.waitForFunction(() => !!window.__heroApi);
   assert.equal((await state(page)).draws, 0);
   assert.equal(await page.locator('#figure').evaluate(el => el.classList.contains('is-live')), false);
@@ -225,17 +225,17 @@ test('assets finishing during context loss are retained for restoration', async 
   let release;
   const held = new Promise(resolve => { release = resolve; });
   t.after(release);
-  const { page, assets } = await open(t, { setup: page => page.route('**/assets/hero/data.png', async route => { await held; await route.continue(); }) });
+  const { page, assets } = await open(t, { setup: page => page.route('**/assets/hero/ink.webp', async route => { await held; await route.continue(); }) });
   await page.waitForSelector('.hero-dots', { state: 'attached' });
   await lose(page);
-  const loaded = page.waitForResponse('**/assets/hero/data.png');
+  const loaded = page.waitForResponse('**/assets/hero/ink.webp');
   release();
   await loaded;
   await stillDrawing(page);
   await page.evaluate(() => window.__loseHero.restoreContext());
   await live(page);
   assert.ok((await capture(page)).visible > 0);
-  assert.equal(assets.length, 3);
+  assert.equal(assets.length, 4);
 });
 
 test('reduced motion cancels active mouse push and ripples, and never advances the still', async t => {
@@ -477,10 +477,11 @@ test('the figure wears the avatar\'s colors, and draws in plain ink when the col
 });
 
 for (const [name, asset, response] of [
-  ['network failure', 'data.png', null],
+  ['network failure', 'ink.webp', null],
+  ['missing depth map', 'depth.webp', null],
   ['undecodable image', 'bluenoise.png', { status: 200, contentType: 'image/png', body: 'not an image' }],
   ['failed metadata response with a valid JSON body', 'hero.json', { status: 503, contentType: 'application/json', body: fs.readFileSync(path.join(root, 'assets/hero/hero.json'), 'utf8') }],
-  ['invalid metadata geometry', 'hero.json', { status: 200, contentType: 'application/json', body: '{"size":448,"bounds":[0,0,0,0],"center":[0.5,0.5],"density":0.56}' }],
+  ['invalid metadata geometry', 'hero.json', { status: 200, contentType: 'application/json', body: '{"size":896,"depth":448,"bounds":[0,0,0,0],"center":[0.5,0.5],"density":0.6}' }],
 ]) {
   test(`the static fallback survives ${name}`, async t => {
     const { page } = await open(t, { setup: page => page.route(`**/assets/hero/${asset}`, route => response ? route.fulfill(response) : route.abort('failed')) });
