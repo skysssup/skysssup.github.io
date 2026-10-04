@@ -495,52 +495,40 @@ html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal].
 .fig-telemetry { margin-top: 4px; }
 .fig-telemetry span + span::before { content: " · "; }
 
-/* ── contact section ───────────────────────────────────── */
-.contact-rows {
-  display: grid;
-  grid-template-columns: subgrid;
-  padding: 0 !important;
-  border-top: 1px solid var(--line);
+/* ── bands: a mono title and a note on one line, then a list whose labels hang in the first column ─── */
+/* Contact and the colophon share it: every label, numeral, and figure hangs right-aligned against the second
+   column, so every text edge below the title sits on that column's inset. */
+.band { padding-top: 24px; row-gap: 24px; align-items: baseline; }
+.band-title { grid-column: 1; font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.band-note { grid-column: 2 / span 2; max-width: calc(60ch + 2 * var(--p)); font: 400 13px/20px var(--sans); color: var(--muted); }
+.row > .hang-list { grid-column: 1 / span 3; display: grid; grid-template-columns: subgrid; row-gap: 4px; padding: 0; }
+.hang-list > * { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; }
+.hang-list > * > :first-child { grid-column: 1; justify-self: end; padding-right: var(--p); }
+.hang-list > * > :last-child { grid-column: 2 / -1; padding-left: var(--p); }
+.row > .contact-lines { row-gap: 8px; }
+.contact-lines > * > :first-child { font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.contact-lines > * > :last-child { font: 500 18px/24px var(--sans); letter-spacing: -0.005em; overflow-wrap: anywhere; }
+.contact-lines a { text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
+.contact-lines a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.copy { margin-left: 16px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
+.copy:hover { color: var(--accent); text-decoration-color: currentColor; }
+@media (max-width: 1199px) {
+  .band-note { grid-column: 2 / -1; }
+  .row > .hang-list { grid-column: 1 / -1; }
 }
-.contact-rows > * {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: baseline;
-  padding: 16px 0 15px;
-  border-bottom: 1px solid var(--line);
-  transition: background-color .2s;
-}
-.contact-rows > *:hover, .contact-rows > *:focus-within { background: var(--wash); }
-.contact-rows > * > * { padding: 0 var(--p); min-width: 0; }
-.contact-rows > * > .v { grid-column: 2 / -1; grid-row: 1; justify-self: start; }
-.contact-rows > * > :last-child { grid-column: -2 / -1; grid-row: 1; justify-self: end; }
-.contact-rows .v { font: 500 18px/24px var(--sans); letter-spacing: -0.005em; overflow-wrap: anywhere; }
-.contact-rows > div .v { max-width: calc(100% - 64px); }
-.contact-rows a:hover .v, .contact-rows a:hover .ext { color: var(--accent); }
-.contact-note { color: var(--muted); max-width: 32ch; }
 @media (max-width: 767px) {
-  .contact-rows { grid-template-columns: none; }
-  .contact-rows > * { grid-template-columns: calc(100% / 6 + var(--p)) minmax(0, 1fr) auto; }
-  .contact-rows > * > * { padding: 0; }
-  .contact-rows > * > :first-child { padding-left: var(--p); }
-  .contact-rows > * > :last-child { padding-right: var(--p); }
-  .contact-note { margin-bottom: 16px; }
-  .contact-rows .v { font-size: 15px; }
+  .band > * { grid-column: 1 / -1; }
+  .band-note { padding-left: calc(100% / 6 + var(--p)); max-width: none; }
+  .row > .hang-list { grid-template-columns: calc(100% / 6) minmax(0, 1fr); }
+  .hang-list > * > :first-child { justify-self: start; padding-right: 0; padding-left: var(--p); }
 }
 
 /* ── footer: the sheet's sign-off ──────────────────────── */
-/* The colophon opens on a rule; its numerals and figures hang in the first column so every text edge sits on the
-   second. One closing line follows, then the rule that closes the sheet, below which the sheet lines stop. */
+/* The colophon band, one closing line, then the rule that closes the sheet, below which the sheet lines stop. */
 .site-footer { position: relative; z-index: 1; }
 .site-footer::after { content: ""; display: block; height: var(--m); background: var(--paper); }
-.colophon { padding-top: 24px; padding-bottom: 64px; row-gap: 24px; align-items: baseline; }
-.colophon-title { grid-column: 1; font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
-.colophon-notes { grid-column: 2 / span 2; max-width: calc(60ch + 2 * var(--p)); font: 400 13px/20px var(--sans); color: var(--muted); }
-.row > .colophon-list { grid-column: 1 / span 3; display: grid; grid-template-columns: subgrid; row-gap: 4px; padding: 0; }
-.colophon-list > * { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; }
-.colophon-list > * > :first-child { grid-column: 1; justify-self: end; padding-right: var(--p); }
-.colophon-list > * > :last-child { grid-column: 2 / -1; max-width: calc(60ch + 2 * var(--p)); padding-left: var(--p); font: 400 13px/20px var(--sans); color: var(--muted); }
+.site-footer .band { padding-bottom: 64px; }
+.rules > * > :last-child, .figures > * > :last-child { max-width: calc(60ch + 2 * var(--p)); font: 400 13px/20px var(--sans); color: var(--muted); }
 .rules .n { font: 400 10px/16px var(--mono); color: var(--muted); }
 .figures dt { font: 400 13px/20px var(--sans); font-variant-numeric: tabular-nums; }
 .sign-off { padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); align-items: baseline; row-gap: 8px; }
@@ -553,18 +541,12 @@ html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal].
 .motion-toggle:hover { color: var(--accent); }
 .motion-toggle b { font-weight: 400; color: var(--ink); }
 @media (max-width: 1199px) {
-  .colophon-notes { grid-column: 2 / -1; }
-  .row > .colophon-list { grid-column: 1 / -1; }
   .sign-name { grid-column: 1 / span 2; }
   .sign-links { grid-column: 3 / span 2; }
   .motion-toggle { grid-column: 3 / span 2; justify-self: start; }
 }
 @media (max-width: 767px) {
-  .colophon > *, .sign-off > * { grid-column: 1 / -1; }
-  .colophon-notes { padding-left: calc(100% / 6 + var(--p)); max-width: none; }
-  .row > .colophon-list { grid-template-columns: calc(100% / 6) minmax(0, 1fr); }
-  .colophon-list > * > :last-child { max-width: none; }
-  .sign-links { grid-column: 1 / -1; }
+  .sign-off > *, .sign-links { grid-column: 1 / -1; }
   .motion-toggle { justify-self: start; }
 }
 
@@ -878,9 +860,6 @@ html.index-is-open { scrollbar-gutter: stable; }
 .diagram.is-drawn .diagram-steps { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .diagram figcaption { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px; margin-top: 12px; }
 .diagram figcaption .t-small { color: var(--muted); }
-.copy { color: var(--muted); padding: 2px 0; }
-.contact-rows .copy { padding: 4px var(--p); }
-.copy:hover { color: var(--accent); }
 
 /* ── 404 ────────────────────────────────────────────────── */
 .lost { padding-top: 96px; padding-bottom: 128px; min-height: calc(100svh - var(--header-h) - 64px); align-content: start; }
@@ -914,8 +893,8 @@ html.index-is-open { scrollbar-gutter: stable; }
 }
 :root[data-phase="flash"] .glitch-text,
 :root[data-phase="glitch"] .glitch-text,
-:root[data-phase="glitch"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-rows .v, .intro-label, .section-head h2) { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
-:root[data-phase="settle"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-rows .v, .intro-label, .section-head h2) { animation: unsplit .4s var(--ease-out) 1; }
+:root[data-phase="glitch"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-lines a, .intro-label, .section-head h2) { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
+:root[data-phase="settle"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-lines a, .intro-label, .section-head h2) { animation: unsplit .4s var(--ease-out) 1; }
 :root[data-phase="glitch"] .site-header { animation: slice 180ms steps(1, end) 3; }
 :root[data-phase="glitch"] main { animation: jitter 180ms steps(1, end) 3; }
 :root[data-phase="glitch"] :is(.plate-media, .fig-frame, .project .thumb > div, .panel, .media-type) { animation: slice 180ms steps(1, end) 3; }

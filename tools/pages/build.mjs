@@ -108,13 +108,13 @@ function footer() {
     ['0.9 s', 'between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch'],
   ];
   return `<footer class="site-footer">
-  <div class="row colophon rule" id="colophon" data-reveal>
-    <h2 class="colophon-title">Colophon</h2>
-    <p class="colophon-notes">I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns. The sheet has four columns whose lines stay put while the page scrolls, and every block starts on a line or just inside one, which a test checks at four widths.</p>
-    <ol class="colophon-list rules" aria-label="Rules this site follows">
+  <div class="row band rule" id="colophon" data-reveal>
+    <h2 class="band-title">Colophon</h2>
+    <p class="band-note">I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns. The sheet has four columns whose lines stay put while the page scrolls, and every block starts on a line or just inside one, which a test checks at four widths.</p>
+    <ol class="hang-list rules" aria-label="Rules this site follows">
 ${rules.map((rule, i) => `      <li><span class="n" aria-hidden="true">${pad(i + 1)}</span><span>${rule}</span></li>`).join('\n')}
     </ol>
-    <dl class="colophon-list figures">
+    <dl class="hang-list figures">
 ${figures.map(([value, label, attrs = '']) => `      <div><dt${attrs}>${esc(value)}</dt><dd>${label}</dd></div>`).join('\n')}
     </dl>
   </div>
@@ -254,16 +254,14 @@ ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; retur
   </section>
 
   <section class="section" id="contact" aria-labelledby="contact-title">
-    <div class="row section-head rule" data-reveal>
-      <h2 class="c1" id="contact-title">Contact</h2>
-    </div>
-    <div class="row">
-      <p class="c1 t-small contact-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is <span data-time>--:--</span> now.</p>
-      <div class="c2-4 contact-rows">
-        <div><span class="t-label muted">Email</span><a class="v" href="mailto:${site.email}">${site.email}</a><button class="copy t-label" type="button" data-copy="${site.email}">Copy</button></div>
-        <a href="https://x.com/${site.x}"><span class="t-label muted">X</span><span class="v">@${site.x}</span><span class="ext" aria-hidden="true">↗</span></a>
-        <a href="https://github.com/${site.github}"><span class="t-label muted">GitHub</span><span class="v">${site.github}</span><span class="ext" aria-hidden="true">↗</span></a>
-      </div>
+    <div class="row band rule" data-reveal>
+      <h2 class="band-title" id="contact-title">Contact</h2>
+      <p class="band-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is <span data-time>--:--</span> now.</p>
+      <ul class="hang-list contact-lines">
+        <li><span>Email</span><span><a href="mailto:${site.email}">${site.email}</a> <button class="copy" type="button" data-copy="${site.email}">Copy</button></span></li>
+        <li><span>X</span><span><a href="https://x.com/${site.x}">@${site.x}${ARROW}</a></span></li>
+        <li><span>GitHub</span><span><a href="https://github.com/${site.github}">${site.github}${ARROW}</a></span></li>
+      </ul>
     </div>
   </section>
 </main>

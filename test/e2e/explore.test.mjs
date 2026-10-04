@@ -212,7 +212,7 @@ test('printing from an open index restores the complete page and hides navigatio
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
   assert.equal(await page.locator('.figure-ripple').isVisible(), false);
   assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'visible');
-  assert.equal(await page.locator('.contact-rows').isVisible(), true);
+  assert.equal(await page.locator('.contact-lines').isVisible(), true);
   await context.close();
 });
 
