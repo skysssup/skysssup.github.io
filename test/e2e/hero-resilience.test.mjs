@@ -92,7 +92,7 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
           if (pixels[i] > 64 && Math.max(pixels[i - 3], pixels[i - 2], pixels[i - 1]) - Math.min(pixels[i - 3], pixels[i - 2], pixels[i - 1]) > 40) colored++;
           hash = (Math.imul(hash, 31) + pixels[i]) >>> 0;
         }
-        probe.pixels = { visible, hash, colored, draw: probe.draws };
+        probe.pixels = { visible, hash, colored, draw: probe.draws, sheen: (probe.uniforms.u_sheen || [0, 0, 0, 0]).slice() };
         probe.capture = false;
       }
       return result;
@@ -135,6 +135,16 @@ async function capture(page, redraw) {
   if (redraw) await page.evaluate(redraw);
   await page.waitForFunction(n => window.__heroProbe.pixels?.draw > n, before);
   return (await state(page)).pixels;
+}
+
+// A frame with no sheen or star burst in it, for checks on the figure's own colours.
+async function captureWithoutSheen(page) {
+  for (let i = 0; i < 60; i++) {
+    const pixels = await capture(page);
+    if (pixels.sheen[1] === 0) return pixels;
+    await page.waitForTimeout(100);
+  }
+  throw new Error('every captured frame carried a sheen');
 }
 
 async function lose(page) {
@@ -427,7 +437,7 @@ test('the figure wears the avatar\'s colors, and draws in plain ink when the col
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
-  const ink = await capture(plain.page);
+  const ink = await captureWithoutSheen(plain.page);
   assert.ok(ink.visible > 500);
   assert.equal(ink.colored, 0, 'without the color map every dot is ink');
   assert.deepEqual((await state(plain.page)).uniforms.u_tint, [0]);
