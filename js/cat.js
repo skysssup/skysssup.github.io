@@ -415,6 +415,9 @@
     }
 
     document.addEventListener("pointermove", function (e) { aim(e.clientX, e.clientY); }, { passive: true });
+    // An embedded demo gets the pointer to itself, so the cat steps out of sight until the pointer comes back.
+    document.addEventListener("pointerover", function (e) { if (e.target && e.target.tagName === "IFRAME") canvas.style.visibility = "hidden"; });
+    document.addEventListener("pointerout", function (e) { if (e.target && e.target.tagName === "IFRAME") canvas.style.visibility = ""; });
     document.addEventListener("pointerdown", function (e) { aim(e.clientX, e.clientY); }, { passive: true });
     document.documentElement.addEventListener("mouseleave", function (e) { aim(e.clientX, e.clientY); });
     window.addEventListener("blur", function () { target.edge = false; });

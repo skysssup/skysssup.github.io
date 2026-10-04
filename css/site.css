@@ -572,6 +572,19 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 }
 .term .cmd { color: var(--muted); }
 
+/* interactive demos (js/demo.js): a description and a Load button until the visitor asks */
+.demo-poster { display: grid; gap: 12px; justify-items: start; align-content: center; min-height: 192px; padding: 24px; }
+.demo-poster p { max-width: 60ch; }
+.demo-poster .t-small { color: var(--muted); }
+.demo-root iframe { display: block; width: 100%; aspect-ratio: 16 / 10; border: 0; background: var(--paper); }
+.demo-root iframe:focus-visible { outline-offset: -2px; }
+@media (max-width: 1199px) {
+  .demo-root iframe { aspect-ratio: 4 / 3; }
+}
+@media (max-width: 767px) {
+  .demo-root iframe { aspect-ratio: 3 / 4; }
+}
+
 .diagram svg { width: 100%; height: auto; overflow: visible; }
 .diagram .node rect { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
 .diagram .node .label { font: 500 13px var(--sans); fill: var(--ink); }
