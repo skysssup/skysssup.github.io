@@ -13,10 +13,12 @@ test('ordered dither thresholds cover sixteen distinct levels inside (0, 1)', ()
 });
 
 test('every word row is a deterministic shuffle of the full vocabulary', () => {
-  const words = row => dotfield.rowStream(row).split('/').filter(Boolean).sort();
+  const vocab = ['AI', 'AGENTS', 'RESEARCH', 'SYSTEMS', 'ROBOTICS', 'ENGINEERING'];
+  const words = row => dotfield.rowStream(vocab, row).split('/').filter(Boolean).sort();
+  assert.deepEqual(words(0), [...vocab].sort());
   assert.deepEqual(words(0), words(9));
-  assert.equal(dotfield.rowStream(3), dotfield.rowStream(3));
-  const distinct = new Set(Array.from({ length: 12 }, (_, i) => dotfield.rowStream(i)));
+  assert.equal(dotfield.rowStream(vocab, 3), dotfield.rowStream(vocab, 3));
+  const distinct = new Set(Array.from({ length: 12 }, (_, i) => dotfield.rowStream(vocab, i)));
   assert.ok(distinct.size > 3);
 });
 
@@ -86,14 +88,28 @@ test('cat runs to the edge the cursor left through and scratches that wall', () 
   assert.match(sprite, /^scratchR[12]$/);
 });
 
-test('arch mark rows contain every project name and dissolve only near the end of a cycle', () => {
-  const names = mark.stream(4).split('/').filter(Boolean).sort();
-  assert.deepEqual(names, [...mark.names].sort());
-  assert.equal(mark.dissolveAt(1000), 0);
-  assert.equal(mark.dissolveAt(6000), 0);
-  assert.ok(mark.dissolveAt(7650) > 0.9);
+test('the arch mark solid has a front face, a back face, and side walls inside the A', () => {
+  assert.equal(mark.inside(20.85, 10), true);
+  assert.equal(mark.inside(20.85, 45), false);
+  assert.equal(mark.inside(2, 5), false);
+  const points = mark.markPoints(40, 48, 0.24);
+  assert.equal(points.length % 4, 0);
+  const depths = new Set();
+  for (let i = 0; i < points.length; i += 4) {
+    assert.ok(Math.abs(points[i]) <= 0.5 && Math.abs(points[i + 1]) <= 0.5);
+    assert.ok(points[i + 2] >= -0.12 - 1e-6 && points[i + 2] <= 0.12 + 1e-6);
+    depths.add(points[i + 2].toFixed(3));
+  }
+  assert.ok(depths.has('-0.120') && depths.has('0.120') && depths.size > 2);
+});
+
+test('the dissolve cycle rests most of the time and peaks near the end of each loop', () => {
+  assert.equal(dotfield.dissolveAt(-50), 0);
+  assert.equal(dotfield.dissolveAt(1000), 0);
+  assert.equal(dotfield.dissolveAt(6000), 0);
+  assert.ok(dotfield.dissolveAt(7650) > 0.9);
   for (let ms = 0; ms < 18000; ms += 250) {
-    const d = mark.dissolveAt(ms);
+    const d = dotfield.dissolveAt(ms);
     assert.ok(d >= 0 && d <= 1);
   }
 });

@@ -27,7 +27,6 @@
     </div>
     <div class="header-center">
       <button class="gear chroma" id="gear" type="button" aria-pressed="false">[ <span id="gear-label">GEAR TWO</span> ]</button>
-      <svg class="globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3 3.2 3 16.8 0 20M12 2c-3 3.2-3 16.8 0 20"/><path class="globe-spin" d="M12 2c5.5 3.4 5.5 16.6 0 20"/></svg>
     </div>
     <div class="clock">
       <span class="clock-label">LOCAL TIME</span>
@@ -46,24 +45,20 @@
         <img class="figure-fallback" src="assets/avatar.jpg" alt="" width="424" height="424">
       </div>
 
-      <svg class="annotations" id="annotations" aria-hidden="true"></svg>
-      <span class="annot" data-anchor="0.6,0.37" data-glitch="0">BUILDER</span>
-      <span class="annot" data-anchor="0.27,0.52" data-glitch="1">ENGINEER</span>
-      <span class="annot" data-anchor="0.47,0.86" data-glitch="2">RL + ROBOTICS</span>
 
       <aside class="panel essentially reveal-right" aria-label="Essentially">
         <h2 class="panel-head">ESSENTIALLY</h2>
         <p class="panel-body">MY PASSION IS TO PUSH THE BOUNDARIES OF WHAT IS POSSIBLE WITH AI. RESEARCHING AND BUILDING AI SYSTEMS IS MY FAVORITE THING TO DO.</p>
       </aside>
 
-      <div class="threads reveal-left chroma">
+      <nav class="threads reveal-left" aria-label="Core threads of my work">
         <h2 class="threads-title">[ CORE THREADS OF MY WORK ]</h2>
         <ul>
-          <li><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="1.6"/><path d="M10 1v4M10 15v4M1 10h4M15 10h4"/></svg></span><span><small>01.</small>AI SYSTEMS</span></li>
-          <li><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 4h15v12h-15z"/><path d="M5.5 8l2.5 2-2.5 2M10 12.5h4"/></svg></span><span><small>02.</small>DEVELOPER TOOLS</span></li>
-          <li><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="10" rx="8" ry="3.2"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(60 10 10)"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(-60 10 10)"/><circle cx="10" cy="10" r="1.3"/></svg></span><span><small>03.</small>PHYSICS SOFTWARE</span></li>
+          <li><button type="button" data-thread="ai" aria-pressed="false"><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="1.6"/><path d="M10 1v4M10 15v4M1 10h4M15 10h4"/></svg></span><span class="thread-text"><small>01.</small>AI SYSTEMS</span><span class="thread-count">04</span></button></li>
+          <li><button type="button" data-thread="tools" aria-pressed="false"><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 4h15v12h-15z"/><path d="M5.5 8l2.5 2-2.5 2M10 12.5h4"/></svg></span><span class="thread-text"><small>02.</small>DEVELOPER TOOLS</span><span class="thread-count">03</span></button></li>
+          <li><button type="button" data-thread="physics" aria-pressed="false"><span class="thread-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="10" rx="8" ry="3.2"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(60 10 10)"/><ellipse cx="10" cy="10" rx="8" ry="3.2" transform="rotate(-60 10 10)"/><circle cx="10" cy="10" r="1.3"/></svg></span><span class="thread-text"><small>03.</small>PHYSICS SOFTWARE</span><span class="thread-count">01</span></button></li>
         </ul>
-      </div>
+      </nav>
 
       <aside class="panel about reveal-right" id="about" aria-label="Contact">
         <h2 class="panel-head"><span>CONTACT</span><button class="panel-close" id="about-close" type="button" aria-label="Close contact panel">×</button></h2>
@@ -85,9 +80,9 @@
       <div class="editorial-right">
         <h2 class="statement reveal-up" id="statement">I build things. Mostly AI.<br>Sometimes they work.</h2>
         <div class="facts">
-          <p class="reveal-up">EIGHT PROJECTS, FOUR OF THEM PUBLIC ON GITHUB, FROM GIT TOOLING TO A 2.5D PHYSICS PLAYGROUND.</p>
-          <p class="reveal-up">LOCAL-FIRST WHERE IT COUNTS: SQLITE SCHEDULING, ON-DISK METRICS, OFFLINE AGENT HARNESSES.</p>
-          <p class="reveal-up">MOSTLY TYPESCRIPT AND PYTHON<br>→ DEVELOPER TOOLS, AGENT TESTING, PHYSICS SOFTWARE.</p>
+          <p class="reveal-up"><b>08</b>PROJECTS IN 2026. FOUR ARE PUBLIC ON GITHUB.</p>
+          <p class="reveal-up"><b>02</b>LANGUAGES I WORK IN: TYPESCRIPT AND PYTHON.</p>
+          <p class="reveal-up"><b>NEXT</b>REINFORCEMENT LEARNING AND ROBOTICS.</p>
         </div>
       </div>
     </section>
@@ -95,7 +90,7 @@
     <section class="work glitchable" id="work" aria-labelledby="work-title">
       <div class="work-head reveal-up">
         <h2 id="work-title">[ THINGS I SHIPPED ]</h2>
-        <a href="portfolio/">FULL PORTFOLIO →</a>
+        <a href="portfolio/">FULL PORTFOLIO</a>
       </div>
       <div class="work-inner">
         <ol class="work-list" id="work-list"></ol>
@@ -115,8 +110,8 @@
       </div>
       <div class="footer-col reveal-up">
         <h2 class="footer-label">[ PORTFOLIO ]</h2>
-        <p class="footer-note">EVERY PROJECT WITH ITS STACK, STATUS, AND REPOSITORY LINK.</p>
-        <a class="row" href="portfolio/"><span>PORTFOLIO</span><span class="row-meta">08 PROJECTS</span><span class="row-arrow">→</span></a>
+        <p class="footer-note">ALL EIGHT PROJECTS, PUBLIC AND PRIVATE.</p>
+        <a class="row" href="portfolio/"><span>PORTFOLIO</span><span class="row-meta">08 PROJECTS</span></a>
       </div>
     </div>
     <div class="footer-bottom">

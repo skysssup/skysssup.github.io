@@ -26,7 +26,6 @@
     </div>
     <div class="header-center">
       <button class="gear chroma" id="gear" type="button" aria-pressed="false">[ <span id="gear-label">GEAR TWO</span> ]</button>
-      <svg class="globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3 3.2 3 16.8 0 20M12 2c-3 3.2-3 16.8 0 20"/><path class="globe-spin" d="M12 2c5.5 3.4 5.5 16.6 0 20"/></svg>
     </div>
     <div class="clock">
       <span class="clock-label">LOCAL TIME</span>
@@ -38,35 +37,22 @@
     <section class="hero glitchable" aria-labelledby="hero-title">
       <div class="intro reveal-left">
         <h1 class="intro-name" id="hero-title">PORTFOLIO</h1>
-        <p class="intro-bio">SELECTED WORK BY AAKASH DAHAL. EVERY PROJECT, ITS STACK, AND WHERE TO FIND IT.</p>
+        <p class="intro-bio">EIGHT PROJECTS FROM 2026 BY AAKASH DAHAL. FOUR ARE PUBLIC ON GITHUB; FOUR ARE PRIVATE.</p>
       </div>
 
       <div class="mark-figure" id="mark" data-parallax="70" role="img" aria-label="The A mark from aakashdahal.fun, built from the names of every project on this page"></div>
 
-      <svg class="annotations" id="annotations" aria-hidden="true"></svg>
-      <span class="annot" data-anchor="0.5,0.05" data-label="0.92,-0.04" data-glitch="0">08 PROJECTS</span>
-      <span class="annot" data-anchor="0.16,0.86" data-label="-0.62,0.52" data-side="left" data-glitch="1">04 PUBLIC</span>
-      <span class="annot" data-anchor="0.84,0.86" data-label="1.08,0.98" data-glitch="2">04 PRIVATE</span>
 
-      <aside class="panel essentially reveal-right" aria-label="Index">
+      <aside class="panel essentially index-panel reveal-right" aria-label="Index">
         <h2 class="panel-head">INDEX</h2>
-        <p class="panel-body">DEVELOPER TOOLS, AGENT TESTING AND OBSERVABILITY, A 2.5D PHYSICS PLAYGROUND, A SPACED-REPETITION TOOL, AND AN AGENT GOVERNANCE EXPERIMENT. THE MARK IS BUILT FROM THEIR NAMES.</p>
+        <ol class="index-list" id="index-list"></ol>
       </aside>
-
-      <aside class="panel info reveal-right" aria-label="GitHub">
-        <h2 class="panel-head"><span>GITHUB.COM/SKYSSSUP</span><span class="panel-num">/08</span></h2>
-        <div class="panel-body">
-          <p>04 PUBLIC REPOSITORIES</p>
-          <p>+ 04 PRIVATE, AVAILABLE ON REQUEST</p>
-        </div>
-      </aside>
-
     </section>
 
     <section class="portfolio-index glitchable" id="index" aria-labelledby="index-title">
       <div class="work-head reveal-up">
         <h2 id="index-title">[ ALL PROJECTS / 01—08 ]</h2>
-        <a href="../#work">← HOME</a>
+        <a href="../#work">HOME</a>
       </div>
       <ol class="cards" id="cards"></ol>
     </section>
@@ -77,14 +63,14 @@
       <div class="footer-col reveal-up">
         <h2 class="footer-label">[ PRIVATE REPOSITORIES ]</h2>
         <p class="footer-note">FOUR PROJECTS LIVE IN PRIVATE REPOSITORIES. ACCESS IS AVAILABLE ON REQUEST.</p>
-        <a class="row" href="mailto:hello@aakashdahal.fun"><span>REQUEST ACCESS</span><span class="row-arrow">↗</span></a>
+        <a class="row" href="mailto:hello@aakashdahal.fun"><span>REQUEST ACCESS</span><span class="row-meta">EMAIL</span></a>
       </div>
       <div class="footer-col reveal-up">
         <h2 class="footer-label">[ CONTACT ]</h2>
         <p class="footer-note">REACH OUT TO ME OVER HERE AT:</p>
         <a class="row" href="https://x.com/skysssup"><span>X / TWITTER</span><span class="row-arrow">↗</span></a>
         <a class="row" href="https://github.com/skysssup"><span>GITHUB</span><span class="row-arrow">↗</span></a>
-        <a class="row" href="../"><span>HOME</span><span class="row-arrow">→</span></a>
+        <a class="row" href="../"><span>HOME</span></a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -99,6 +85,7 @@
 
   <script src="../site.js"></script>
   <script src="../assets/vendor/lenis.min.js"></script>
+  <script src="../js/dotfield.js"></script>
   <script src="../js/mark.js"></script>
   <script src="../js/cat.js"></script>
   <script src="../js/main.js"></script>
