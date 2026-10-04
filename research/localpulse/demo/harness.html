@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LocalPulse static demo: load check</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; background: #0b1120; color: #e2e8f0; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: #94a3b8; max-width: 900px; }
+  table { border-collapse: collapse; margin: 12px 0; }
+  td, th { border: 1px solid #334155; padding: 4px 10px; text-align: left; vertical-align: top; }
+  .pass { color: #34d399; font-weight: 600; }
+  .fail { color: #f87171; font-weight: 600; }
+  .skip { color: #fbbf24; font-weight: 600; }
+  pre { background: #111827; border: 1px solid #334155; padding: 10px; overflow: auto; max-width: 1440px; }
+  iframe { border: 1px solid #334155; width: 1440px; height: 900px; background: #fff; }
+</style>
+</head>
+<body>
+<h1>LocalPulse static demo: load check</h1>
+<p>Loads the static build in a same-origin iframe, waits for it to settle, then lists every request the
+demo made (from its Resource Timing entries, which also record blocked requests) and checks what it rendered.
+Serve this file from the same origin as the build. Default build path: <code>/work/localpulse/demo/</code>;
+override with <code>?src=/path/to/build/</code>. Use a non-loopback hostname to emulate the public site: on
+localhost the dashboard auto-discovers <code>127.0.0.1:8787</code> by design.</p>
+<table id="checks"><tr><th>Check</th><th>Result</th><th>Detail</th></tr></table>
+<pre id="requests">waiting for the demo to load…</pre>
+<iframe id="demo" title="LocalPulse static demo"></iframe>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const src = params.get('src') ?? '/work/localpulse/demo/';
+const settleMs = Number(params.get('settle') ?? 3000);
+const loopbackHost = ['localhost', '127.0.0.1', '[::1]', '::1'].includes(location.hostname);
+const iframe = document.getElementById('demo');
+const table = document.getElementById('checks');
+const pre = document.getElementById('requests');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const results = [];
+
+function check(name, status, detail) {
+  results.push({ name, status, detail });
+  const tr = table.insertRow();
+  tr.insertCell().textContent = name;
+  const cell = tr.insertCell();
+  cell.textContent = status.toUpperCase();
+  cell.className = status;
+  tr.insertCell().textContent = detail;
+}
+
+async function waitFor(fn, timeoutMs) {
+  const start = performance.now();
+  while (performance.now() - start < timeoutMs) {
+    const v = fn();
+    if (v) return v;
+    await sleep(100);
+  }
+  return null;
+}
+
+iframe.addEventListener('load', async () => {
+  const doc = iframe.contentDocument;
+  const win = iframe.contentWindow;
+  const kpis = await waitFor(() => doc.querySelector('.grid-kpi'), 10000);
+  await sleep(settleMs);
+
+  const entries = [
+    ...win.performance.getEntriesByType('navigation'),
+    ...win.performance.getEntriesByType('resource'),
+  ].map((e) => ({ url: e.name, status: e.responseStatus ?? '', bytes: e.transferSize ?? '' }));
+  const crossOrigin = entries.filter((e) => new URL(e.url).origin !== location.origin);
+  const loopback = entries.filter((e) => /:8787\//.test(e.url));
+
+  const badge = doc.querySelector('[data-testid="mode-badge"]')?.textContent?.trim() ?? '(none)';
+  const firstKpi = doc.querySelector('.grid-kpi .card .kpi-value')?.textContent?.trim() ?? '(none)';
+  const anomalyHeader = [...doc.querySelectorAll('.card')].find((c) => c.querySelector('h2')?.textContent === 'Anomaly flags');
+  const anomalies = anomalyHeader?.querySelector('.card-title .muted')?.textContent?.trim() ?? '(none)';
+
+  check('Dashboard rendered', kpis ? 'pass' : 'fail', kpis ? 'KPI grid present' : 'KPI grid not found within 10 s');
+  check('Data mode', badge === 'Demo' || (loopbackHost && badge === 'Local ingest') ? 'pass' : 'fail', `badge: ${badge}`);
+  check('Total cost KPI', firstKpi !== '(none)' ? 'pass' : 'fail', firstKpi);
+  check('Anomaly flags', anomalies === '3 detected' || badge !== 'Demo' ? 'pass' : 'fail', anomalies);
+  check('Only same-origin requests', loopbackHost ? 'skip' : crossOrigin.length === 0 ? 'pass' : 'fail',
+    loopbackHost ? 'loopback hostname: local-ingest auto-discovery is expected here' : `${crossOrigin.length} cross-origin request(s)`);
+  check('Zero loopback (:8787) requests on load', loopbackHost ? 'skip' : loopback.length === 0 ? 'pass' : 'fail',
+    loopbackHost ? 'loopback hostname: auto-discovery is expected here' : `${loopback.length} request(s) to :8787`);
+
+  pre.textContent = [`requests made by ${src} (${entries.length}):`,
+    ...entries.map((e) => `  ${e.status || '-'}\t${e.url}`)].join('\n');
+  document.body.dataset.result = results.some((r) => r.status === 'fail') ? 'fail' : 'pass';
+  document.body.dataset.checks = JSON.stringify(results);
+}, { once: true });
+
+iframe.src = src;
+</script>
+</body>
+</html>

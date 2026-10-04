@@ -1,0 +1,1432 @@
+{
+ "source": "planRun() from @shipgate/core 1.0.1 over the 5 DEMO_SCENARIOS fixtures (synthetic inputs), mirroring apps/web/src/App.tsx input assembly",
+ "generated_with": "node packages/core/dist/index.js, see content/shipgate/notes.md",
+ "scenarios": [
+  {
+   "id": "secret-env",
+   "label": "Secret in .env",
+   "description": "Credential-shaped fixture in .env — blocked unless explicitly overridden.",
+   "dirtyFiles": [
+    ".env"
+   ],
+   "findings": [
+    {
+     "path": ".env",
+     "ruleId": "openai-key",
+     "confidence": "high"
+    },
+    {
+     "path": ".env",
+     "ruleId": "dotenv-file",
+     "confidence": "high"
+    }
+   ],
+   "isPublicRemote": false,
+   "busyAgents": 0
+  },
+  {
+   "id": "placeholder-example",
+   "label": "Placeholder in .env.example",
+   "description": "Template file with your-api-key-here — should ship cleanly.",
+   "dirtyFiles": [
+    ".env.example",
+    "src/app.ts"
+   ],
+   "findings": [],
+   "isPublicRemote": false,
+   "busyAgents": 0
+  },
+  {
+   "id": "public-repo",
+   "label": "Public remote",
+   "description": "Clean diff on a public GitHub remote — strict blocks, balanced warns.",
+   "dirtyFiles": [
+    "README.md"
+   ],
+   "findings": [],
+   "isPublicRemote": true,
+   "busyAgents": 0
+  },
+  {
+   "id": "busy-agent",
+   "label": "Busy agent",
+   "description": "Another live agent mid-turn — ship deferred (hold).",
+   "dirtyFiles": [
+    "src/feature.ts"
+   ],
+   "findings": [],
+   "isPublicRemote": false,
+   "busyAgents": 1
+  },
+  {
+   "id": "clean-feature",
+   "label": "Clean feature",
+   "description": "Ordinary feature diff, private remote — ship.",
+   "dirtyFiles": [
+    "src/feature.ts",
+    "src/feature.test.ts"
+   ],
+   "findings": [],
+   "isPublicRemote": false,
+   "busyAgents": 0
+  }
+ ],
+ "rows": [
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "strict: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "strict: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "strict: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "strict: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict: secrets overridden with --force-secrets",
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "strict: secrets overridden with --force-secrets",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict: secrets overridden with --force-secrets",
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "strict: secrets overridden with --force-secrets",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "balanced: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "balanced: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "balanced: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "balanced: 2 secret finding(s) blocked"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "balanced: secrets overridden with --force-secrets",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "balanced: secrets overridden with --force-secrets",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "balanced: secrets overridden with --force-secrets",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "balanced: secrets overridden with --force-secrets",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "yolo: 2 high-confidence secret(s) blocked (use --force-secrets)"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "yolo: 2 high-confidence secret(s) blocked (use --force-secrets)"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "yolo: 2 high-confidence secret(s) blocked (use --force-secrets)"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "yolo: 2 high-confidence secret(s) blocked (use --force-secrets)"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "yolo: high-confidence secrets overridden",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "yolo: high-confidence secrets overridden",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "yolo: high-confidence secrets overridden",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "secret-env",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "yolo: high-confidence secrets overridden",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "placeholder-example",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "strict: public remote requires --public-ok (or on --public-ok)"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "strict: public remote requires --public-ok (or on --public-ok)"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "block",
+   "reasons": [
+    "strict: public remote requires --public-ok (or on --public-ok)"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "block",
+   "reasons": [
+    "strict: public remote requires --public-ok (or on --public-ok)"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "balanced: public remote — confirm with --public-ok to silence",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "balanced: public remote — confirm with --public-ok to silence",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "balanced: public remote — confirm with --public-ok to silence",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "balanced: public remote — confirm with --public-ok to silence",
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "public-repo",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "yolo: shipping to public remote",
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "busy-agent",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "hold",
+   "reasons": [
+    "1 other agent(s) busy — deferring ship until clear"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "strict recommends human confirm (pass --confirm to acknowledge)",
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "strict",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy strict: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "balanced",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy balanced: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": false,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": false,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": false,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  },
+  {
+   "scenario": "clean-feature",
+   "level": "yolo",
+   "forceSecrets": true,
+   "publicOk": true,
+   "confirm": true,
+   "action": "ship",
+   "reasons": [
+    "policy yolo: clear to ship"
+   ]
+  }
+ ]
+}

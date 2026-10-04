@@ -1,0 +1,22 @@
+# What an agent sees: the CLI proposal list after the scenario shown in the dashboard captures.
+# Local anvil chain, MockUSDC, demo proposals. Read-only, so no private key was set.
+# Redacted: recipient addresses are shown as <placeholders>.
+
+$ node skill/moltdao.js proposals
+# exit code: 0
+
+MoltDAO Skill — local
+
+#1 Grant: dashboard fixes
+   Ended | active=false | yes=800.0 no=0.0
+   funding 150.0 → <agent2> (executed)
+   ends 2026-10-07T02:01:39.000Z
+
+#2 Grant: proposal indexer
+   Active | active=true | yes=200.0 no=500.0
+   funding 200.0 → <agent3>
+   ends 2026-10-10T02:02:03.000Z
+
+#3 Signal: weekly treasury report
+   Active | active=true | yes=1200.0 no=450.0
+   ends 2026-10-10T02:02:04.000Z

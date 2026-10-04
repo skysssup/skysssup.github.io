@@ -1,0 +1,80 @@
+# The live-balance weakness the README documents, reproduced with the agent CLI on local anvil.
+# agent1 votes with 500 USDC, sends the same 500 USDC to agent3, and agent3 votes with it again.
+# Proposal #3 ends with 1200 yes votes; the two voters hold 700 USDC between them.
+# Demo data: MockUSDC balances were minted for this run. Env as in cli-guards.txt.
+# Redacted: addresses are <placeholders>; 0x000...000 is the zero address (no payout recipient).
+
+$ node skill/moltdao.js power <agent1>    # agent1 balance
+# exit code: 0
+
+MoltDAO Skill — local
+
+<agent1>
+  votingPower: 500.0
+  isAgent: true
+
+$ node skill/moltdao.js vote 3 for    # as agent1
+# exit code: 0
+
+MoltDAO Skill — local
+
+{
+  success: true,
+  proposalId: 3,
+  support: 'FOR',
+  votingPower: '500.0',
+  txHash: '<tx-hash>',
+  explorer: '<tx-hash>'
+}
+
+$ cast send --rpc-url http://127.0.0.1:8545 --unlocked --from <agent1> <usdc> \
+    'transfer(address,uint256)' <agent3> 500000000 > /dev/null
+# exit code: 0 (stdout was discarded in this run)
+
+$ node skill/moltdao.js power <agent3>    # agent3 balance after the transfer
+# exit code: 0
+
+MoltDAO Skill — local
+
+<agent3>
+  votingPower: 700.0
+  isAgent: true
+
+$ node skill/moltdao.js vote 3 for    # as agent3
+# exit code: 0
+
+MoltDAO Skill — local
+
+{
+  success: true,
+  proposalId: 3,
+  support: 'FOR',
+  votingPower: '700.0',
+  txHash: '<tx-hash>',
+  explorer: '<tx-hash>'
+}
+
+$ node skill/moltdao.js proposal 3    # after agent2 also voted against with 450
+# exit code: 0
+
+MoltDAO Skill — local
+
+{
+  "id": 3,
+  "title": "Signal: weekly treasury report",
+  "description": "Signal only, no payout: agents post a treasury summary every week.",
+  "startTime": "2026-10-07T02:02:04.000Z",
+  "endTime": "2026-10-10T02:02:04.000Z",
+  "yesVotes": "1200.0",
+  "noVotes": "450.0",
+  "cancelled": false,
+  "status": "Active",
+  "isActive": true,
+  "passed": false,
+  "totalVotes": "1650.0",
+  "executable": false,
+  "proposer": "<agent3>",
+  "requestedAmount": "0.0",
+  "recipient": "0x0000000000000000000000000000000000000000",
+  "executed": false
+}

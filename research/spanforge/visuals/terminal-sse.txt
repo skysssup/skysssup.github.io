@@ -1,0 +1,28 @@
+# Session: each command is printed after "$ ", followed by its output.
+# Server: `node packages/cli/dist/index.js serve --port 8788` (what `npm run spanforge -- serve --port 8788`
+#   runs) with OPENAI_BASE_URL pointing at a local stub upstream and a
+#   placeholder upstream key. The stub is a small Node server outside the repo that returns one canned
+#   tool-call completion and logs the stream flag and auth scheme it receives (last command).
+# Exit codes: every command exited 0.
+# Edits: none. $TOKEN is read from /v1/session and never printed.
+# terminal: 100 columns
+$ TOKEN=$(curl -s http://127.0.0.1:8788/v1/session | jq -r .token)
+
+$ BODY='{"model":"gpt-4o-mini","stream":true,"messages":[{"role":"user","content":"Weather in Kathmandu?"}]}'
+
+$ curl -s -o /dev/null -D - -X POST http://127.0.0.1:8788/v1/chat/completions -H "Authorization: Bearer $TOKEN" -d "$BODY" | tr -d '\r' | grep -iE '^(HTTP/|content-type|x-spanforge-stream)'
+HTTP/1.1 200 OK
+Content-Type: text/event-stream; charset=utf-8
+X-Spanforge-Stream-Mode: buffered
+
+$ curl -sN -X POST http://127.0.0.1:8788/v1/chat/completions -H "Authorization: Bearer $TOKEN" -d "$BODY" | sed -n 's/^data: //p' | grep -v DONE | jq -c '.choices[0]'
+{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}
+{"index":0,"delta":{"tool_calls":[{"id":"call_weather_1","type":"function","function":{"name":"get_weather","arguments":"{\"city\":\"Kathmandu\"}"}}]},"finish_reason":null}
+{"index":0,"delta":{},"finish_reason":"tool_calls"}
+
+$ curl -sN -X POST http://127.0.0.1:8788/v1/chat/completions -H "Authorization: Bearer $TOKEN" -d "$BODY" | grep '^data: ' | tail -n 1
+data: [DONE]
+
+$ tail -n 1 stub-upstream.log
+{"path":"/v1/chat/completions","forwardedStream":false,"authScheme":"Bearer"}
+

@@ -1,0 +1,34 @@
+{
+ "slug": "airforge",
+ "name": "AirForge",
+ "visibility": "Public",
+ "repo": "https://github.com/skysssup/airforge",
+ "themes": [
+  "physics-software"
+ ],
+ "status": "Working tool",
+ "stack": [
+  "TypeScript",
+  "React",
+  "Three.js",
+  "Rapier",
+  "MediaPipe"
+ ],
+ "tagline": "Draw ramps and balls; Rapier simulates them in 2.5D.",
+ "description": "Browser-based 2.5D sketch-to-physics playground with mouse drawing, optional webcam gestures, and JSON scene import/export.",
+ "summary": "Browser-based 2.5D sketch-to-physics playground with mouse drawing, optional webcam gestures, and JSON scene import/export.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/airforge/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "image",
+  "src": "/work/airforge/media/overview.webp",
+  "w": 1280,
+  "h": 720,
+  "caption": "The Ramp & Ball example: a drawn ramp, a ball, and a catch platform simulated by Rapier.",
+  "alt": "AirForge in the browser with a ball above a teal ramp and a small platform, toolbar along the top."
+ }
+}

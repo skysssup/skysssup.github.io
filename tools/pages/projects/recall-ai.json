@@ -1,0 +1,22 @@
+{
+ "slug": "recall-ai",
+ "name": "Recall",
+ "visibility": "Public",
+ "repo": "https://github.com/skysssup/recall-ai",
+ "themes": [
+  "developer-tools"
+ ],
+ "status": "Working tool",
+ "stack": [
+  "Python",
+  "FastAPI",
+  "SQLite",
+  "React"
+ ],
+ "tagline": "Spaced repetition for algorithm practice, kept on your machine.",
+ "description": "Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode result capture.",
+ "summary": "Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode result capture.",
+ "placeholder": true,
+ "cover": null,
+ "lead": null
+}

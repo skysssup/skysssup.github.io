@@ -1,0 +1,32 @@
+{
+ "slug": "ghost-notetaker",
+ "name": "Ghost Notetaker",
+ "visibility": "Private",
+ "repo": null,
+ "themes": [
+  "developer-tools"
+ ],
+ "status": "Working tool",
+ "stack": [
+  "JavaScript",
+  "Electron"
+ ],
+ "tagline": "Desktop sticky notes that try to stay out of screen shares.",
+ "description": "Local desktop sticky notes with Markdown, workspaces, quick capture, and best-effort screen-capture exclusion.",
+ "summary": "Local desktop sticky notes with Markdown, workspaces, quick capture, and best-effort screen-capture exclusion.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/ghost-notetaker/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "video",
+  "src": "/work/ghost-notetaker/media/overview.mp4",
+  "poster": "/work/ghost-notetaker/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "Quick capture: clipboard text becomes a new note on the desktop.",
+  "alt": "Screen recording of colored sticky notes on a dark desktop, with a new note created from the clipboard."
+ }
+}

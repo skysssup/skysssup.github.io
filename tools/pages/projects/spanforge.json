@@ -1,0 +1,34 @@
+{
+ "slug": "spanforge",
+ "name": "Spanforge",
+ "visibility": "Private",
+ "repo": null,
+ "themes": [
+  "ai-systems",
+  "developer-tools"
+ ],
+ "status": "Prototype",
+ "stack": [
+  "TypeScript",
+  "Node.js",
+  "React"
+ ],
+ "tagline": "A local trace proxy for LLM calls, with waterfalls.",
+ "description": "Local OpenAI-compatible trace proxy with a waterfall dashboard and limited, pattern-based redaction.",
+ "summary": "Local OpenAI-compatible trace proxy with a waterfall dashboard and limited, pattern-based redaction.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/spanforge/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "video",
+  "src": "/work/spanforge/media/overview.mp4",
+  "poster": "/work/spanforge/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "Inspecting a fixture run: the span waterfall, one span’s detail, and the span graph.",
+  "alt": "Screen recording of the Spanforge dashboard: a run with plan, web_search, http_fetch and finalize spans shown as a waterfall, then a span detail panel and a span graph."
+ }
+}

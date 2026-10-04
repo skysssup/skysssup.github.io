@@ -1,0 +1,33 @@
+{
+ "slug": "agentcrucible",
+ "name": "AgentCrucible",
+ "visibility": "Public",
+ "repo": "https://github.com/skysssup/agentcrucible",
+ "themes": [
+  "ai-systems"
+ ],
+ "status": "Prototype",
+ "stack": [
+  "TypeScript",
+  "Node.js",
+  "YAML"
+ ],
+ "tagline": "Fault-tests tool-using agents against scripted mock worlds.",
+ "description": "Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.",
+ "summary": "Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/agentcrucible/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "video",
+  "src": "/work/agentcrucible/media/overview.mp4",
+  "poster": "/work/agentcrucible/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "The real CLI running one scenario against four scripted agents, then comparing their verdicts.",
+  "alt": "Terminal recording: agentcrucible runs payments/timeout-after-commit against naive-retry, idempotent-retry, honest-stop and liar, then prints a verdict comparison."
+ }
+}

@@ -1,0 +1,28 @@
+# $ forge test -vv
+# cwd: contracts/    exit code: 0
+# Foundry 1.8.4, the version CI pins. Run after `forge build`, so compilation was cached.
+
+No files changed, compilation skipped
+
+Ran 18 tests for test/MoltGovernance.t.sol:MoltGovernanceTest
+[PASS] test_cancelProposalByProposer() (gas: 307213)
+[PASS] test_cannotDoubleVote() (gas: 364985)
+[PASS] test_cannotLowerQuorumToExecuteFailedProposal() (gas: 582279)
+[PASS] test_fundingProposalExecute() (gas: 636383)
+[PASS] test_getDaoStats() (gas: 85968)
+[PASS] test_humanFundsTreasury() (gas: 74669)
+[PASS] test_humanFundsViaApprove() (gas: 128818)
+[PASS] test_isExecutableFunding() (gas: 643689)
+[PASS] test_minProposePower() (gas: 152742)
+[PASS] test_onlyAgentCanProposeAndVote() (gas: 536227)
+[PASS] test_parameterChangeCannotAlterExistingProposalOutcome() (gas: 821629)
+[PASS] test_quorumFailure() (gas: 590395)
+[PASS] test_rejectsTokenWithoutCode() (gas: 6458)
+[PASS] test_rejectsZeroVotingPeriod() (gas: 36040)
+[PASS] test_skillCompatibleViews() (gas: 297149)
+[PASS] test_splitterEqualDistributeAndClaim() (gas: 233256)
+[PASS] test_splitterRemoveRequiresClaim() (gas: 316253)
+[PASS] test_votingPowerZeroForNonAgent() (gas: 27311)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 3.47ms (5.54ms CPU time)
+
+Ran 1 test suite in 18.91ms (3.47ms CPU time): 18 tests passed, 0 failed, 0 skipped (18 total tests)

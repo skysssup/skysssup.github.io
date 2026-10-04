@@ -1,0 +1,63 @@
+# $ npm test
+# cwd: repository root; runs vitest in packages/core, packages/proxy and apps/web in sequence
+# exit code: 0
+# terminal: 100 columns; ANSI colour codes stripped, absolute checkout paths shortened to ./
+
+> spanforge@0.1.2 test
+> npm run test -w @spanforge/core && npm run test -w @spanforge/proxy && npm run test -w @spanforge/web
+
+
+> @spanforge/core@0.1.2 test
+> vitest run
+
+
+ RUN  v4.1.11 ./packages/core
+
+ ✓ src/redact.deep.test.ts (4 tests) 5ms
+ ✓ src/validate.test.ts (6 tests) 42ms
+ ✓ src/fixture.test.ts (7 tests) 11ms
+ ✓ src/redact.test.ts (11 tests) 5ms
+ ✓ src/tree.test.ts (7 tests) 7ms
+ ✓ src/cost.test.ts (7 tests) 5ms
+ ✓ src/export-csv.test.ts (1 test) 3ms
+ ✓ src/export-csv.formula.test.ts (1 test) 3ms
+
+ Test Files  8 passed (8)
+      Tests  44 passed (44)
+   Start at  02:04:25
+   Duration  494ms (transform 174ms, setup 0ms, import 265ms, tests 81ms, environment 1ms)
+
+
+> @spanforge/proxy@0.1.2 test
+> vitest run
+
+
+ RUN  v4.1.11 ./packages/proxy
+
+ ✓ src/store.test.ts (2 tests) 7ms
+ ✓ src/path.test.ts (4 tests) 20ms
+ ✓ src/server.test.ts (15 tests) 125ms
+
+ Test Files  3 passed (3)
+      Tests  21 passed (21)
+   Start at  02:04:26
+   Duration  397ms (transform 215ms, setup 0ms, import 354ms, tests 152ms, environment 0ms)
+
+
+> @spanforge/web@0.1.2 test
+> vitest run
+
+
+ RUN  v4.1.11 ./apps/web
+
+ ✓ src/components/ImportButton.test.tsx (1 test) 85ms
+ ✓ src/components/RunDetail.test.tsx (2 tests) 120ms
+ ✓ src/App.test.tsx (1 test) 111ms
+ ✓ src/lib/loadRuns.test.ts (7 tests) 9ms
+ ✓ src/lib/host.test.ts (2 tests) 3ms
+
+ Test Files  5 passed (5)
+      Tests  13 passed (13)
+   Start at  02:04:27
+   Duration  1.26s (transform 310ms, setup 242ms, import 510ms, tests 327ms, environment 1.53s)
+

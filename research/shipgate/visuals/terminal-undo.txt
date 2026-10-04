@@ -1,0 +1,19 @@
+# shipgate undo: rewinds the last commit only if it carries the Shipped-by: shipgate trailer.
+# setup (not shown): same repo; the blocked attempt was cleaned up so the index is clean.
+# The remote rewind uses --force-with-lease pinned to the shipped commit's SHA; origin is a local bare repo.
+# $ git status --short  -> exit 0
+# $ shipgate undo  -> exit 0
+# $ git log --oneline --decorate -2  -> exit 0
+# $ git status --short  -> exit 0
+# $ shipgate undo  -> exit 0
+# terminal: 100 columns; ANSI stripped; stdout+stderr as shown in the terminal
+
+$ git status --short
+$ shipgate undo
+shipgate: undid 0040434 — changes left in working tree
+$ git log --oneline --decorate -2
+b88a0a8 (HEAD -> main, origin/main) Initial commit
+$ git status --short
+?? src/
+$ shipgate undo
+shipgate: HEAD is not a shipgate commit — refuse

@@ -1,0 +1,63 @@
+# $ npm run localpulse -- report fixtures/demo-metrics.json
+# exit code: 0
+# run from the repository root after `npm ci && npm run build`; terminal width 100 columns; ANSI stripped
+# input: fixtures/demo-metrics.json, the bundled synthetic demo fixture (769 events, labeled source "demo")
+
+> localpulse@0.2.1 localpulse
+> node packages/cli/dist/index.js report fixtures/demo-metrics.json
+
+LocalPulse report
+=================
+Source: demo  |  Events: 769  |  Schema v2
+Total cost (est.): $3.5865
+Tokens in/out/cached: 903,505 / 422,102 / 40,126
+Error rate: 7.15%
+Latency p50/p95/p99: 420ms / 1772ms / 7308ms
+Throughput: 2.3 calls/h · 3950 tok/h · $0.0107/h
+
+By provider
+-----------
+  provider      calls         cost      p95   err%
+  anthropic       169      $1.4810   1612ms    6.5
+  google          182      $1.1164   2876ms    7.1
+  openai          169      $0.8827   1469ms    7.1
+  groq             90      $0.0902    357ms    8.9
+  mistral          83      $0.0162   1022ms    6.0
+  local            76    $0.000000    333ms    7.9
+
+By model
+--------
+  model                                 calls         cost      p50      p95      p99   err%
+  claude-3-5-sonnet-20241022               78      $1.3094   1061ms   4086ms   8000ms    3.8
+  gemini-2.5-pro                           80      $1.0855   1515ms   4828ms   8000ms    8.8
+  gpt-4o                                   82      $0.8492    986ms   2406ms   4074ms    4.9
+  claude-3-5-haiku-20241022                91      $0.1716    377ms   1230ms   1569ms    8.8
+  llama-3.3-70b-versatile                  90      $0.0902    223ms    357ms   1508ms    8.9
+  gpt-4o-mini                              87      $0.0335    419ms   1294ms   2527ms    9.2
+  gemini-2.0-flash                        102      $0.0308    329ms    799ms   1227ms    5.9
+  mistral-small-latest                     83      $0.0162    463ms   1022ms   3203ms    6.0
+  llama-3.1-8b                             76    $0.000000    191ms    333ms    751ms    7.9
+
+By route
+--------
+  summarize        calls= 148  cost=     $0.7434  p95= 1502ms  tok=266,394
+  chat             calls= 131  cost=     $0.6094  p95= 3404ms  tok=222,506
+  classify         calls= 129  cost=     $0.5201  p95= 1530ms  tok=218,362
+  extract          calls= 125  cost=     $0.6325  p95= 1733ms  tok=212,915
+  rag-query        calls= 122  cost=     $0.5279  p95= 2152ms  tok=206,628
+  code-review      calls= 114  cost=     $0.5532  p95= 1911ms  tok=198,802
+
+Status
+------
+  ok             714 (92.8%)
+  error          32 (4.2%)
+  timeout        8 (1.0%)
+  rate_limited   15 (2.0%)
+
+Anomalies
+---------
+  [critical] latency_spike: Latency p95 on 2026-03-12 was 4853ms vs baseline 1550ms
+  [warn] cost_spike: Cost on 2026-03-13 was $0.7886 vs baseline daily ~$0.2225
+  [critical] error_spike: Error rate on 2026-03-14 was 44.2% vs baseline 4.7%
+
+Note: costs use editable estimate price tables, not provider invoices.

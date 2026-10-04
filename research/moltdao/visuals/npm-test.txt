@@ -1,0 +1,44 @@
+# $ npm test
+# cwd: repository root    exit code: 0
+# Node 24.18.0. Runs node --test on test/skill.test.js and test/dashboard.test.js (no chain).
+
+
+> moltdao@1.1.0 test
+> node --test test/skill.test.js test/dashboard.test.js
+
+▶ dashboard html escape
+  ✔ escapes token symbol for HTML (3.29372ms)
+✔ dashboard html escape (5.566925ms)
+✔ blocks repeated donations while asynchronous preflight is pending and recovers after failure (5.577046ms)
+▶ skill helpers
+  ✔ exposes testnet + local networks without baked-in addresses (0.726532ms)
+  ✔ maps status labels (0.642531ms)
+  ✔ requireAddress checksums valid addresses (1.651394ms)
+  ✔ requireAddress rejects junk (0.404321ms)
+  ✔ constructs skill for local without private key (0.413681ms)
+  ✔ accepts contract overrides via config (0.16169ms)
+  ✔ picks up MOLTDAO_GOVERNANCE set after require (0.18404ms)
+  ✔ donateUSDC rejects missing governance (30.821208ms)
+  ✔ createFundingProposal rejects bad recipient (1.266613ms)
+  ✔ requireProposalId rejects junk (0.320831ms)
+  ✔ requirePositiveAmount rejects zero and negatives (0.192451ms)
+  ✔ createFundingProposal rejects zero amount (0.820883ms)
+  ✔ vote rejects invalid proposal id before chain calls (0.679692ms)
+✔ skill helpers (39.482013ms)
+▶ tokenDecimals + network guards
+  ✔ tokenDecimals surfaces failure (no silent 6) (0.28099ms)
+  ✔ assertNetworkReady rejects chain mismatch (0.571021ms)
+✔ tokenDecimals + network guards (1.002164ms)
+▶ transaction identity and strict arguments
+  ✔ rejects unsafe proposal IDs in every input representation (0.318901ms)
+  ✔ reads the created ID from the confirmed transaction, not the current global count (11.412253ms)
+  ✔ rejects string vote support before connecting to the chain (0.183811ms)
+✔ transaction identity and strict arguments (12.059524ms)
+ℹ tests 20
+ℹ suites 4
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 219.273449

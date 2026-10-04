@@ -1,0 +1,19 @@
+# session against `npm run localpulse -- serve` (127.0.0.1:8787, fresh store), run from the repository root
+# each line starting with "$ " is the exact command; output follows verbatim
+# exit code: 0 for every command; terminal width 100 columns; ANSI stripped
+# the session token is read into $TOKEN and never printed
+$ curl -s -w ' -> %{http_code}\n' http://127.0.0.1:8787/health
+{"ok":true,"service":"localpulse","version":"0.2.1"} -> 200
+$ curl -s -w ' -> %{http_code}\n' -H 'Origin: https://skysssup.github.io' http://127.0.0.1:8787/v1/session
+{"error":"forbidden","message":"Session token only for allowed dashboard origins"} -> 403
+$ curl -s -w ' -> %{http_code}\n' -H 'Host: attacker.example' http://127.0.0.1:8787/v1/session
+{"error":"forbidden","message":"Session token only for allowed dashboard origins"} -> 403
+$ curl -s -w ' -> %{http_code}\n' http://127.0.0.1:8787/v1/metrics
+{"error":"unauthorized","message":"Missing or invalid X-LocalPulse-Token. Fetch /v1/session from an allowed dashboard origin first."} -> 401
+$ TOKEN=$(cat .localpulse/session.token)
+$ head -n 1 fixtures/openai-compat-sample.jsonl | curl -s -w ' -> %{http_code}\n' -H "X-LocalPulse-Token: $TOKEN" --data-binary @- http://127.0.0.1:8787/v1/capture
+{"accepted":1,"duplicates":0,"total":1} -> 201
+$ head -n 1 fixtures/openai-compat-sample.jsonl | curl -s -w ' -> %{http_code}\n' -H "X-LocalPulse-Token: $TOKEN" --data-binary @- http://127.0.0.1:8787/v1/capture
+{"accepted":0,"duplicates":1,"total":1} -> 201
+$ head -c 2097153 /dev/zero | tr '\0' x | curl -s -w ' -> %{http_code}\n' -H "X-LocalPulse-Token: $TOKEN" --data-binary @- http://127.0.0.1:8787/v1/events
+{"error":"Request body exceeds 2097152 bytes"} -> 413

@@ -1,0 +1,40 @@
+# Session: each command is printed after "$ ", followed by its output.
+# Server: `node packages/cli/dist/index.js demo` (what `npm run spanforge -- demo` runs) on 127.0.0.1:8787,
+#   two fixture runs loaded, no upstream key.
+# Exit codes: every command exited 0 (curl exits 0 on HTTP 4xx responses).
+# Edits: the 64-hex session token returned by /v1/session is masked. $TOKEN is never printed.
+# terminal: 100 columns
+$ curl -s http://127.0.0.1:8787/health; echo
+{"ok":true,"runs":2}
+
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8787/v1/runs
+401
+
+$ curl -s -w ' %{http_code}\n' -H 'Host: attacker.example' http://127.0.0.1:8787/v1/session
+{"error":"forbidden"} 403
+
+$ curl -s -w ' %{http_code}\n' -H 'Origin: https://evil.example' http://127.0.0.1:8787/v1/session
+{"error":"forbidden"} 403
+
+$ curl -s http://127.0.0.1:8787/v1/session; echo
+{"token":"<64-hex session token, masked>","tokenHeader":"X-Spanforge-Token"}
+
+$ curl -s -w ' %{http_code}\n' -X POST http://127.0.0.1:8787/v1/chat/completions -d '{"messages":[{"role":"user","content":"hi"}]}'
+{"error":"unauthorized","message":"Missing or invalid X-Spanforge-Token. Call GET /v1/session from an allowed dashboard origin first."} 401
+
+$ curl -s -o /dev/null -D - -X OPTIONS -H 'Origin: https://evil.example' http://127.0.0.1:8787/v1/runs | tr -d '\r' | grep -i '^access-control'
+Access-Control-Allow-Methods: GET,POST,OPTIONS,PUT,DELETE
+Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-Id, X-Spanforge-Token
+
+$ curl -s -o /dev/null -D - -X OPTIONS -H 'Origin: http://localhost:5173' http://127.0.0.1:8787/v1/runs | tr -d '\r' | grep -i '^access-control'
+Access-Control-Allow-Origin: http://localhost:5173
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Methods: GET,POST,OPTIONS,PUT,DELETE
+Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-Id, X-Spanforge-Token
+
+$ TOKEN=$(curl -s http://127.0.0.1:8787/v1/session | jq -r .token)
+
+$ curl -s -H "X-Spanforge-Token: $TOKEN" http://127.0.0.1:8787/v1/runs | jq -c '.runs[] | {id, spans: (.spans | length)}'
+{"id":"run-demo-chat-01","spans":1}
+{"id":"run-demo-agent-01","spans":5}
+

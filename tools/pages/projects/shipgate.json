@@ -1,0 +1,33 @@
+{
+ "slug": "shipgate",
+ "name": "Shipgate",
+ "visibility": "Public",
+ "repo": "https://github.com/skysssup/shipgate",
+ "themes": [
+  "developer-tools"
+ ],
+ "status": "Working tool",
+ "stack": [
+  "TypeScript",
+  "Node.js",
+  "Git"
+ ],
+ "tagline": "A Git gate that scans what a coding agent is about to push.",
+ "description": "CLI for scanning staged Git changes and applying local policies to commit and push workflows.",
+ "summary": "CLI for scanning staged Git changes and applying local policies to commit and push workflows.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/shipgate/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "video",
+  "src": "/work/shipgate/media/overview.mp4",
+  "poster": "/work/shipgate/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each.",
+  "alt": "Screen recording of the Shipgate policy simulator switching between strict, balanced and yolo levels across scenarios such as a secret in .env and a public remote."
+ }
+}

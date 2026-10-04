@@ -1,0 +1,106 @@
+# $ npm test
+# cwd: repository root | Node.js v24.18.0 | 100-column terminal | ANSI stripped
+# exit code: 0
+
+> ghost-notetaker@1.3.0 test
+> node --test
+
+▶ ipc guards
+  ✔ requireId rejects empty and oversized values (0.823671ms)
+  ✔ sanitizeNotePatch drops unknown fields and bad colors (0.705331ms)
+  ✔ sanitizeCreateOptions keeps templateId and caps title (0.236651ms)
+  ✔ sanitizeSettingsPatch only allows known keys (0.245871ms)
+  ✔ sanitizeIdList filters junk (0.172711ms)
+✔ ipc guards (3.114826ms)
+▶ ipc sender guards
+  ✔ accepts matching sender window (0.796961ms)
+  ✔ rejects mismatched or destroyed senders (0.513961ms)
+  ✔ assertSenderIsOneOf finds the owning window (0.2301ms)
+✔ ipc sender guards (2.587565ms)
+▶ markdown
+  ✔ renders headings and emphasis (1.494262ms)
+  ✔ renders task lists with line indices (0.22805ms)
+  ✔ toggles checkboxes in source (0.20094ms)
+  ✔ escapes raw HTML (0.206301ms)
+  ✔ renders blockquotes (1.297531ms)
+  ✔ renders fenced code (0.166261ms)
+  ✔ renders strikethrough (0.270451ms)
+✔ markdown (5.044929ms)
+✔ does not acknowledge persistence when a renderer fails to flush (0.827652ms)
+✔ flushes renderers before the store and propagates disk failures (0.579021ms)
+▶ save queue failure retention
+  ✔ restores pending patch when flush rejects (1.736674ms)
+  ✔ hasPending is true while debounce timer is armed (0.18884ms)
+✔ save queue failure retention (2.645594ms)
+▶ save queue
+  ✔ merges patches within the debounce window (51.055747ms)
+  ✔ flushNow sends pending immediately and clears the timer (31.350432ms)
+  ✔ flushNow is a no-op when nothing is pending (0.31641ms)
+✔ save queue (83.935091ms)
+▶ shortcuts helpers
+  ✔ lists expected actions (0.50639ms)
+  ✔ matches CommandOrControl+Shift+N style input (0.22046ms)
+  ✔ rejects when shift missing (0.129701ms)
+  ✔ defaultShortcuts cover every action id (0.163061ms)
+✔ shortcuts helpers (1.779822ms)
+▶ templates
+  ✔ every template has id, label, title, content (0.13731ms)
+  ✔ meeting and todo templates are usable (0.154561ms)
+✔ templates (0.41675ms)
+▶ corrupt store quarantine
+  ✔ quarantines invalid JSON and blocks overwrite until recovery (3.131294ms)
+  ✔ quarantines non-array notes field (0.780801ms)
+✔ corrupt store quarantine (4.858278ms)
+▶ import merge collisions + replace protection
+  ✔ preserves both notes when merge ids collide (2.850854ms)
+  ✔ replace keeps protection policy and hides notes (1.563563ms)
+  ✔ rejects malformed import payloads with actionable errors (0.723451ms)
+✔ import merge collisions + replace protection (5.37875ms)
+▶ deferred save errors keep dirty state
+  ✔ flush rethrows when save is blocked and stays dirty (0.705543ms)
+✔ deferred save errors keep dirty state (0.856631ms)
+✔ malformed import rows cannot leave a partial merge (3.189746ms)
+✔ failed import persistence restores state and keeps the original file (1.322562ms)
+✔ imports persist before success and reject incompatible versions and duplicate ids (1.176632ms)
+✔ bounds remain finite and within safe window limits (0.880452ms)
+▶ store helpers
+  ✔ clamps numbers (0.865742ms)
+  ✔ normalizes bounds with minimums (0.341701ms)
+  ✔ exposes colors and templates (0.25941ms)
+  ✔ sortNotes supports multiple keys (6.246051ms)
+✔ store helpers (9.865216ms)
+▶ migrate
+  ✔ builds empty state from null (0.63224ms)
+  ✔ keeps notes linked to known workspaces and upgrades settings (0.41953ms)
+✔ migrate (1.209081ms)
+▶ Store persistence
+  ✔ creates default file on load (1.287662ms)
+  ✔ creates notes with templates and updates timestamps (1.000991ms)
+  ✔ applies default opacity/color/font from settings (0.696431ms)
+  ✔ filters by workspace, tag, query, and visibility (0.98118ms)
+  ✔ tracks recent notes (0.574721ms)
+  ✔ bulkSetVisible toggles many notes (0.574072ms)
+  ✔ hide does not delete; delete removes (0.52982ms)
+  ✔ export / import merge and replace (1.727102ms)
+  ✔ noteToMarkdown includes title and tags (0.547062ms)
+  ✔ refuses deleting the last workspace (0.41624ms)
+  ✔ persists across reload (0.700362ms)
+  ✔ duplicates a note with offset bounds (1.069441ms)
+  ✔ createNoteRecord defaults (0.265231ms)
+  ✔ emptyState has settings shortcuts and defaults (0.266831ms)
+  ✔ moves notes between workspaces (0.52437ms)
+  ✔ rejects unknown workspaceId and color (0.531652ms)
+✔ Store persistence (12.23739ms)
+▶ tag normalize + size caps
+  ✔ normalizes tags to lowercase and dedupes (0.583802ms)
+  ✔ allTags returns lowercase unique chips (0.51645ms)
+  ✔ clamps title and content length (0.535631ms)
+✔ tag normalize + size caps (1.737594ms)
+ℹ tests 63
+ℹ suites 14
+ℹ pass 63
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 487.495257

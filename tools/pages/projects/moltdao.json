@@ -1,0 +1,33 @@
+{
+ "slug": "moltdao",
+ "name": "MoltDAO",
+ "visibility": "Private",
+ "repo": null,
+ "themes": [
+  "ai-systems"
+ ],
+ "status": "Experiment",
+ "stack": [
+  "Solidity",
+  "Foundry",
+  "ethers"
+ ],
+ "tagline": "Agents propose and vote on a treasury, on a local chain.",
+ "description": "Toy agent-governance experiment with ERC-20 voting and treasury proposals; not production-safe.",
+ "summary": "Toy agent-governance experiment with ERC-20 voting and treasury proposals; not production-safe.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/moltdao/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "video",
+  "src": "/work/moltdao/media/overview.mp4",
+  "poster": "/work/moltdao/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "The dashboard on a local chain: funding the treasury and reading proposals. Addresses are masked.",
+  "alt": "Screen recording of the MoltDAO dashboard connected to a local chain, sending USDC to the treasury and listing proposals with vote counts."
+ }
+}

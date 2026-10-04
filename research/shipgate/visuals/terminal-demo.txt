@@ -1,0 +1,13 @@
+# shipgate demo — prints planRun decisions for the five fixture scenarios in packages/core/src/fixtures.ts (synthetic inputs).
+# cwd: shipgate repo root after npm run build; absolute paths replaced with repo-relative ones.
+# $ shipgate demo  -> exit 0
+# terminal: 100 columns; ANSI stripped; stdout+stderr as shown in the terminal
+
+$ shipgate demo
+shipgate demo (local dist): apps/web/dist
+shipgate: run `shipgate demo --serve` to preview locally
+  [secret-env] block: balanced: 2 secret finding(s) blocked
+  [placeholder-example] ship: policy balanced: clear to ship
+  [public-repo] block: strict: public remote requires --public-ok (or on --public-ok)
+  [busy-agent] hold: 1 other agent(s) busy — deferring ship until clear
+  [clean-feature] ship: policy balanced: clear to ship

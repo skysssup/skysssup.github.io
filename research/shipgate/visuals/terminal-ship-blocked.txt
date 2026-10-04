@@ -1,0 +1,21 @@
+# shipgate ship blocked by the credential scanner (level balanced).
+# setup (not shown): same repo after the clean ship. README.md has a staged edit plus a further unstaged
+# edit (MM). config/credentials is new and holds the two sample profiles copied verbatim from the AWS CLI
+# quickstart docs (published, non-functional example keys; not reproduced here).
+# The second git status matches the first: partial staging kept, config/ unstaged again, HEAD unchanged.
+# $ git status --short  -> exit 0
+# $ shipgate ship -m "Add deploy credentials"  -> exit 0
+# $ git status --short  -> exit 0
+# $ git log --oneline --decorate -1  -> exit 0
+# terminal: 100 columns; ANSI stripped; stdout+stderr as shown in the terminal
+
+$ git status --short
+MM README.md
+?? config/
+$ shipgate ship -m "Add deploy credentials"
+shipgate: balanced: 2 secret finding(s) blocked
+$ git status --short
+MM README.md
+?? config/
+$ git log --oneline --decorate -1
+0040434 (HEAD -> main, origin/main) Add greet helper

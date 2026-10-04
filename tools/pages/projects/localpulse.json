@@ -1,0 +1,34 @@
+{
+ "slug": "localpulse",
+ "name": "LocalPulse",
+ "visibility": "Private",
+ "repo": null,
+ "themes": [
+  "ai-systems",
+  "developer-tools"
+ ],
+ "status": "Prototype",
+ "stack": [
+  "TypeScript",
+  "Node.js",
+  "React"
+ ],
+ "tagline": "Token usage, latency, and cost for LLM calls, on disk.",
+ "description": "Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata is retained.",
+ "summary": "Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata is retained.",
+ "placeholder": true,
+ "cover": {
+  "src": "/work/localpulse/media/cover",
+  "w": 1344,
+  "h": 840
+ },
+ "lead": {
+  "kind": "video",
+  "src": "/work/localpulse/media/overview.mp4",
+  "poster": "/work/localpulse/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "The dashboard on its bundled synthetic metrics: totals, cost and latency over time, anomaly flags.",
+  "alt": "Screen recording of the LocalPulse dashboard showing total cost, p95 latency, error rate and token counts, a cost and latency chart, and anomaly flags, using synthetic demo data."
+ }
+}

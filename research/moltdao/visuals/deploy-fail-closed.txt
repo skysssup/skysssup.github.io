@@ -1,0 +1,30 @@
+# $ forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8546 --broadcast \
+#     --unlocked --sender <deployer>
+# cwd: contracts/    exit code: 1
+# Target: a local anvil node started with --chain-id 84532 (Base Sepolia's ID) to stand in
+# for a nonlocal chain. USDC and ALLOW_MOCK_USDC were unset. Afterwards the block number and
+# the deployer's nonce were both still 0, so nothing was broadcast.
+# Redacted: the script contract's address.
+
+No files changed, compilation skipped
+Traces:
+  [3523639] → new Deploy@<script-contract>
+    └─ ← [Return] 17488 bytes of code
+
+  [5416] Deploy::run()
+    ├─ [0] VM::envOr("USDC", 0x0000000000000000000000000000000000000000) [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envOr("VOTING_PERIOD", 259200 [2.592e5]) [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envOr("QUORUM", 100000000 [1e8]) [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envOr("MIN_PROPOSE", 10000000 [1e7]) [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::envOr("ALLOW_MOCK_USDC", false) [staticcall]
+    │   └─ ← [Return] <env var value>
+    ├─ [0] VM::startBroadcast()
+    │   └─ ← [Return]
+    └─ ← [Revert] Deploy: USDC required on nonlocal chains (set USDC=... or ALLOW_MOCK_USDC=true for an explicit demo)
+
+
+Error: script failed: Deploy: USDC required on nonlocal chains (set USDC=... or ALLOW_MOCK_USDC=true for an explicit demo)

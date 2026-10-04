@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "runs": [
+    {
+      "id": "run-af107b71-ca1f-4bad-bd09-4c875f8dd931",
+      "name": "chat.completions (gpt-4o)",
+      "startedAt": "2026-10-04T02:10:52.231Z",
+      "endedAt": "2026-10-04T02:10:52.235Z",
+      "status": "ok",
+      "spans": [
+        {
+          "id": "span-aaa57d8c-497e-40c9-ad67-e743a0b4b899",
+          "parentId": null,
+          "kind": "llm",
+          "name": "chat.completions",
+          "startedAt": "2026-10-04T02:10:52.231Z",
+          "endedAt": "2026-10-04T02:10:52.235Z",
+          "status": "ok",
+          "attrs": {
+            "model": "gpt-4o",
+            "provider": "openai",
+            "promptTokens": 82,
+            "completionTokens": 17,
+            "estimatedUsd": 0.000375,
+            "requestText": "system: You are a travel assistant.\nuser: Check the weather in Kathmandu and email the summary to [REDACTED_EMAIL]. Use key [REDACTED_API_KEY] for the weather API.",
+            "responseText": "",
+            "stream": false,
+            "streamMode": "json",
+            "finishReason": "tool_calls",
+            "toolCalls": [
+              {
+                "id": "call_weather_1",
+                "type": "function",
+                "function": {
+                  "name": "get_weather",
+                  "arguments": "{\"city\":\"Kathmandu\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "source": "proxy",
+      "schemaVersion": 1
+    },
+    {
+      "id": "run-9b99499b-2c53-4707-9fc1-2a6798d4539a",
+      "name": "chat.completions (gpt-4o-mini)",
+      "startedAt": "2026-10-04T02:10:52.191Z",
+      "endedAt": "2026-10-04T02:10:52.224Z",
+      "status": "ok",
+      "spans": [
+        {
+          "id": "span-8247010e-a510-4f59-a429-0ccca8428de1",
+          "parentId": null,
+          "kind": "llm",
+          "name": "chat.completions",
+          "startedAt": "2026-10-04T02:10:52.191Z",
+          "endedAt": "2026-10-04T02:10:52.224Z",
+          "status": "ok",
+          "attrs": {
+            "model": "gpt-4o-mini",
+            "provider": "openai",
+            "promptTokens": 82,
+            "completionTokens": 17,
+            "estimatedUsd": 0.000022,
+            "requestText": "user: Weather in Kathmandu?",
+            "responseText": "",
+            "stream": true,
+            "streamMode": "buffered",
+            "finishReason": "tool_calls",
+            "toolCalls": [
+              {
+                "id": "call_weather_1",
+                "type": "function",
+                "function": {
+                  "name": "get_weather",
+                  "arguments": "{\"city\":\"Kathmandu\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "source": "proxy",
+      "schemaVersion": 1
+    }
+  ]
+}

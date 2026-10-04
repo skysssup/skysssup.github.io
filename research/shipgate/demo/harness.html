@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shipgate core bundle harness</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b0f14; --panel:#121821; --border:#243044; --text:#e7eef8; --muted:#8fa3bf; --ship:#3dd68c; --hold:#f5c542; --block:#ff6b7a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.05rem; margin: 2rem 0 .6rem; }
+  p { color: var(--muted); margin: .25rem 0 1rem; }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; }
+  textarea { width: 100%; min-height: 15rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: .7rem; font: 13px/1.45 ui-monospace, monospace; }
+  .controls { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; align-items: center; margin: .7rem 0; }
+  select, button { font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: .3rem .6rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  code, .mono { font-family: ui-monospace, monospace; }
+  .pill { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font: 600 13px ui-monospace, monospace; border: 1px solid currentColor; }
+  .ship { color: var(--ship); } .hold { color: var(--hold); } .block { color: var(--block); }
+  .pass { color: var(--ship); font-weight: 600; } .fail { color: var(--block); font-weight: 600; }
+  ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Shipgate core bundle harness</h1>
+  <p>Loads <code>./shipgate-core.mjs</code> (scanner, policy and <code>planRun</code> from <code>@shipgate/core</code>, plus a small diff adapter). No network requests. Serve this folder over HTTP; browsers refuse ES-module imports from <code>file://</code>.</p>
+
+  <h2>Self-test</h2>
+  <section><table id="tests"><thead><tr><th>case</th><th>expected</th><th>actual</th><th></th></tr></thead><tbody></tbody></table>
+  <p id="summary" class="mono" style="margin:.7rem 0 0"></p></section>
+
+  <h2>Paste a diff</h2>
+  <section>
+    <textarea id="diff" spellcheck="false" aria-label="Unified diff to check"></textarea>
+    <div class="controls">
+      <label>level <select id="level"><option>strict</option><option selected>balanced</option><option>yolo</option></select></label>
+      <label><input type="checkbox" id="public" /> remote is public</label>
+      <label><input type="checkbox" id="publicOk" /> --public-ok</label>
+      <label><input type="checkbox" id="force" /> --force-secrets</label>
+      <label><input type="checkbox" id="confirm" /> --confirm</label>
+    </div>
+    <div><span id="action" class="pill"></span></div>
+    <ul id="reasons"></ul>
+    <table id="findings" style="margin-top:.8rem"><thead><tr><th>path</th><th>rule</th><th>confidence</th><th>excerpt</th></tr></thead><tbody></tbody></table>
+  </section>
+</main>
+<script type="module">
+import { checkDiff } from './shipgate-core.mjs';
+
+// Credential-shaped values are assembled at runtime, as the Shipgate test suite does,
+// so this file never stores a scanner-shaped literal.
+const fakeOpenAi = ['sk', 'proj', 'FAKEdemo'.repeat(3)].join('-');
+const fakeGoogle = 'AIza' + 'FAKEdemo'.repeat(4) + 'abc';
+const stripePublishable = ['pk', 'live', 'FAKEdemo'.repeat(3)].join('_');
+
+const newFile = (path, lines) => [
+  `diff --git a/${path} b/${path}`, 'new file mode 100644', 'index 0000000..1111111', '--- /dev/null', `+++ b/${path}`,
+  `@@ -0,0 +1,${lines.length} @@`, ...lines.map((l) => '+' + l),
+].join('\n');
+const deleted = (path, lines) => [
+  `diff --git a/${path} b/${path}`, 'deleted file mode 100644', 'index 1111111..0000000', `--- a/${path}`, '+++ /dev/null',
+  `@@ -1,${lines.length} +0,0 @@`, ...lines.map((l) => '-' + l),
+].join('\n');
+
+const sample = [
+  newFile('.env.local', ['OPENAI_API_KEY=' + fakeOpenAi]),
+  newFile('.env.example', ['OPENAI_API_KEY=your-api-key-here']),
+  newFile('src/app.ts', ['export const port = 3000;']),
+].join('\n') + '\n';
+
+const cases = [
+  { name: 'new .env.local with an OpenAI-shaped key', diff: sample, opts: {}, expect: { action: 'block', reason: 'balanced: 2 secret finding(s) blocked', rules: ['openai-key', 'dotenv-file'] } },
+  { name: 'placeholder in .env.example only', diff: newFile('.env.example', ['OPENAI_API_KEY=your-api-key-here']), opts: {}, expect: { action: 'ship', rules: [] } },
+  { name: 'medium finding at yolo', diff: newFile('src/maps.ts', [`const key = '${fakeGoogle}';`]), opts: { level: 'yolo' }, expect: { action: 'ship', reason: 'yolo: 1 medium-confidence finding(s) allowed', rules: ['google-api-key'] } },
+  { name: 'same medium finding at balanced', diff: newFile('src/maps.ts', [`const key = '${fakeGoogle}';`]), opts: {}, expect: { action: 'block', rules: ['google-api-key'] } },
+  { name: 'staged deletion of .env', diff: deleted('.env', ['OLD=1']), opts: {}, expect: { action: 'ship', rules: [] } },
+  { name: 'Stripe publishable key', diff: newFile('web/pay.ts', [`const pk = '${stripePublishable}';`]), opts: {}, expect: { action: 'ship', rules: [] } },
+  { name: 'strict, public remote, no --public-ok', diff: newFile('README.md', ['# hi']), opts: { level: 'strict', isPublicRemote: true }, expect: { action: 'block', reason: 'strict: public remote requires --public-ok (or on --public-ok)', rules: [] } },
+];
+
+const tbody = document.querySelector('#tests tbody');
+let passed = 0;
+for (const c of cases) {
+  const r = checkDiff(c.diff, c.opts);
+  const rules = r.findings.map((f) => f.ruleId);
+  const ok = r.plan.action === c.expect.action
+    && JSON.stringify(rules) === JSON.stringify(c.expect.rules)
+    && (!c.expect.reason || r.plan.reasons.includes(c.expect.reason));
+  if (ok) passed += 1;
+  const tr = document.createElement('tr');
+  for (const text of [c.name, `${c.expect.action} [${c.expect.rules.join(', ')}]`, `${r.plan.action} [${rules.join(', ')}] ${r.plan.reasons[0] ?? ''}`]) {
+    const td = document.createElement('td'); td.textContent = text; tr.append(td);
+  }
+  const td = document.createElement('td'); td.textContent = ok ? 'PASS' : 'FAIL'; td.className = ok ? 'pass' : 'fail'; tr.append(td);
+  tbody.append(tr);
+}
+const summary = document.getElementById('summary');
+summary.textContent = `${passed}/${cases.length} passed`;
+summary.className = 'mono ' + (passed === cases.length ? 'pass' : 'fail');
+document.body.dataset.selftest = passed === cases.length ? 'pass' : 'fail';
+
+const $ = (id) => document.getElementById(id);
+$('diff').value = sample;
+function render() {
+  const r = checkDiff($('diff').value, {
+    level: $('level').value, isPublicRemote: $('public').checked,
+    publicOk: $('publicOk').checked, forceSecrets: $('force').checked, confirm: $('confirm').checked,
+  });
+  $('action').textContent = 'action: ' + r.plan.action.toUpperCase();
+  $('action').className = 'pill ' + r.plan.action;
+  $('reasons').replaceChildren(...r.plan.reasons.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  $('findings').tBodies[0].replaceChildren(...r.findings.map((f) => {
+    const tr = document.createElement('tr');
+    for (const t of [f.path, f.ruleId, f.confidence, f.excerpt]) tr.append(Object.assign(document.createElement('td'), { textContent: t }));
+    return tr;
+  }));
+}
+for (const id of ['diff', 'level', 'public', 'publicOk', 'force', 'confirm']) $(id).addEventListener('input', render);
+render();
+</script>
+</body>
+</html>

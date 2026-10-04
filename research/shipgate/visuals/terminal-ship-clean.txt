@@ -1,0 +1,35 @@
+# shipgate on + shipgate ship, clean change.
+# setup (not shown): throwaway repo app/ with one plain-git initial commit; origin is a local bare repo
+# (../origin.git), so no network and no GitHub visibility lookup. .gitignore lists .shipgate.json.
+# src/greet.ts is a new, untracked file written before the run.
+# $ shipgate on  -> exit 0
+# $ shipgate status  -> exit 0
+# $ git status --short  -> exit 0
+# $ shipgate ship -m "Add greet helper"  -> exit 0
+# $ git log -1 --format=%B  -> exit 0
+# $ git log --oneline --decorate -2  -> exit 0
+# terminal: 100 columns; ANSI stripped; stdout+stderr as shown in the terminal
+
+$ shipgate on
+shipgate: enabled (level=balanced)
+$ shipgate status
+shipgate 1.0.1
+repo: enabled
+level: balanced
+account: —
+agent-review: off
+public-ok: no
+hooks: claude=no cursor=no
+busy: 0 agent(s)
+$ git status --short
+?? src/
+$ shipgate ship -m "Add greet helper"
+shipgate: policy balanced: clear to ship
+shipgate: shipped 0040434 — Add greet helper
+$ git log -1 --format=%B
+Add greet helper
+
+Shipped-by: shipgate
+$ git log --oneline --decorate -2
+0040434 (HEAD -> main, origin/main) Add greet helper
+b88a0a8 Initial commit

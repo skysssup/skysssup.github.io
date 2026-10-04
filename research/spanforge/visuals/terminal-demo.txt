@@ -1,0 +1,14 @@
+# $ npm run spanforge -- demo
+# cwd: repository root, after `npm ci && npm run build`; OPENAI_API_KEY unset, so completions are mocked
+# exit code: 124. The server runs until stopped; this capture ended it with `timeout -s INT 4` after startup.
+# terminal: 100 columns; stdout and stderr verbatim
+
+> spanforge@0.1.2 spanforge
+> node packages/cli/dist/index.js demo
+
+Loaded 2 demo run(s) into store.
+Spanforge listening on http://127.0.0.1:8787
+  Dashboard: http://127.0.0.1:8787/spanforge/
+  Proxy:     POST http://127.0.0.1:8787/v1/chat/completions
+  Runs:      GET  http://127.0.0.1:8787/v1/runs
+  (no OPENAI_API_KEY — using deterministic mock completions)

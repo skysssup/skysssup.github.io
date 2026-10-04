@@ -1,0 +1,20 @@
+# Two writes the agent CLI refuses before signing (assertNetworkReady in skill/moltdao.js).
+# Local anvil chain (ID 31337). MOLTDAO_RPC=http://127.0.0.1:8545; MOLTDAO_GOVERNANCE, _TOKEN,
+# _USDC and _SPLITTER point at the local deployment; MOLTDAO_PRIVATE_KEY is a registered agent's
+# anvil dev key (not shown). The block number, the agent's nonce and hasUserVoted(2, agent) were
+# unchanged after both commands.
+# Redacted: contract addresses are shown as <placeholders>.
+
+$ MOLTDAO_NETWORK=testnet node skill/moltdao.js vote 2 for    # RPC is the local chain
+# exit code: 1
+
+MoltDAO Skill — testnet
+
+Error: RPC chainId 31337 != expected 84532 for network testnet
+
+$ MOLTDAO_USDC=<splitter> node skill/moltdao.js vote 2 for    # wrong token configured
+# exit code: 1
+
+MoltDAO Skill — local
+
+Error: governance.token() <usdc> != configured USDC/token <splitter>

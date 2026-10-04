@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spanforge static demo harness</title>
+<style>
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #0c0e12; color: #e8eaef; }
+  header { padding: 12px 16px; border-bottom: 1px solid #262b38; }
+  #results { margin: 0; padding: 12px 16px; font: 12px/1.6 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; }
+  .pass { color: #34d399; } .fail { color: #f87171; }
+  iframe { display: block; width: 100%; height: 720px; border: 0; border-top: 1px solid #262b38; }
+</style>
+</head>
+<body>
+<header>
+  Spanforge static demo harness. Serve this file from the same origin as the demo build
+  (default <code>/work/spanforge/demo/</code>, override with <code>?src=</code>) and keep
+  <code>sample-import.json</code> next to it.
+</header>
+<pre id="results">running…</pre>
+<iframe id="app" title="Spanforge dashboard (static demo)"></iframe>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const src = params.get('src') || '/work/spanforge/demo/';
+  const out = document.getElementById('results');
+  const lines = [];
+  let failed = 0;
+  const report = (ok, label, detail = '') => {
+    if (!ok) failed += 1;
+    lines.push(`<span class="${ok ? 'pass' : 'fail'}">${ok ? 'PASS' : 'FAIL'}</span> ${label}${detail ? ' (' + detail + ')' : ''}`);
+    out.innerHTML = lines.join('\n');
+  };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const waitFor = async (fn, timeoutMs = 5000) => {
+    const end = Date.now() + timeoutMs;
+    while (Date.now() < end) {
+      try { const v = fn(); if (v) return v; } catch { /* not ready */ }
+      await sleep(50);
+    }
+    return null;
+  };
+
+  const frame = document.getElementById('app');
+  const loaded = new Promise((r) => frame.addEventListener('load', r, { once: true }));
+  frame.src = src;
+  await loaded;
+  const win = frame.contentWindow;
+  const doc = () => frame.contentDocument;
+  const text = (sel) => doc().querySelector(sel)?.textContent?.trim() ?? '';
+
+  const badge = await waitFor(() => text('.badge'));
+  report(badge === 'Demo', 'data-source badge reads "Demo"', badge || 'no badge');
+
+  const titles = await waitFor(() => {
+    const t = [...doc().querySelectorAll('.run-item-title')].map((n) => n.textContent.trim());
+    return t.length ? t : null;
+  }) || [];
+  report(titles.length === 2, 'fixture run list has 2 runs', titles.join(' | '));
+
+  const agent = [...doc().querySelectorAll('.run-item')].find((n) => n.textContent.includes('Research agent'));
+  agent?.click();
+  const rows = await waitFor(() => {
+    const r = doc().querySelectorAll('[role="treeitem"]');
+    return r.length === 5 ? r : null;
+  });
+  report(Boolean(rows), 'agent run renders 5 waterfall rows', rows ? [...rows].map((r) => r.getAttribute('aria-label')).join('; ') : 'timeout');
+
+  const graphNodes = doc().querySelectorAll('svg.tree-svg g').length;
+  report(graphNodes === 5, 'span graph draws 5 nodes', String(graphNodes));
+
+  const origins = [...new Set(win.performance.getEntriesByType('resource').map((e) => new URL(e.name).origin))];
+  report(origins.every((o) => o === location.origin), 'every resource request is same-origin', origins.join(', ') || 'none');
+
+  try {
+    const body = await (await fetch('sample-import.json', { cache: 'no-store' })).text();
+    const file = new File([body], 'sample-import.json', { type: 'application/json' });
+    const input = doc().querySelector('input[type="file"]');
+    const dt = new win.DataTransfer();
+    dt.items.add(new win.File([body], file.name, { type: file.type }));
+    input.files = dt.files;
+    input.dispatchEvent(new win.Event('change', { bubbles: true }));
+    const imported = await waitFor(() => text('.badge') === 'Imported');
+    report(Boolean(imported), 'JSON import switches badge to "Imported"', text('.badge'));
+    report(/Imported 2 run\(s\)/.test(text('.msg')), 'import status message', text('.msg'));
+    const req = await waitFor(() => [...doc().querySelectorAll('.pre-block')].map((n) => n.textContent).join('\n'));
+    report(/\[REDACTED_[A-Z_]+\]/.test(req || ''), 'imported span shows redaction placeholders');
+  } catch (e) {
+    report(false, 'JSON import path', String(e));
+  }
+
+  lines.push('', failed ? `${failed} check(s) failed` : 'all checks passed');
+  out.innerHTML = lines.join('\n');
+  document.title = failed ? 'FAIL' : 'PASS';
+})();
+</script>
+</body>
+</html>
