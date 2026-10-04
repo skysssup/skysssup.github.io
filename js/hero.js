@@ -98,6 +98,57 @@
   // Grid resolution for a figure drawn `px` CSS pixels wide: about one cell per pixel, within limits.
   function resolutionFor(px) { return Math.round(clamp(px * 0.8, 280, 640)); }
 
+  // A surface normal per dot from the depth map (red channel) by central differences, one-sided at the
+  // mask's edge (blue channel), with the depth scaled to `relief` figure units like the vertex shader does.
+  // Output is [nx, ny] per dot in world space (y up); the shader rebuilds nz = sqrt(1 - nx² - ny²).
+  function depthNormals(rgba, size, points, relief) {
+    var n = points.length / 4, out = new Float32Array(n * 2), step = 2, last = size - 1;
+    var depth = function (x, y) { return rgba[(y * size + x) * 4] / 255; };
+    var inside = function (x, y) { return x >= 0 && y >= 0 && x <= last && y <= last && rgba[(y * size + x) * 4 + 2] > 12; };
+    var slope = function (x, y, dx, dy) {
+      var a = inside(x - dx, y - dy), b = inside(x + dx, y + dy);
+      if (a && b) return (depth(x + dx, y + dy) - depth(x - dx, y - dy)) / (2 * step);
+      if (b) return (depth(x + dx, y + dy) - depth(x, y)) / step;
+      if (a) return (depth(x, y) - depth(x - dx, y - dy)) / step;
+      return 0;
+    };
+    for (var i = 0; i < n; i++) {
+      var x = clamp(Math.round(points[i * 4] * last), 0, last), y = clamp(Math.round(points[i * 4 + 1] * last), 0, last);
+      var gx = slope(x, y, step, 0) * last * relief, gy = slope(x, y, 0, step) * last * relief;
+      var nx = -gx, ny = gy, len = Math.sqrt(nx * nx + ny * ny + 1);
+      nx /= len;
+      ny /= len;
+      var tilt = Math.sqrt(nx * nx + ny * ny), limit = 0.94;
+      if (tilt > limit) { nx *= limit / tilt; ny *= limit / tilt; }
+      out[i * 2] = nx;
+      out[i * 2 + 1] = ny;
+    }
+    return out;
+  }
+
+  // Gear Two glitch tiles for one 24 fps frame: up to `count` blocks of the figure that jump sideways,
+  // each [x, y, w, h, dx, dy] in canvas px inside `box` ({x, y, size}). Deterministic per frame; `onFigure`
+  // (optional) rejects candidates whose centre misses the figure, so blocks tear out of the statue, not the air.
+  function glitchTiles(frame, box, count, onFigure) {
+    var tiles = [];
+    for (var i = 0; i < count; i++) {
+      var k = (frame * 7 + i) * 11;
+      if (hash(k) > 0.72) continue;
+      var w = box.size * (0.08 + hash(k + 1) * 0.12), h = box.size * (0.035 + hash(k + 2) * 0.07);
+      var x = 0, y = 0, found = false;
+      for (var tries = 0; tries < 6 && !found; tries++) {
+        x = box.x + Math.min(box.size - w, box.size * (0.06 + hash(k + 3 + tries * 2) * 0.8));
+        y = box.y + Math.min(box.size - h, box.size * (0.06 + hash(k + 4 + tries * 2) * 0.8));
+        found = !onFigure || onFigure(x + w / 2, y + h / 2);
+      }
+      if (!found) continue;
+      var dx = (hash(k + 5) < 0.5 ? -1 : 1) * box.size * (0.025 + hash(k + 6) * 0.06);
+      var dy = (hash(k + 7) - 0.5) * box.size * 0.016;
+      tiles.push([x, y, w, h, dx, dy]);
+    }
+    return tiles;
+  }
+
   // Place the figure's bounds (figure units) centred in a square box of `size` px, leaving `pad` px.
   function fit(bounds, size, pad) {
     var w = bounds[2] - bounds[0], h = bounds[3] - bounds[1];
@@ -136,6 +187,8 @@
   }
 
   var FOCAL = 3.2;
+  // Depth of the figure in figure units (its width is 1): the vertex shader and the normals share it.
+  var RELIEF = 0.34;
   function project(p) {
     var k = FOCAL / (FOCAL - p[2]);
     return [p[0] * k, p[1] * k, k];
@@ -147,6 +200,7 @@
     "#version 300 es",
     "precision highp float;",
     "layout(location = 0) in vec4 a_p;",
+    "layout(location = 1) in vec2 a_n;",
     "uniform vec2 u_res;",
     "uniform vec3 u_box;",
     "uniform vec2 u_pivot;",
@@ -161,8 +215,13 @@
     "uniform float u_dot;",
     "uniform float u_dpr;",
     "uniform float u_glitch;",
+    "uniform vec4 u_tile[3];",
+    "uniform vec2 u_shift[3];",
+    "uniform vec2 u_offset;",
+    "uniform float u_alpha;",
     "out float v_alpha;",
     "out float v_size;",
+    "out float v_hot;",
     "uint h(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }",
     "float r01(uint x) { return float(h(x)) / 4294967296.0; }",
     "void main() {",
@@ -176,10 +235,16 @@
     "  float th = s1 * 6.2831853, ph = acos(2.0 * s2 - 1.0);",
     "  vec3 shell = vec3(sin(ph) * cos(th), cos(ph), sin(ph) * sin(th)) * (0.9 + s3 * 0.6);",
     "  p = mix(shell, p, k);",
-    // yaw then pitch
+    // yaw then pitch, for the point and for its surface normal
     "  float cy = cos(u_rot.x), sy = sin(u_rot.x), cp = cos(u_rot.y), sp = sin(u_rot.y);",
     "  p = vec3(p.x * cy + p.z * sy, p.y, -p.x * sy + p.z * cy);",
     "  p = vec3(p.x, p.y * cp - p.z * sp, p.y * sp + p.z * cp);",
+    "  vec3 n = vec3(a_n, sqrt(max(0.0, 1.0 - dot(a_n, a_n))));",
+    "  n = vec3(n.x * cy + n.z * sy, n.y, -n.x * sy + n.z * cy);",
+    "  n = vec3(n.x, n.y * cp - n.z * sp, n.y * sp + n.z * cp);",
+    // light from the upper left, in front: lit stone gets sparser, smaller dots; grazing edges get heavier ones
+    "  float lam = max(0.0, dot(n, normalize(vec3(-0.45, 0.6, 0.66))));",
+    "  float rim = pow(1.0 - clamp(n.z, 0.0, 1.0), 3.0);",
     "  float persp = 3.2 / (3.2 - p.z);",
     "  vec2 px = u_box.xy + (u_pivot + vec2(p.x, -p.y) * persp) * u_box.z;",
     // cursor push
@@ -200,12 +265,20 @@
     "    px += e / de * g * 16.0;",
     "    lift += g * 0.8;",
     "  }",
-    // Gear Two glitch: shift horizontal slices
+    // Gear Two glitch: shift horizontal slices, and tear out tiles that jump sideways and run hot
+    "  float hot = 0.0;",
     "  if (u_glitch > 0.0) {",
     "    uint slice = uint(floor(px.y / 18.0 + 64.0));",
     "    uint frame = uint(floor(u_time * 24.0));",
     "    if (r01(slice * 31u + frame * 977u) < 0.35 * u_glitch) px.x += (r01(slice + frame * 13u) - 0.5) * 48.0 * u_glitch;",
+    "    for (int i = 0; i < 3; i++) {",
+    "      vec4 tl = u_tile[i];",
+    "      if (tl.z > 0.0 && px.x >= tl.x && px.x <= tl.x + tl.z && px.y >= tl.y && px.y <= tl.y + tl.w) { px += u_shift[i]; hot = 0.55; }",
+    "    }",
     "  }",
+    // Gear Two heartbeat: a few dots run white-hot at each beat
+    "  if (u_beat > 0.45 && r01(id * 5u + 3u) < 0.035) hot = max(hot, u_beat);",
+    "  px += u_offset;",
     // blink
     "  float period = 3.2 / u_blink;",
     "  float phase = u_time / period + r01(id * 3u + 7u);",
@@ -217,9 +290,11 @@
     "  float dur = 0.08 + r01(key + 2u) * 0.16;",
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
+    "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim);",
     "  size = mix(size * 0.7, size, k);",
-    "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k));",
+    "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(1.0, 0.86, lam) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  if (off) v_alpha = 0.0;",
+    "  v_hot = hot;",
     "  v_size = size * u_dpr;",
     "  gl_PointSize = v_size;",
     "  gl_Position = vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);",
@@ -231,13 +306,14 @@
     "precision mediump float;",
     "in float v_alpha;",
     "in float v_size;",
+    "in float v_hot;",
     "uniform vec3 u_color;",
     "out vec4 o;",
     "void main() {",
     "  float d = length(gl_PointCoord - 0.5) * v_size;",
     "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0) * v_alpha;",
     "  if (a <= 0.0) discard;",
-    "  o = vec4(u_color * a, a);",
+    "  o = vec4(mix(u_color, vec3(1.0, 0.93, 0.9), v_hot * 0.9) * a, a);",
     "}"
   ].join("\n");
 
@@ -314,7 +390,7 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var maps = null, noise = null, meta = null, points = null, count = 0, res = 0;
+    var maps = null, noise = null, meta = null, points = null, vertices = null, count = 0, res = 0;
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
@@ -325,7 +401,8 @@
     var ripFlat = new Float32Array(16);
     var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
     var ring = null, ringFont = 0, fontReady = false, highlighted = null;
-    var glitchUntil = 0, resizeTimer = 0;
+    var glitchUntil = 0, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
+    var cpuMs = 0, telemetryAt = 0;
 
     function releaseTouch(event, cancelled) {
       if (!touch || (event && event.pointerId !== touch.id)) return;
@@ -344,6 +421,7 @@
       pushK.x = pushK.v = yaw.v = pitch.v = 0;
       for (var i = 0; i < ripples.length; i++) ripples[i][3] = 0;
       glitchUntil = 0;
+      tiles = [];
     }
 
     function fallback() {
@@ -377,7 +455,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_color"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -385,7 +463,9 @@
         gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
         gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 24, 0);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 24, 16);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         ready = size();
@@ -434,11 +514,18 @@
         res = want;
         points = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
         count = points.length / 4;
+        var normals = depthNormals(maps.data, maps.width, points, RELIEF);
+        vertices = new Float32Array(count * 6);
+        for (var i = 0; i < count; i++) {
+          vertices.set(points.subarray(i * 4, i * 4 + 4), i * 6);
+          vertices[i * 6 + 4] = normals[i * 2];
+          vertices[i * 6 + 5] = normals[i * 2 + 1];
+        }
         if (opts.onCount) opts.onCount(count);
       }
       if (!count) throw new Error("hero data is empty");
       gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-      gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
       drawChecked = false;
       cell = place.scale / res;
       ringFont = clamp(Math.round(s / 56), 10, 12);
@@ -464,15 +551,36 @@
       return maps.data[i + 2] / 255;
     }
 
-    function drawRing(t, yawNow, pitchNow, fade) {
+    // Gear Two glitch tiles on the overlay: a thin accent frame around each torn-out block, drawn where it lands.
+    function drawTiles() {
+      if (!tiles.length) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = colors.accent;
+      ctx.fillStyle = colors.accent;
+      for (var i = 0; i < tiles.length; i++) {
+        var tl = tiles[i];
+        var x = Math.round(tl[0] + tl[4]) + 0.5, y = Math.round(tl[1] + tl[5]) + 0.5, w = Math.round(tl[2]), h = Math.round(tl[3]);
+        ctx.globalAlpha = 0.08;
+        ctx.fillRect(x, y, w, h);
+        ctx.globalAlpha = 0.9;
+        ctx.strokeRect(x, y, w, h);
+      }
+      ctx.globalAlpha = 1;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function drawRing(t, yawNow, pitchNow, fade, beat) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
+      drawTiles();
       if (!fontReady || fade <= 0.01 || !words.length) return;
       var spec = meta.ring || {};
-      var R = spec.r || 0.42, tilt = spec.tilt == null ? 0.3 : spec.tilt;
+      // the ring breathes with the Gear Two heartbeat
+      var R = (spec.r || 0.42) * (1 + 0.02 * beat), tilt = spec.tilt == null ? 0.3 : spec.tilt;
       var pivot = [spec.x == null ? meta.center[0] : spec.x, spec.y == null ? meta.center[1] : spec.y];
       var pc = figurePx(pivot[0], pivot[1]);
-      var Rpx = R * place.scale;
+      var Rpx = (spec.r || 0.42) * place.scale;
       var font = ringFont;
       ctx.font = "400 " + font + "px \"Fragment Mono\", ui-monospace, monospace";
       var advance = ctx.measureText("M").width * 1.32;
@@ -543,6 +651,7 @@
       if (gl.isContextLost()) { fallback(); return; }
       reveal();
       if (!ready) return;
+      var began = performance.now();
       var live = !motion.reduced();
       var dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
@@ -576,12 +685,20 @@
       }
       var beat = gear && live ? heartbeat(t) : 0;
       var glitch = live && now < glitchUntil ? 1 : 0;
+      tiles = glitch ? glitchTiles(Math.floor(t * 24), box, 3, function (x, y) { return maskAt(x, y) > 0.2; }) : [];
+      tileFlat.fill(0);
+      shiftFlat.fill(0);
+      for (var j = 0; j < tiles.length; j++) {
+        tileFlat.set(tiles[j].slice(0, 4), j * 4);
+        shiftFlat[j * 2] = tiles[j][4];
+        shiftFlat[j * 2 + 1] = tiles[j][5];
+      }
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform2f(U.u_res, cssW, cssH);
       gl.uniform3f(U.u_box, box.x + place.x, box.y + place.y, place.scale);
       gl.uniform2f(U.u_pivot, meta.center[0], meta.center[1]);
-      gl.uniform1f(U.u_depth, 0.34);
+      gl.uniform1f(U.u_depth, RELIEF);
       gl.uniform2f(U.u_rot, yaw.x, pitch.x);
       gl.uniform1f(U.u_time, t);
       gl.uniform1f(U.u_build, built);
@@ -592,17 +709,34 @@
       gl.uniform1f(U.u_dot, Math.max(1.1, cell * 1.3));
       gl.uniform1f(U.u_dpr, dpr);
       gl.uniform1f(U.u_glitch, glitch);
+      gl.uniform4fv(U.u_tile, tileFlat);
+      gl.uniform2fv(U.u_shift, shiftFlat);
       gl.uniform3f(U.u_color, inkNow[0], inkNow[1], inkNow[2]);
       gl.bindVertexArray(vao);
+      // while glitching, two faint afterimages sit 2 px either side of the figure
+      if (glitch) {
+        gl.uniform1f(U.u_alpha, 0.3);
+        gl.uniform2f(U.u_offset, -2, 0);
+        gl.drawArrays(gl.POINTS, 0, count);
+        gl.uniform2f(U.u_offset, 2, 0);
+        gl.drawArrays(gl.POINTS, 0, count);
+      }
+      gl.uniform1f(U.u_alpha, 1);
+      gl.uniform2f(U.u_offset, 0, 0);
       var measure = !rendered && !queryPending;
       if (measure) gl.beginQuery(gl.ANY_SAMPLES_PASSED, query);
       gl.drawArrays(gl.POINTS, 0, count);
       if (measure) { gl.endQuery(gl.ANY_SAMPLES_PASSED); queryPending = true; }
       var fade = live ? smoothstep(1.2, 1.9, built) : 1;
-      drawRing(t, yaw.x, pitch.x, fade);
+      drawRing(t, yaw.x, pitch.x, fade, beat);
       if (!drawChecked) {
         drawChecked = true;
         if (gl.getError() !== gl.NO_ERROR) fallback();
+      }
+      cpuMs += (performance.now() - began - cpuMs) * 0.1;
+      if (opts.onTelemetry && (now - telemetryAt > 150 || !live)) {
+        telemetryAt = now;
+        opts.onTelemetry({ yaw: yaw.x, pitch: pitch.x, ms: cpuMs, dots: count, gear: gear, live: live });
       }
     }
 
@@ -630,7 +764,11 @@
       else if (next.join() !== inkNow.join()) { inkFrom = inkNow; inkTo = next; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
       if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
+      // leaving Gear Two: the tearing stops just after the palette comes back
+      if (was.gear && !colors.gear) glitchUntil = Math.min(glitchUntil, performance.now() + 140);
       if (was.gear !== colors.gear) ring = null;
+      // the palette turning red rolls through the figure as a ripple from its centre
+      if (!was.gear && colors.gear && canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2);
       sync();
     }
 
@@ -745,6 +883,8 @@
     rippleWeight: rippleWeight,
     blinkOff: blinkOff,
     stipple: stipple,
+    depthNormals: depthNormals,
+    glitchTiles: glitchTiles,
     resolutionFor: resolutionFor,
     fit: fit,
     ringText: ringText,

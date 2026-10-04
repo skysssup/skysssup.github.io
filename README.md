@@ -5,7 +5,8 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 
 ## Pages
 
-- `/` — the hero, a short "Essentially" statement, selected work, and contact.
+- `/` — the hero, a short "Essentially" statement, selected work, the stack matrix (technologies × projects,
+  read from the project data), a colophon with the site's own numbers, and contact.
 - `/work/` — all projects, filterable by theme (`?theme=ai-systems`, `developer-tools`, `physics-software`) and searchable by name, technology, or theme (`?q=python`). List/grid preference is saved locally; filters and search are shareable and follow browser history.
 - `/work/<slug>/` — one case study per project. See [docs/case-studies.md](docs/case-studies.md) for how to fill one in.
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
@@ -14,19 +15,26 @@ The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/d
 
 ## How it works
 
-- `css/site.css` — tokens for light, dark, and Gear Two; the sheet grid; every component.
+- `css/site.css` — tokens for light, dark, and Gear Two; the sheet grid; every component; the Gear Two
+  choreography (flash, shockwave ring, text split, media slices, settle) and its heartbeat keyframes.
 - `js/theme.js` — the light switch: saved choice, OS sync, cross-tab sync.
-- `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), Gear Two's flash → glitch → settle,
-  the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
+- `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), Gear Two's flash → glitch → settle
+  with the red ring that leaves the switch and the `--beat-delay` that phases every CSS pulse to the hero's
+  0.9 s heartbeat, the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring of project names. It stipples
-  `assets/hero/data.png` (depth, ink, mask) against a blue-noise tile at load, then animates sway, blinking,
-  cursor push, click ripples, and Gear Two entirely in the vertex shader. It pauses off-screen and draws one still
-  frame under reduced motion. A small, preloaded `assets/hero/preview.webp` covers startup; without WebGL2 it
-  shows the full-resolution `assets/hero/still.webp`. Both masks come from the same stipple render. Context
-  restoration rebuilds GPU resources from cached geometry without fetching the assets again. Horizontal
-  touch drags turn the figure without blocking vertical scrolling; the caption's ripple button works by keyboard.
+  `assets/hero/data.png` (depth, ink, mask) against a blue-noise tile at load, derives a surface normal per dot
+  from the depth map, then animates sway, lighting, blinking, cursor push, click ripples, and Gear Two entirely
+  in the vertex shader. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
+  white-hot, the ring breathes, and the glitch tears tiles out of the figure with two faint afterimages. It
+  pauses off-screen and draws one still frame under reduced motion. A small, preloaded `assets/hero/preview.webp`
+  covers startup; without WebGL2 it shows the full-resolution `assets/hero/still.webp`. Both masks come from the
+  same stipple render. Context restoration rebuilds GPU resources from cached geometry without fetching the
+  assets again. Horizontal touch drags turn the figure without blocking vertical scrolling; the caption's ripple
+  button works by keyboard, and a readout under the caption shows yaw, pitch, and the engine's JS time per frame.
 - `js/page.js` — Kathmandu time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
+  the reveals (`[data-reveal]`: section rules draw in, media wipes in, the stack matrix's dots pop in, and the
+  colophon counts up, once, when first seen, never under reduced motion), the stack matrix's column highlight,
   and mounting the hero and the cat (`js/cat.js`). Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
   use arrow keys to browse, Enter to open, and Escape to close. It uses a native dialog, traps focus,
   restores the opener, and locks background scrolling without changing the saved motion preference.
@@ -55,7 +63,9 @@ CI runs both on every push to `main`.
 ## Regenerating pages and assets
 
 - Pages: `node tools/pages/build.mjs` after editing `tools/pages/` (site and project data, case-study bodies in
-  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match.
+  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match. The home
+  colophon prints numbers the generator measures (test counts, gzipped CSS and JS, font sizes), so changing
+  CSS, JS, or tests also means regenerating.
 - Share images: `npm run og` (after changing a page title, summary, or cover).
 - Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). The depth map is cached in
   `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Small (needs torch and transformers).

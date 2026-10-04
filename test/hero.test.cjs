@@ -129,3 +129,45 @@ test('the shipped hero data matches what the engine expects', () => {
   const total = ['data.png', 'bluenoise.png', 'hero.json'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
   assert.ok(total < 200 * 1024, `hero data is ${total} bytes`);
 });
+
+test('normals follow the depth map: flat ground faces the viewer, slopes tilt away from the rise, edges are one-sided', () => {
+  const size = 16, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const i = (y * size + x) * 4;
+    rgba[i] = x < 8 ? 128 : Math.min(255, 128 + (x - 7) * 30);  // flat on the left, rising to the right
+    rgba[i + 1] = 255;
+    rgba[i + 2] = y < 14 ? 255 : 0;                               // the last two rows are outside the mask
+  }
+  const at = (x, y) => new Float32Array([x / (size - 1), y / (size - 1), 0, 1]);
+  const flat = hero.depthNormals(rgba, size, at(3, 6), 0.34);
+  assert.deepEqual(Array.from(flat).map(Math.abs), [0, 0]);
+  const slope = hero.depthNormals(rgba, size, at(11, 6), 0.34);
+  assert.ok(slope[0] < -0.3, `a surface rising to the right tilts left, got nx ${slope[0]}`);
+  assert.ok(Math.abs(slope[1]) < 1e-6, 'no tilt along y on a pure x ramp');
+  assert.ok(Math.hypot(slope[0], slope[1]) <= 0.94 + 1e-6, 'tilt stays under the limit so nz is never zero');
+  const edge = hero.depthNormals(rgba, size, at(11, 13), 0.34);
+  assert.ok(Math.abs(edge[0] - slope[0]) < 1e-6, 'the row above the mask edge still gets its x slope from a one-sided y sample');
+  const many = hero.depthNormals(rgba, size, hero.stipple(rgba, size, Uint8Array.from({ length: 16 }, (_, i) => i * 16), 4, 24, 1, 0), 0.34);
+  assert.equal(many.length % 2, 0);
+  for (let i = 0; i < many.length; i += 2) assert.ok(many[i] * many[i] + many[i + 1] * many[i + 1] < 1, 'every normal has a positive z');
+});
+
+test('glitch tiles are deterministic per frame, land inside the box on the figure, and jump sideways', () => {
+  const box = { x: 100, y: 50, size: 400 };
+  const a = hero.glitchTiles(7, box, 3), b = hero.glitchTiles(7, box, 3);
+  assert.deepEqual(a, b);
+  const frames = Array.from({ length: 48 }, (_, f) => hero.glitchTiles(f, box, 3));
+  assert.ok(frames.some(t => t.length > 0) && frames.some(t => t.length < 3), 'the number of tiles varies between frames');
+  assert.ok(frames.some((t, i) => i && JSON.stringify(t) !== JSON.stringify(frames[i - 1])), 'tiles change from frame to frame');
+  for (const [x, y, w, h, dx, dy] of frames.flat()) {
+    assert.ok(x >= box.x && x + w <= box.x + box.size && y >= box.y && y + h <= box.y + box.size, 'inside the box');
+    assert.ok(w >= box.size * 0.08 && w <= box.size * 0.2 && h >= box.size * 0.035 && h <= box.size * 0.105, `size ${w}×${h}`);
+    assert.ok(Math.abs(dx) >= box.size * 0.025 && Math.abs(dx) <= box.size * 0.085, `sideways jump ${dx}`);
+    assert.ok(Math.abs(dy) <= box.size * 0.008, `vertical drift ${dy}`);
+  }
+  const rightHalf = (x) => x > box.x + box.size / 2;
+  const onFigure = hero.glitchTiles(7, box, 3, rightHalf).concat(hero.glitchTiles(8, box, 3, rightHalf), hero.glitchTiles(9, box, 3, rightHalf));
+  assert.ok(onFigure.length > 0);
+  for (const [x, , w] of onFigure) assert.ok(rightHalf(x + w / 2), 'a tile centre misses the figure');
+  assert.deepEqual(hero.glitchTiles(7, box, 3, () => false), []);
+});

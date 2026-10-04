@@ -31,7 +31,7 @@ Status: approved and built. Where the build departed from the draft, the note sa
 ## 2. Site map
 | URL | Contents |
 |---|---|
-| `/` | Hero (stipple sculpture, intro, Essentially, theme index, contact), selected work (4), contact |
+| `/` | Hero (stipple sculpture, intro, Essentially, theme index, Fig. 0 readout), selected work (4), stack matrix (technologies × projects), colophon (the site's own numbers), contact |
 | `/work/` | All 8 projects, filter by theme (`?theme=ai-systems` etc., shareable; without JS all show) |
 | `/work/<slug>/` | Case study ×8: `agentcrucible`, `airforge`, `shipgate`, `recall-ai`, `spanforge`, `localpulse`, `ghost-notetaker`, `moltdao` |
 | `/404.html` | Small, on-grid, links home and to `/work/` |
@@ -74,10 +74,10 @@ Sentence case everywhere except mono labels. Numerals for numbers. No text is se
 | Dark | #0B0B0C | #ECEBE8 (16.5:1) | #8F8F8F (6.1:1) | #8796FF (7.3:1) |
 | Gear Two | #080707 | #F3F1F0 (17.9:1) | #A39A98 (7.3:1) | #FF3B30 (5.7:1) |
 
-The accent only marks interactive or active things: links on hover, the current page, pressed filters, focus rings, the words on the figure. Lines are ink at 10% opacity. Blue because it's the blueprint color. Gear Two swaps the accent and the figure's ink to red and changes nothing else.
+The accent only marks interactive or active things: links on hover, the current page, pressed filters, focus rings, the words on the figure. Lines are ink at 10% opacity. Blue because it's the blueprint color. Gear Two swaps the accent and the figure's ink to red, tints the sheet lines red, and gives the figure a glow and a heartbeat (§9); nothing else changes.
 
 ## 6. Components
-Sheet frame and grid · header (name → home, Work, Contact, Gear Two toggle, Kathmandu time with UTC offset, light switch) · panel (1px border, mono head, sans body) · theme index (3 links with counts) · project card (16:10 media, meta row, name, tagline) · project row for `/work` (number, name, tagline, themes, stack and visibility, thumbnail) · filter bar (toggle buttons with counts, `aria-pressed`, URL state) · case-study header (breadcrumb, title, one-liner, meta `<dl>`: role, status, themes, stack, repo) · media figure (numbered "Fig. N" with caption; image with WebP srcset, muted looping video with poster and a pause button, terminal block with real output, click-to-load demo frame) · sticky section index with scrollspy · prose section · decisions list (decision, why, cost) · numbers panel (verified facts) · diagram (inline SVG drawn in the site's type and colors, follows the theme and Gear Two) · previous/next project · contact block · footer (©, source link, motion toggle) · skip link · cat · 404.
+Sheet frame and grid · header (name → home, Work, Contact, Gear Two toggle, Kathmandu time with UTC offset, light switch) · panel (1px border, mono head, sans body) · theme index (3 links with counts) · project card (16:10 media, meta row, name, tagline) · stack matrix (technologies as rows ordered by use, projects as columns one minor column wide, a dot per use; rows and columns light up on hover or focus; below 768 it reads as a list of technologies with project names) · colophon (notes and six measured numbers in a panel grid) · project row for `/work` (number, name, tagline, themes, stack and visibility, thumbnail) · filter bar (toggle buttons with counts, `aria-pressed`, URL state) · case-study header (breadcrumb, title, one-liner, meta `<dl>`: role, status, themes, stack, repo) · media figure (numbered "Fig. N" with caption; image with WebP srcset, muted looping video with poster and a pause button, terminal block with real output, click-to-load demo frame) · sticky section index with scrollspy · prose section · decisions list (decision, why, cost) · numbers panel (verified facts) · diagram (inline SVG drawn in the site's type and colors, follows the theme and Gear Two) · previous/next project · contact block · footer (©, source link, motion toggle) · skip link · cat · 404.
 
 Arrows appear only where they carry meaning: ↗ marks a link that leaves the site; ↓ leads into a page section;
 → opens a project or destination; ↑ returns to the top.
@@ -106,11 +106,13 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
   - One draw call of round anti-aliased dots. Dot size follows depth and Lambert light from the upper left, which is what makes it read as a sculpted object rather than a flat dither.
   - Ink is black on light, warm white on dark, red in Gear Two. DPR is capped at 2.
 - **Motion.** Slow yaw sway of ±16° over about 14 s and pitch of ±4°. Cursor tilt runs through a critically damped spring. All per-dot animation lives in the vertex shader.
+- **Lighting.** Each dot carries a surface normal derived at load from the depth map (central differences, one-sided at the mask edge, tilt capped so no normal lies flat). The vertex shader rotates it with the figure and lights it from the upper left: lit stone gets smaller, fainter dots; stone turning away gets heavier ones; grazing edges a little heavier still. This is what changes as the figure turns, and it is what makes the dots read as one solid.
 - **Blink.** Hash-seeded per dot. About 1.5% of dots are off at any moment, for 80–240 ms each. Gear Two doubles the rate and adds a double-pulse heartbeat to dot size.
 - **Cursor.** Dots within about 90 px are pushed out in screen space and lifted toward the viewer. The strength eases in and out.
 - **Click or tap ripple.** Up to 4 rings at about 900 px/s, decaying over 1.2 s. They displace dots radially and in z.
 - **Load.** Dots settle from a scattered sphere into the figure, center first, in about 1.4 s.
 - **Words.** As built: the eight project names run around a tilted 3D ring that circles the torso, in Fragment Mono caps in the accent color (ink in Gear Two). Glyphs in front get a paper-colored halo that knocks the dots out behind them; glyphs behind read mirrored and dim, and disappear where the figure covers them. Names are always whole. Hovering a theme on the home page lights its projects and dims the rest.
+- **Readout.** A mono line under the caption shows the engine's state: yaw, pitch, JS milliseconds per frame (an exponential average), and the heartbeat's tempo in Gear Two. It updates about six times a second and is hidden from assistive technology.
 - **Budget and fallbacks.**
   - Under 2 ms of JS per frame. The CPU only updates uniforms and the word layer.
   - Pauses when off-screen or in a background tab.
@@ -123,20 +125,22 @@ Arrows appear only where they carry meaning: ↗ marks a link that leaves the si
 - **Durations.** 120 ms press, 200 ms hover, 400 ms panel, 850 ms theme reveal, 1.1 s for the whole Gear Two sequence.
 - **Properties.** Only `transform` and `opacity` animate. Translations are 8 px at most. Stagger is 60 ms, across 6 items at most.
 - **Home entrance.** Dots assemble, then the header and panels rise 6 px with a stagger. Other pages appear at once.
-- **Text is never hidden waiting for scroll.** Only media frames fade in when first visible.
+- **Text is never hidden waiting for scroll.** Only graphics wait: a section's rule draws itself from the left (900 ms), a media frame wipes in from the left (800 ms), the stack matrix's dots pop in with a 12 ms stagger, and the colophon's numbers count up over 600 ms. Each happens once, the first time the element is 20% in view (`[data-reveal]` → `.is-seen`), only with JavaScript and full motion; without either, everything is simply there.
 - **Smooth scroll.** Lenis with lerp 0.1. Touch uses native scrolling. Anchors are offset by the header height. Demos get `data-lenis-prevent`.
 - **Page transitions.** Cross-document View Transitions: a 250 ms fade of `main` while the header stays fixed. Chromium only; elsewhere pages load normally.
 - **Reduced motion.** It applies when the OS asks for it, or when the footer motion toggle is set (saved locally). Smooth scroll, entrances, blinking, ripples, video autoplay, Gear Two effects, and the cat all stop.
 
 ## 9. Gear Two
-- **Control.** A bordered mono button in the header center labeled "Gear Two" (no brackets), with `aria-pressed`. The label never changes.
-- **Turning it on.**
-  - 0–90 ms: a white flash at 70%.
-  - 90–650 ms: glitch. The palette switches to red, text gets a 1.5 px red/cyan split, and the hero and header show three frames of 1–3 px horizontal slice offsets.
-  - 650–1050 ms: settle. A damped 3 px shake.
+- **Control.** A bordered mono button in the header center labeled "Gear Two" (no brackets), with `aria-pressed`. The label never changes. While Gear Two is on, the button pulses a red halo in time with the heartbeat.
+- **Turning it on.** One sequence, 1.05 s, choreographed in `js/motion.js` (phases on `<html data-phase>`), `css/site.css`, and `js/hero.js`:
+  - 0–90 ms: a white flash at 70%, cut in hard and faded out over 160 ms once the palette turns. A 2 px red ring leaves the switch and grows past the far corner of the viewport over 0.9 s, fading as it goes.
+  - 90–650 ms: glitch. The palette switches to red. Headings, panel heads, navigation, and the contact values get a 1.5 px red/cyan split; the header and every media frame show three frames of horizontal slice offsets; `main` jitters by 1–3 px. In the figure, horizontal slices shift, up to three tiles tear out of the statue and jump sideways with a thin red frame drawn where they land, two faint afterimages sit 2 px either side of the figure, and a ripple rolls out from the centre as the ink turns red.
+  - 650–1050 ms: settle. A damped 3 px shake on the figure; the text split fades over 400 ms.
   - There are no scan lines, embers, or vignette.
-- **While it's on.** The figure is red, it has a heartbeat, and it rotates 1.6× faster. The accent is red everywhere.
-- **Turning it off.** A 300 ms reverse glitch.
+- **While it's on.** The figure is red and has a heartbeat: a double beat every 0.9 s that pulses dot size, sets about 3% of dots white-hot at the peak, and breathes the ring's radius by 2%. A soft red glow sits behind the figure and pulses with the same beat. The accent is red everywhere, the sheet lines are red at 20%, and the figure rotates 1.6× faster. The stack matrix's dots take the figure's ink, so they turn red too.
+- **One clock.** The heartbeat runs on `performance.now()` in the hero. When Gear Two turns on, `motion.js` writes `--beat-delay` on the root (minus the clock's position in the 0.9 s cycle), and every CSS pulse (glow, button) starts from that phase, so the page beats as one.
+- **Turning it off.** A 300 ms reverse glitch (slices, tiles, afterimages); the tearing stops 140 ms after the palette comes back.
+- **Reduced motion.** Everything above collapses to an instant palette switch: no flash, ring, split, slices, tiles, heartbeat, or glow animation.
 - **Persistence.** It lasts for the session (`sessionStorage`), so opening a case study keeps it. Turning the lights on exits Gear Two, as it does today.
 
 ## 10. Light switch

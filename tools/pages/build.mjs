@@ -4,6 +4,7 @@
 // result; test/pages.test.cjs fails when a committed page and the generator disagree.
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 const SRC = path.dirname(new URL(import.meta.url).pathname);
 const BODIES = path.join(SRC, 'bodies');
@@ -107,6 +108,7 @@ function siteIndex() {
     <nav class="index-pages" aria-label="Pages">
       <a href="/" data-index-item data-search="home aakash dahal">Home ${NEXT}</a>
       <a href="/work/" data-index-item data-search="all work projects portfolio">All work ${NEXT}</a>
+      <a href="/#stack" data-index-item data-search="stack technologies matrix typescript python">Stack ${NEXT}</a>
       <a href="/#contact" data-index-item data-search="contact email github social">Contact ${NEXT}</a>
     </nav>
     <nav aria-label="Projects">
@@ -149,6 +151,94 @@ function cover(p, sizes, priority = '') {
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
+/* ── home: stack matrix and colophon data ─────────── */
+// Technologies by how many projects use them, then by first appearance in the project order.
+function technologies() {
+  const seen = new Map();
+  projects.forEach((p, i) => p.stack.forEach(tech => {
+    if (!seen.has(tech)) seen.set(tech, { name: tech, first: i, projects: [] });
+    seen.get(tech).projects.push(p.slug);
+  }));
+  return [...seen.values()].sort((a, b) => b.projects.length - a.projects.length || a.first - b.first);
+}
+
+// Numbers the colophon prints; test/content.test.cjs regenerates the page, so they cannot go stale.
+function siteNumbers() {
+  const ROOT = path.resolve(SRC, '..', '..');
+  const read = p => fs.readFileSync(path.join(ROOT, p));
+  const gz = p => zlib.gzipSync(read(p), { level: 9 }).length;
+  const count = (dir, suffix, pattern) => fs.readdirSync(path.join(ROOT, dir)).filter(f => f.endsWith(suffix)).reduce((n, f) => n + (read(path.join(dir, f)).toString().match(pattern) || []).length, 0);
+  const home = ['css/site.css', 'js/theme.js', 'js/motion.js', 'js/hero.js', 'js/cat.js', 'js/page.js', 'assets/vendor/lenis.min.js'];
+  const fonts = fs.readdirSync(path.join(ROOT, 'assets/fonts')).filter(f => f.endsWith('.woff2'));
+  return {
+    unitTests: count('test', '.test.cjs', /^test\(/gm),
+    browserTests: count('test/e2e', '.test.mjs', /^test\(/gm),
+    renders: (2 + projects.length + 1) * 4 * 3,
+    homeKb: Math.round(home.reduce((n, p) => n + gz(p), 0) / 1024),
+    fontKb: Math.round(fonts.reduce((n, f) => n + fs.statSync(path.join(ROOT, 'assets/fonts', f)).size, 0) / 1024),
+    fontFiles: fonts.length,
+  };
+}
+
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const words = n => WORDS[n] || String(n);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+function stack() {
+  const techs = technologies();
+  const query = tech => `/work/?q=${encodeURIComponent(tech.toLowerCase())}`;
+  return `  <section class="section" id="stack" aria-labelledby="stack-title">
+    <div class="row section-head rule" data-reveal>
+      <h2 class="c1" id="stack-title">Stack</h2>
+      <p class="c2-3 section-note t-small muted">${cap(words(techs.length))} technologies across ${words(projects.length)} projects, read from the case studies. A dot marks a project that uses the technology; a name opens the search for it.</p>
+      <a class="end link-ui" href="/work/">Search by stack</a>
+    </div>
+    <div class="row">
+      <div class="matrix c1-4" role="table" aria-label="Technologies by project" data-reveal>
+        <div class="matrix-head" role="row">
+          <div class="matrix-corner t-label muted" role="columnheader">Technology <span class="matrix-count">/ projects</span></div>
+${projects.map((p, i) => `          <div class="matrix-project" role="columnheader" data-col="${i}"><a href="/work/${p.slug}/"><span class="t-label muted num">${pad(i + 1)}</span><span class="t-label">${esc(p.name)}</span></a></div>`).join('\n')}
+        </div>
+${techs.map((t, r) => `        <div class="matrix-row" role="row">
+          <div class="matrix-tech" role="rowheader"><a href="${query(t.name)}"><span class="t-small">${esc(t.name)}</span><span class="t-label muted num">${pad(t.projects.length)}</span></a></div>
+${projects.map((p, i) => t.projects.includes(p.slug)
+  ? `          <div class="matrix-cell" role="cell" data-col="${i}" data-on style="--i: ${r * projects.length + i}"><span class="dot" aria-hidden="true"></span><span class="matrix-name">${esc(p.name)}</span></div>`
+  : `          <div class="matrix-cell" role="cell" data-col="${i}"></div>`).join('\n')}
+        </div>`).join('\n')}
+      </div>
+    </div>
+  </section>`;
+}
+
+function colophon() {
+  const n = siteNumbers();
+  const figures = [
+    [site.dots, 'dots in Fig. 0 on this screen, drawn in one WebGL call per frame', ' data-dot-count'],
+    [String(n.unitTests), 'unit and content tests, run on every push'],
+    [String(n.renders), 'browser renders per CI run: every page at four widths in light, dark, and Gear Two, each checked with axe-core'],
+    [`${n.homeKb} KB`, 'of CSS and JavaScript on this page, gzipped, with no framework and no build step'],
+    [`${n.fontKb} KB`, `of type in ${words(n.fontFiles)} files: Instrument Sans and Fragment Mono, subset and self-hosted`],
+    ['0.9 s', 'between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch'],
+  ];
+  return `  <section class="section" id="colophon" aria-labelledby="colophon-title">
+    <div class="row section-head rule" data-reveal>
+      <h2 class="c1" id="colophon-title">Colophon</h2>
+      <p class="c2-3 section-note t-small muted">How this page is made, in numbers the test suite checks.</p>
+      <a class="end link-ui" href="https://github.com/${site.github}/${site.github}.github.io">Site source ${ARROW}</a>
+    </div>
+    <div class="row colophon">
+      <div class="c1 colophon-notes">
+        <p class="t-small">Plain HTML, CSS, and JavaScript on GitHub Pages. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two.</p>
+        <p class="t-small">Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns. Gear Two swaps the palette for red, gives the figure a heartbeat, and lasts for the session.</p>
+        <p class="t-small"><a class="link-ui" href="https://github.com/${site.github}/${site.github}.github.io/blob/main/docs/design-spec.md">Design spec ${ARROW}</a></p>
+      </div>
+      <dl class="c2-4 figures" data-reveal>
+${figures.map(([value, label, attrs = '']) => `        <div><dt class="t-l num" data-count-up${attrs}>${esc(value)}</dt><dd class="t-small muted">${label}</dd></div>`).join('\n')}
+      </dl>
+    </div>
+  </section>`;
+}
+
 /* ── home ─────────────────────────────────────────── */
 function home() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
@@ -179,19 +269,19 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}" data-names="${projects.filter(p => p.themes.includes(t.id)).map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
+      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
     </div>
   </section>
 
   <section class="section" id="selected" aria-labelledby="selected-title">
-    <div class="row section-head rule">
+    <div class="row section-head rule" data-reveal>
       <h2 class="c1" id="selected-title">Selected work</h2>
       <p class="c2-3 section-note t-small muted">A closer look at four public projects.</p>
       <a class="end link-ui" href="/work/">All work (${pad(projects.length)})</a>
     </div>
     <div class="row cards">
 ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}" data-project="${p.slug}">
-        <div class="card-media">${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}<span class="card-open t-label" aria-hidden="true">View project ${NEXT}</span></div>
+        <div class="card-media" data-reveal>${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}<span class="card-open t-label" aria-hidden="true">View project ${NEXT}</span></div>
         <p class="card-meta t-label"><span>${pad(site.order.indexOf(p.slug) + 1)}</span><span>${themesOf(p)}</span><span>${p.visibility}</span></p>
         <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h3>
         <p>${esc(p.tagline)}</p>
@@ -199,8 +289,12 @@ ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}"
     </div>
   </section>
 
+${stack()}
+
+${colophon()}
+
   <section class="section" id="contact" aria-labelledby="contact-title">
-    <div class="row section-head rule">
+    <div class="row section-head rule" data-reveal>
       <h2 class="c1" id="contact-title">Contact</h2>
     </div>
     <div class="row">
@@ -311,7 +405,7 @@ function caseStudy(p, i) {
     : `<dt class="t-label">Code</dt><dd>Private repository</dd>`;
   const lead = p.lead;
   const leadFig = `<figure class="fig c2-4">
-        <div class="fig-frame${lead ? '' : ' is-empty'}">${lead ? media(lead, { eager: true }) : '<div class="media-empty"><span class="t-label">Visual to come</span></div>'}</div>
+        <div class="fig-frame${lead ? '' : ' is-empty'}" data-reveal>${lead ? media(lead, { eager: true }) : '<div class="media-empty"><span class="t-label">Visual to come</span></div>'}</div>
         <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${lead ? esc(lead.caption) : 'To come: a screenshot, recording, or demo of the real product.'}</span></figcaption>
       </figure>`;
   const preload = lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '';

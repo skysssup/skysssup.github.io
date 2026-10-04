@@ -170,19 +170,28 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
 
 test('Gear Two flashes, glitches, settles, turns the page red, and survives navigation', async () => {
   const { page, context, problems } = await open('/');
+  await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
   await page.waitForTimeout(1500);
   const gear = page.locator('[data-gear-toggle]');
   await page.evaluate(() => {
     const root = document.documentElement;
     window.phases = [];
+    window.ringSeen = false;
     new MutationObserver(() => window.phases.push([root.getAttribute('data-phase'), root.getAttribute('data-gear')])).observe(root, { attributes: true, attributeFilter: ['data-phase'] });
+    new MutationObserver(records => { for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains('fx-ring')) window.ringSeen = true; }).observe(document.body, { childList: true });
   });
   await gear.click();
   await page.waitForFunction(() => window.phases.length >= 4);
   assert.deepEqual(await page.evaluate(() => window.phases), [['flash', null], ['glitch', 'two'], ['settle', 'two'], [null, 'two']]);
   assert.equal(await gear.getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.evaluate(() => window.ringSeen), true, 'a shockwave ring leaves the switch');
+  await page.waitForFunction(() => !document.querySelector('.fx-ring'), null, { timeout: 3000 });
+  assert.match(await page.evaluate(() => document.documentElement.style.getPropertyValue('--beat-delay')), /^-0\.\d+s$/, 'CSS pulses are phased to the heartbeat clock');
   const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
   assert.equal(accent.toLowerCase(), '#ff3b30');
+  assert.equal(await page.evaluate(() => document.getElementById('figure').classList.contains('is-live')), true, 'the hero keeps drawing through the glitch');
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.hero-figure'), '::before').backgroundImage), 'none', 'the figure glows in Gear Two');
+  assert.match(await page.textContent('[data-hero-telemetry]'), /bpm/, 'the readout shows the heartbeat');
   await page.click('a[href="/work/"]');
   await page.waitForLoadState('networkidle');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
@@ -309,6 +318,54 @@ test('the cat follows a mouse, and stays away on touch screens', async () => {
   const touch = await open('/work/', { width: 390, height: 844, touch: true });
   assert.equal(await touch.page.$('.cat'), null);
   await touch.context.close();
+});
+
+test('the stack matrix draws in once seen, lights a column on hover, and reads as a list on small screens', async () => {
+  const { page, context, problems } = await open('/');
+  const dot = page.locator('.matrix-cell[data-on] .dot').first();
+  assert.equal(await page.evaluate(() => document.querySelector('.matrix').classList.contains('is-seen')), false, 'the matrix waits below the fold');
+  assert.equal(await dot.evaluate(el => getComputedStyle(el).transform), 'matrix(0, 0, 0, 0, 0, 0)', 'dots start collapsed');
+  await page.locator('#stack').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('.matrix').classList.contains('is-seen'));
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.matrix-cell[data-on] .dot')).transform === 'none');
+  const rows = await page.$$eval('.matrix-row', rows => rows.map(r => ({ tech: r.querySelector('.matrix-tech .t-small').textContent, n: Number(r.querySelector('.matrix-tech .num').textContent), dots: r.querySelectorAll('[data-on]').length })));
+  assert.ok(rows.length >= 10);
+  for (const row of rows) assert.equal(row.dots, row.n, `${row.tech} shows ${row.dots} dots for ${row.n} projects`);
+  for (let i = 1; i < rows.length; i++) assert.ok(rows[i].n <= rows[i - 1].n, 'technologies are ordered by use');
+  await page.hover('.matrix-project[data-col="2"] a');
+  await page.waitForFunction(() => document.querySelector('.matrix').getAttribute('data-hover-col') === '2');
+  await page.mouse.move(5, 5);
+  await page.waitForFunction(() => !document.querySelector('.matrix').hasAttribute('data-hover-col'));
+  await page.focus('.matrix-project[data-col="5"] a');
+  assert.equal(await page.getAttribute('.matrix', 'data-hover-col'), '5');
+  assert.equal(await page.getAttribute('.matrix-tech a', 'href'), '/work/?q=typescript');
+  assert.deepEqual(problems, []);
+  await context.close();
+  const small = await open('/', { width: 390, height: 844, touch: true });
+  assert.equal(await small.page.locator('.matrix-head').evaluate(el => getComputedStyle(el).display), 'none');
+  assert.equal(await small.page.locator('.matrix-cell[data-on] .matrix-name').first().evaluate(el => getComputedStyle(el).position), 'static', 'project names read inline');
+  await small.context.close();
+});
+
+test('section rules draw in, media wipes in, and the colophon counts up, except under reduced motion', async () => {
+  const { page, context } = await open('/');
+  const head = page.locator('#selected .section-head');
+  assert.equal(await head.evaluate(el => el.classList.contains('is-seen')), false);
+  const figure = page.locator('.figures dt').first();
+  const printed = await figure.textContent();
+  await page.locator('#colophon').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('.figures').classList.contains('is-seen'));
+  await page.waitForFunction(printed => document.querySelector('.figures dt').textContent === printed, printed, { timeout: 3000 });
+  assert.equal(await page.evaluate(() => document.querySelector('#colophon .section-head').classList.contains('is-seen')), true);
+  await page.locator('#selected .card-media').first().scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('#selected .card-media').classList.contains('is-seen'));
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .card-media')).clipPath === 'inset(0px)');
+  await context.close();
+  const still = await open('/', { reduced: true });
+  assert.equal(await still.page.locator('#selected .card-media').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
+  assert.equal(await still.page.locator('.matrix-cell[data-on] .dot').first().evaluate(el => getComputedStyle(el).transform), 'none', 'dots are simply there under reduced motion');
+  assert.equal(await still.page.locator('.figures dt').first().textContent(), printed, 'the printed number stands as is');
+  await still.context.close();
 });
 
 test('every internal link resolves, and old /portfolio/ links land on /work/', async () => {

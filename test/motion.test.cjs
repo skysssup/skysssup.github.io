@@ -56,7 +56,7 @@ function page({ osReduced = false, saved = null, transitions = false, gear = fal
   });
   const run = ms => [...timers.entries()].filter(([, t]) => t.ms === ms).forEach(([k, t]) => { timers.delete(k); t.fn(); });
   const click = el => listeners.click({ target: { closest: sel => (sel === '[data-gear-toggle]' && el === gearButton) || (sel === '[data-motion-toggle]' && el === toggle) ? el : null } });
-  return { api, root, gearButton, toggle, state, timers, run, click, win, animations, started, session, mq, getSaved: () => saved_ };
+  return { api, root, gearButton, toggle, state, timers, run, click, win, doc, animations, started, session, mq, getSaved: () => saved_ };
 }
 
 test('Gear Two flashes, switches to red while glitching, settles, then clears', () => {
@@ -150,4 +150,47 @@ test('the theme reveal grows a soft circle from the switch', async () => {
   assert.equal(keyframes.maskSize[0], '0px 0px');
   assert.equal(keyframes.maskPosition[0], '1389px 28px');
   assert.equal(p.root.classList.contains('theme-reveal'), false);
+});
+
+test('switching Gear Two on sends a red ring out from the switch and phases the heartbeat to the clock', () => {
+  const p = page();
+  const appended = [];
+  const removed = [];
+  p.root.style = { props: new Map(), setProperty(k, v) { this.props.set(k, v); } };
+  p.win.performance = { now: () => 1234 };
+  const origin = element({ left: 619, top: 14, width: 82, height: 28 });
+  const fake = { className: '', style: { props: new Map(), setProperty(k, v) { this.props.set(k, v); } }, attrs: new Map(), listeners: {}, parentNode: null,
+    setAttribute(k, v) { this.attrs.set(k, v); }, addEventListener(k, f) { this.listeners[k] = f; } };
+  p.doc.createElement = () => fake;
+  p.doc.body = { appendChild(el) { appended.push(el); el.parentNode = { removeChild(e) { removed.push(e); e.parentNode = null; } }; } };
+  p.api.toggleGear(origin);
+  assert.equal(appended.length, 1);
+  assert.equal(fake.className, 'fx-ring');
+  assert.equal(fake.style.left, '660px');
+  assert.equal(fake.style.top, '28px');
+  assert.ok(parseInt(fake.style.props.get('--reach'), 10) > 2 * Math.hypot(1440 - 660, 900 - 28), 'the ring reaches past the far corner');
+  p.run(GEAR.flash);
+  assert.equal(p.root.style.props.get('--beat-delay'), '-0.334s', '1234 ms into the clock, the beat is 0.334 s along its 0.9 s cycle');
+  fake.listeners.animationend();
+  assert.deepEqual(removed, [fake]);
+  p.run(GEAR.settle);
+  p.run(GEAR.done);
+  assert.equal(p.timers.size, 1, 'only the ring safety timer remains');
+  p.run(1400);
+  assert.equal(removed.length, 1, 'the safety timer finds the ring already gone');
+});
+
+test('leaving Gear Two sends no ring, and reduced motion sends none either', () => {
+  const p = page({ gear: true });
+  let created = 0;
+  p.doc.createElement = () => { created++; return {}; };
+  p.doc.body = { appendChild() {} };
+  p.api.toggleGear(element({ left: 0, top: 0, width: 10, height: 10 }));
+  assert.equal(created, 0);
+  const q = page({ osReduced: true });
+  q.doc.createElement = () => { created++; return {}; };
+  q.doc.body = { appendChild() {} };
+  q.api.toggleGear(element({ left: 0, top: 0, width: 10, height: 10 }));
+  assert.equal(created, 0);
+  assert.equal(q.root.getAttribute('data-gear'), 'two');
 });

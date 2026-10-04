@@ -309,12 +309,26 @@
     var figure = doc.getElementById("figure");
     var hero = null;
     if (figure && win.SkyHero) {
-      var counter = doc.querySelector("[data-dot-count]");
+      var counters = doc.querySelectorAll("[data-dot-count]");
+      var telemetry = doc.querySelector("[data-hero-telemetry]");
+      var degrees = function (rad) { var d = rad * 180 / Math.PI; return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + "°"; };
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
         words: (figure.getAttribute("data-words") || "").split(",").filter(Boolean),
         motion: motion,
-        onCount: function (n) { if (counter) counter.textContent = n.toLocaleString("en-US"); }
+        onCount: function (n) {
+          var text = n.toLocaleString("en-US");
+          for (var i = 0; i < counters.length; i++) { counters[i].textContent = text; counters[i].setAttribute("data-final", text); }
+        },
+        onTelemetry: function (state) {
+          if (!telemetry) return;
+          var parts = ["yaw " + degrees(state.yaw), "pitch " + degrees(state.pitch)];
+          if (state.live) parts.push((state.ms < 0.05 ? "<0.1" : state.ms.toFixed(1)) + " ms/frame");
+          if (state.gear) parts.push(Math.round(60 / win.skyGear.BEAT) + " bpm");
+          telemetry.textContent = "";
+          parts.forEach(function (text) { var span = doc.createElement("span"); span.textContent = text; telemetry.appendChild(span); });
+          telemetry.hidden = false;
+        }
       });
       var ripple = doc.querySelector("[data-hero-ripple]");
       if (ripple && hero.ripple) {
@@ -334,6 +348,56 @@
         link.addEventListener("mouseleave", off);
         link.addEventListener("blur", off);
       });
+    }
+
+    /* reveals: graphics that draw in the first time they come into view (text is never hidden) */
+    var reveals = Array.prototype.slice.call(doc.querySelectorAll("[data-reveal]"));
+    if (reveals.length && win.IntersectionObserver) {
+      var seen = new win.IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-seen");
+          seen.unobserve(entry.target);
+          countUp(entry.target);
+        });
+      }, { threshold: 0.2 });
+      reveals.forEach(function (el) { seen.observe(el); });
+    } else reveals.forEach(function (el) { el.classList.add("is-seen"); });
+
+    /* count-up: a number rises to its printed value over 600 ms; the HTML already holds the final text */
+    function countUp(scope) {
+      if (motion.reduced() || !win.requestAnimationFrame) return;
+      Array.prototype.forEach.call(scope.querySelectorAll("[data-count-up]"), function (el, i) {
+        var final = el.textContent, match = /^([^\d]*)([\d,]*\.?\d+)(.*)$/.exec(final);
+        if (!match) return;
+        var target = parseFloat(match[2].replace(/,/g, "")), decimals = (match[2].split(".")[1] || "").length, grouped = match[2].indexOf(",") >= 0;
+        var start = null, duration = 600, delay = i * 60;
+        var step = function (now) {
+          if (start === null) start = now;
+          var k = Math.min(1, Math.max(0, (now - start - delay) / duration));
+          var eased = 1 - Math.pow(1 - k, 3);
+          var value = (target * eased).toFixed(decimals);
+          if (grouped) value = Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+          el.textContent = match[1] + value + match[3];
+          if (k < 1) win.requestAnimationFrame(step);
+          else el.textContent = el.getAttribute("data-final") || final;
+        };
+        win.requestAnimationFrame(step);
+      });
+    }
+
+    /* stack matrix: hovering or focusing a project column lights the whole column */
+    var matrix = doc.querySelector(".matrix");
+    if (matrix) {
+      var column = function (event) {
+        var cell = event.target && event.target.closest ? event.target.closest("[data-col]") : null;
+        if (cell && matrix.contains(cell)) matrix.setAttribute("data-hover-col", cell.getAttribute("data-col"));
+        else matrix.removeAttribute("data-hover-col");
+      };
+      matrix.addEventListener("mouseover", column);
+      matrix.addEventListener("mouseleave", function () { matrix.removeAttribute("data-hover-col"); });
+      matrix.addEventListener("focusin", column);
+      matrix.addEventListener("focusout", function (event) { if (!event.relatedTarget || !matrix.contains(event.relatedTarget)) matrix.removeAttribute("data-hover-col"); });
     }
 
     /* cat: only with a mouse */

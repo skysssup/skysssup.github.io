@@ -5,6 +5,8 @@
 
   // Gear Two timing (ms): flash, then the palette switches and glitches, then it settles.
   var GEAR = { flash: 90, settle: 650, done: 1050, exit: 300 };
+  // Gear Two heartbeat period (s); the same constant lives in the hero's heartbeat() and in the CSS keyframes.
+  var BEAT = 0.9;
 
   function init(env) {
     var doc = env.document, win = env.window, storage = env.storage, session = env.session;
@@ -82,9 +84,15 @@
       timers = [];
       root.removeAttribute("data-phase");
     }
+    // Gear Two's heartbeat beats every 0.9 s on the hero's clock (performance.now). CSS animations that
+    // pulse with it start from the same phase through --beat-delay, so the glow, the button, and the dots agree.
+    function syncBeat() {
+      if (!root.style || typeof root.style.setProperty !== "function" || !win.performance) return;
+      root.style.setProperty("--beat-delay", (-((win.performance.now() / 1000) % BEAT)).toFixed(3) + "s");
+    }
     function setGear(on) {
       gearOn = on;
-      if (on) root.setAttribute("data-gear", "two");
+      if (on) { root.setAttribute("data-gear", "two"); syncBeat(); }
       else root.removeAttribute("data-gear");
       try {
         if (on) session.setItem("sky-gear", "two");
@@ -95,11 +103,29 @@
       if (win.skyTheme) win.skyTheme.paint();
     }
     function at(ms, fn) { timers.push(later(fn, ms)); }
-    function toggleGear() {
+    // A red ring expands from the control that switched Gear Two on and fades as it leaves the viewport.
+    function shockwave(origin) {
+      if (!origin || !doc.body || typeof doc.createElement !== "function" || typeof origin.getBoundingClientRect !== "function") return;
+      var rect = origin.getBoundingClientRect();
+      var x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+      var reach = Math.hypot(Math.max(x, win.innerWidth - x), Math.max(y, win.innerHeight - y)) * 2 + 48;
+      var ring = doc.createElement("span");
+      ring.className = "fx-ring";
+      ring.setAttribute("aria-hidden", "true");
+      ring.style.left = x + "px";
+      ring.style.top = y + "px";
+      ring.style.setProperty("--reach", Math.round(reach) + "px");
+      var done = function () { if (ring.parentNode) ring.parentNode.removeChild(ring); };
+      ring.addEventListener("animationend", done);
+      later(done, 1400);
+      doc.body.appendChild(ring);
+    }
+    function toggleGear(origin) {
       clearPhases();
       var next = !gearOn;
       if (reduced()) { setGear(next); return; }
       if (next) {
+        shockwave(origin);
         root.setAttribute("data-phase", "flash");
         at(GEAR.flash, function () { setGear(true); root.setAttribute("data-phase", "glitch"); });
         at(GEAR.settle, function () { root.setAttribute("data-phase", "settle"); });
@@ -139,7 +165,8 @@
     doc.addEventListener("click", function (event) {
       var t = event.target;
       if (!t || !t.closest) return;
-      if (t.closest("[data-gear-toggle]")) toggleGear();
+      var gearButton = t.closest("[data-gear-toggle]");
+      if (gearButton) toggleGear(gearButton);
       else if (t.closest("[data-motion-toggle]")) setMotion(reduced() ? "full" : "reduced");
     });
 
@@ -153,12 +180,12 @@
     setGear(gearOn);
     applyMotion();
 
-    var api = { motion: motion, setGear: setGear, toggleGear: toggleGear, isGear: function () { return gearOn; }, GEAR: GEAR };
+    var api = { motion: motion, setGear: setGear, toggleGear: toggleGear, isGear: function () { return gearOn; }, GEAR: GEAR, BEAT: BEAT };
     win.SkyMotion = motion;
     win.skyGear = api;
     return api;
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR };
+  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BEAT: BEAT };
   else init({ document: document, window: global, storage: global.localStorage, session: global.sessionStorage, setTimeout: global.setTimeout.bind(global), clearTimeout: global.clearTimeout.bind(global) });
 })(typeof window !== "undefined" ? window : globalThis);

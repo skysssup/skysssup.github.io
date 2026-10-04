@@ -453,6 +453,100 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
   .card-open { opacity: 1; transform: none; }
 }
 
+/* ── reveals: a section rule draws itself and a media frame wipes in the first time it is seen ───── */
+/* Text never waits for a scroll; only these graphics do, and only with JavaScript and full motion. */
+html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal] { border-top-color: transparent; }
+html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  background: var(--line);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .9s var(--ease-out);
+}
+html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal].is-seen::before { transform: none; }
+html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal] { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out), border-color .2s; }
+html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal].is-seen { clip-path: inset(0 0 0 0); }
+
+/* ── stack matrix: technologies × projects ─────────────── */
+/* The label column runs from the inset to the fourth minor line; each project column is one minor column. */
+.matrix {
+  --minor: calc((100% + 2 * var(--p)) / 12);
+  display: grid;
+  grid-template-columns: calc(var(--minor) * 4 - var(--p)) repeat(7, var(--minor)) calc(var(--minor) - var(--p));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0 !important;
+  margin: 0 var(--p);
+}
+.matrix-head, .matrix-row { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: stretch; }
+.matrix-head { border-bottom: 1px solid var(--line-strong); }
+.matrix-row + .matrix-row { border-top: 1px solid var(--line); }
+.matrix-corner { display: flex; align-items: flex-end; padding: 12px 0 11px; }
+.matrix-count { margin-left: 6px; }
+.matrix-project { display: flex; align-items: flex-end; justify-content: center; min-width: 0; }
+.matrix-project a { display: grid; gap: 4px; justify-items: center; align-content: end; width: 100%; min-height: 56px; padding: 12px 2px 11px; text-align: center; transition: color .2s, background-color .2s; }
+.matrix-project .t-label { display: block; max-width: 100%; line-height: 14px; }
+@media (max-width: 1199px) and (min-width: 768px) {
+  /* narrower minor columns: the project names stand up and read from the bottom */
+  .matrix-project a { min-height: 128px; padding-bottom: 12px; }
+  .matrix-project .t-label:last-child { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; line-height: 16px; }
+}
+.matrix-tech { min-width: 0; }
+.matrix-tech a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 6px 12px 6px 0; transition: color .2s; }
+.matrix-tech .t-small { color: var(--ink); transition: color .2s; }
+.matrix-cell { position: relative; display: grid; place-items: center; min-height: 36px; transition: background-color .2s; }
+.matrix-cell[data-on] .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--figure-ink); transition: transform .5s var(--ease-out), background-color .2s; transition-delay: calc(var(--i, 0) * 12ms), 0s; }
+.matrix-name { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+html.js:not([data-motion="reduced"]) .matrix:not(.is-seen) .matrix-cell[data-on] .dot { transform: scale(0); }
+.matrix-row:hover, .matrix-row:focus-within { background: var(--wash); }
+.matrix-row:hover .matrix-tech .t-small, .matrix-row:hover .matrix-tech .t-label, .matrix-tech a:focus-visible .t-small { color: var(--accent); }
+.matrix-row:hover .dot, .matrix-row:focus-within .dot { background: var(--accent); transition-delay: 0s; }
+.matrix[data-hover-col] [data-col] { transition: background-color .2s; }
+.matrix[data-hover-col="0"] [data-col="0"], .matrix[data-hover-col="1"] [data-col="1"], .matrix[data-hover-col="2"] [data-col="2"], .matrix[data-hover-col="3"] [data-col="3"],
+.matrix[data-hover-col="4"] [data-col="4"], .matrix[data-hover-col="5"] [data-col="5"], .matrix[data-hover-col="6"] [data-col="6"], .matrix[data-hover-col="7"] [data-col="7"] { background: var(--wash); }
+.matrix[data-hover-col="0"] [data-col="0"] .dot, .matrix[data-hover-col="1"] [data-col="1"] .dot, .matrix[data-hover-col="2"] [data-col="2"] .dot, .matrix[data-hover-col="3"] [data-col="3"] .dot,
+.matrix[data-hover-col="4"] [data-col="4"] .dot, .matrix[data-hover-col="5"] [data-col="5"] .dot, .matrix[data-hover-col="6"] [data-col="6"] .dot, .matrix[data-hover-col="7"] [data-col="7"] .dot { background: var(--accent); transition-delay: 0s; }
+.matrix-project a:hover, .matrix-project a:focus-visible, .matrix[data-hover-col="0"] [data-col="0"] a, .matrix[data-hover-col="1"] [data-col="1"] a, .matrix[data-hover-col="2"] [data-col="2"] a, .matrix[data-hover-col="3"] [data-col="3"] a,
+.matrix[data-hover-col="4"] [data-col="4"] a, .matrix[data-hover-col="5"] [data-col="5"] a, .matrix[data-hover-col="6"] [data-col="6"] a, .matrix[data-hover-col="7"] [data-col="7"] a { color: var(--accent); }
+.matrix a:focus-visible { outline-offset: -2px; }
+@media (max-width: 767px) {
+  /* below two majors the matrix reads as a list: each technology with the names of its projects */
+  .matrix { display: block; }
+  .matrix-head { display: none; }
+  .matrix-row { display: flex; flex-wrap: wrap; gap: 0 12px; padding-bottom: 10px; }
+  .matrix-tech { flex: 0 0 100%; }
+  .matrix-tech a { padding-right: 0; }
+  .matrix-cell { display: none; }
+  .matrix-cell[data-on] { display: block; min-height: 0; }
+  .matrix-cell[data-on] .dot { display: none; }
+  .matrix-name { position: static !important; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+}
+
+/* ── colophon ─────────────────────────────────────────── */
+.colophon { row-gap: 24px; }
+.colophon-notes { display: grid; gap: 12px; align-content: start; max-width: 36ch; }
+.colophon-notes p { color: var(--muted); }
+.colophon-notes p a { color: var(--muted); }
+.figures { display: grid; grid-template-columns: subgrid; padding: 0 !important; border-top: 1px solid var(--line); }
+.figures > div { grid-column: span 1; padding: 16px var(--p) 24px; border-bottom: 1px solid var(--line); min-width: 0; }
+.figures dt { font-variant-numeric: tabular-nums; }
+.figures dd { margin-top: 8px; max-width: 28ch; }
+.figures dt[data-count-up] { transition: opacity .3s; }
+@media (max-width: 767px) {
+  .colophon-notes { max-width: 44ch; }
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures > div { padding-left: var(--p); padding-right: var(--p); }
+}
+
+/* ── hero telemetry: the engine's own readout ─────────── */
+.fig-telemetry { margin-top: 4px; }
+.fig-telemetry span + span::before { content: " · "; }
+
 /* ── contact section ───────────────────────────────────── */
 .contact-rows {
   display: grid;
@@ -822,12 +916,36 @@ html.index-is-open { scrollbar-gutter: stable; }
 /* ── cat ────────────────────────────────────────────────── */
 .cat { position: fixed; left: 0; top: 0; z-index: 40; width: 32px; height: 32px; pointer-events: none; image-rendering: pixelated; }
 
-/* ── Gear Two phases ────────────────────────────────────── */
-.fx-flash { position: fixed; inset: 0; z-index: 900; background: #fff; opacity: 0; pointer-events: none; }
-:root[data-phase="flash"] .fx-flash { opacity: .7; }
+/* ── Gear Two ───────────────────────────────────────────── */
+/* Turning it on: a flash that fades, a red ring from the switch, then the palette turns while text splits
+   and media slices, then it settles. --beat-delay (set by motion.js) keeps every pulse on the dots' heartbeat. */
+.fx-flash { position: fixed; inset: 0; z-index: 900; background: #fff; opacity: 0; pointer-events: none; transition: opacity .16s var(--ease-out); }
+:root[data-phase="flash"] .fx-flash { opacity: .7; transition: none; }
+.fx-ring {
+  position: fixed;
+  z-index: 901;
+  width: var(--reach);
+  height: var(--reach);
+  margin: calc(var(--reach) / -2) 0 0 calc(var(--reach) / -2);
+  border: 2px solid var(--split-a);
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(255, 59, 48, .35), inset 0 0 40px rgba(255, 59, 48, .25);
+  pointer-events: none;
+  transform: scale(0);
+  opacity: 0;
+  animation: shockwave .9s var(--ease-out) 1 forwards;
+}
+@keyframes shockwave {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+:root[data-phase="flash"] .glitch-text,
 :root[data-phase="glitch"] .glitch-text,
-:root[data-phase="flash"] .glitch-text { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
+:root[data-phase="glitch"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-rows .v, .intro-label, .section-head h2) { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
+:root[data-phase="settle"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-rows .v, .intro-label, .section-head h2) { animation: unsplit .4s var(--ease-out) 1; }
 :root[data-phase="glitch"] .site-header { animation: slice 180ms steps(1, end) 3; }
+:root[data-phase="glitch"] main { animation: jitter 180ms steps(1, end) 3; }
+:root[data-phase="glitch"] :is(.card-media, .fig-frame, .project .thumb > div, .panel, .media-type) { animation: slice 180ms steps(1, end) 3; }
 :root[data-phase="settle"] .hero-figure { animation: settle 400ms var(--ease-out) 1; }
 @keyframes slice {
   0% { clip-path: inset(0 0 60% 0); transform: translateX(3px); }
@@ -835,12 +953,47 @@ html.index-is-open { scrollbar-gutter: stable; }
   66% { clip-path: inset(70% 0 0 0); transform: translateX(1px); }
   100% { clip-path: none; transform: none; }
 }
+@keyframes jitter {
+  0% { transform: translateX(3px); }
+  33% { transform: translateX(-2px); }
+  66% { transform: translateX(1px); }
+  100% { transform: none; }
+}
 @keyframes settle {
   0% { transform: translateX(3px); }
   25% { transform: translateX(-2.2px); }
   50% { transform: translateX(1.4px); }
   75% { transform: translateX(-.6px); }
   100% { transform: none; }
+}
+@keyframes unsplit {
+  from { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
+  to { text-shadow: 0 0 transparent, 0 0 transparent; }
+}
+
+/* While it is on: the figure glows and the switch pulses with the heartbeat (lub-dub every 0.9 s). */
+:root[data-gear="two"] .gear[aria-pressed="true"] { animation: gear-beat .9s linear infinite; animation-delay: var(--beat-delay, 0s); }
+@keyframes gear-beat {
+  0%, 42%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+  8% { box-shadow: 0 0 0 5px rgba(255, 59, 48, .3); }
+  18% { box-shadow: 0 0 0 1px rgba(255, 59, 48, .06); }
+  30% { box-shadow: 0 0 0 3px rgba(255, 59, 48, .22); }
+}
+:root[data-gear="two"] .hero-figure::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 56%, rgba(255, 59, 48, .34) 0%, rgba(255, 59, 48, .11) 30%, rgba(255, 59, 48, 0) 64%);
+  opacity: .5;
+  animation: glow-beat .9s linear infinite;
+  animation-delay: var(--beat-delay, 0s);
+}
+@keyframes glow-beat {
+  0%, 42%, 100% { opacity: .5; transform: scale(1); }
+  8% { opacity: 1; transform: scale(1.035); }
+  18% { opacity: .58; transform: scale(1.005); }
+  30% { opacity: .82; transform: scale(1.02); }
 }
 
 /* ── theme reveal (View Transitions) ───────────────────── */
