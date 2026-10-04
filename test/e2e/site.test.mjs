@@ -105,7 +105,6 @@ test('content sits on the sheet: left edges on a line or its inset, right-aligne
   }
 });
 
-
 test('section links land each section just under the header, with smooth scrolling and without', async () => {
   for (const reduced of [false, true]) {
     const { page, context } = await open('/work/agentcrucible/', { reduced });
@@ -129,7 +128,6 @@ test('section links land each section just under the header, with smooth scrolli
   }
 });
 
-
 test('a /work link with a theme shows only that theme from the first paint, without a layout shift', async () => {
   const { page, context } = await open('/work/?theme=physics-software', { width: 1440, height: 900 });
   await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
@@ -146,7 +144,6 @@ test('a /work link with a theme shows only that theme from the first paint, with
   assert.equal(await page.$$eval('.project', rows => rows.filter(r => r.offsetParent).length), slugs.length);
   await context.close();
 });
-
 
 test('Gear Two flashes, glitches, settles, turns the page red, and survives navigation', async () => {
   const { page, context, problems } = await open('/');

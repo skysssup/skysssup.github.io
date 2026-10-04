@@ -102,9 +102,11 @@ test('every case study has the full section structure, stack, and code link', ()
 });
 
 test('the work index lists every case study once, and the home page links each featured one', () => {
-  const listed = [...html['work/index.html'].matchAll(/<h2><a href="\/work\/([a-z-]+)\/">/g)].map(m => m[1]);
+  const listed = [...html['work/index.html'].matchAll(/<h2><a href="\/work\/([a-z-]+)\/"[^>]*>/g)].map(m => m[1]);
   assert.deepEqual([...listed].sort(), caseStudies.map(p => p.split('/')[1]).sort());
-  for (const m of html['index.html'].matchAll(/<h3><a href="(\/work\/[a-z-]+\/)">/g)) assert.ok(fs.existsSync(resolve(m[1])));
+  const featured = [...html['index.html'].matchAll(/<h3><a href="(\/work\/[a-z-]+\/)"[^>]*>/g)];
+  assert.equal(featured.length, 4);
+  for (const m of featured) assert.ok(fs.existsSync(resolve(m[1])));
 });
 
 test('copy avoids marketing filler and shouting', () => {
@@ -141,6 +143,19 @@ test('the sitemap lists every indexable page by its canonical URL, and robots.tx
   const canonical = pages.filter(p => p !== '404.html').map(p => html[p].match(/<link rel="canonical" href="([^"]+)">/)[1]).sort();
   assert.deepEqual(listed, canonical);
   assert.match(fs.readFileSync(path.join(root, 'robots.txt'), 'utf8'), new RegExp(`^Sitemap: ${ORIGIN}/sitemap\\.xml$`, 'm'));
+});
+
+test('a project title carries the same view-transition name on every page, and names are unique per page', () => {
+  for (const [p, doc] of Object.entries(html)) {
+    const names = [...doc.matchAll(/view-transition-name: ([a-z0-9-]+)/g)].map(m => m[1]);
+    assert.equal(new Set(names).size, names.length, `${p} repeats a view-transition name`);
+  }
+  for (const p of caseStudies) {
+    const slug = p.split('/')[1];
+    const title = new RegExp(`class="vt" style="view-transition-name: t-${slug}"`);
+    assert.match(html[p], title, `${p} h1`);
+    assert.match(html['work/index.html'], title, `/work row for ${slug}`);
+  }
 });
 
 test('every file in a project media folder is used by some page', () => {

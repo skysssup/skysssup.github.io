@@ -490,7 +490,7 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 .crumb { grid-column: 1 / -1; color: var(--muted); }
 .crumb a:hover { color: var(--accent); }
 .case-title { grid-column: 1 / span 2; }
-.case-title h1 { font: 500 24px/32px var(--sans); letter-spacing: -0.01em; }
+.case-title h1 { width: fit-content; font: 500 24px/32px var(--sans); letter-spacing: -0.01em; }
 .case-title p { margin-top: 8px; max-width: 46ch; }
 .meta { grid-column: 3 / span 2; align-self: start; }
 .meta dl { display: grid; grid-template-columns: calc((100% + 2 * var(--p)) / 6) minmax(0, 1fr); border-top: 1px solid var(--line); }
@@ -704,6 +704,7 @@ html.theme-reveal::view-transition-new(root) {
 }
 .site-header { view-transition-name: site-header; }
 html.theme-reveal .site-header { view-transition-name: none; }
+html.theme-reveal .vt { view-transition-name: none !important; }
 ::view-transition-group(*) { animation-duration: .25s; animation-timing-function: var(--ease-out); }
 html.theme-reveal::view-transition-old(root),
 html.theme-reveal::view-transition-new(root) { animation: none; mix-blend-mode: normal; }

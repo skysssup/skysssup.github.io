@@ -112,6 +112,9 @@ function cover(p, sizes, priority = '') {
   return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}>`;
 }
 
+// Project titles share a view-transition name across pages, so a title morphs into the next page's title.
+const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
+
 /* ── home ─────────────────────────────────────────── */
 function home() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
@@ -153,7 +156,7 @@ ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-t
 ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}" data-project="${p.slug}">
         <div class="card-media">${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}</div>
         <p class="card-meta t-label"><span>${pad(site.order.indexOf(p.slug) + 1)}</span><span>${themesOf(p)}</span><span>${p.visibility}</span></p>
-        <h3><a href="/work/${p.slug}/">${esc(p.name)}</a></h3>
+        <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h3>
         <p>${esc(p.tagline)}</p>
       </article>`).join('\n')}
     </div>
@@ -201,7 +204,7 @@ ${site.themes.map(t => `      <button class="filter" type="button" aria-pressed=
   </div>
   <ol class="projects">
 ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join(' ')}" data-project="${p.slug}">
-      <div class="c1"><span class="idx t-label">${pad(i + 1)}</span><h2><a href="/work/${p.slug}/">${esc(p.name)}</a></h2></div>
+      <div class="c1"><span class="idx t-label">${pad(i + 1)}</span><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h2></div>
       <p class="c2 t-small tagline">${esc(p.tagline)}</p>
       <p class="c3 facts t-label"><span class="themes-line">${themesOf(p)}</span><span>${p.stack.slice(0, 3).join(' · ')}</span><span>${p.visibility}</span></p>
       <div class="thumb" aria-hidden="true"><div>${cover(p, '(max-width: 767px) 100vw, 25vw')}</div></div>
@@ -273,7 +276,7 @@ ${header('work')}
   <div class="row case-head">
     <p class="crumb t-label"><a href="/work/">Work</a> / ${pad(i + 1)}</p>
     <div class="case-title">
-      <h1>${esc(p.name)}</h1>
+      <h1${vt(p)}>${esc(p.name)}</h1>
       <p>${esc(p.summary)}</p>
     </div>
     <div class="meta">
