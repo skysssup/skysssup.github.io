@@ -22,6 +22,8 @@ const year = 2026;
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
+// A separator stays at the end of a line when a list wraps.
+const DOT = '&nbsp;· ';
 // Selected work alternates wide and narrow plates, mirrored from one band to the next.
 const PLATES = [['wide', 'left'], ['narrow', 'right'], ['wide', 'right'], ['narrow', 'left']];
 const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
@@ -119,7 +121,7 @@ ${figures.map(([value, label, attrs = '']) => `      <div><dt${attrs}>${esc(valu
     </dl>
   </div>
   <div class="row sign-off">
-    <p class="sign-name">${site.name} · Kathmandu <span data-time>--:--</span> · ${year}</p>
+    <p class="sign-name">${site.name}${DOT}Kathmandu <span data-time>--:--</span>${DOT}${year}</p>
     <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="${source}/blob/main/docs/design-spec.md">Design spec${ARROW}</a><a href="#main">Back to top${UP}</a></p>
     <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
   </div>
@@ -160,7 +162,7 @@ function scripts(list) {
   return list.map(s => `<script src="${s}" defer></script>`).join('\n');
 }
 
-function themesOf(p) { return p.themes.map(t => themeName[t]).join(' · '); }
+function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
 
 function media(m, { eager = false, cls = '' } = {}) {
   if (!m) return `<div class="media-empty ${cls}"><span class="t-label">Visual placeholder</span></div>`;
@@ -239,13 +241,13 @@ ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-t
   <section class="section" id="selected" aria-labelledby="selected-title">
     <div class="row section-head rule" data-reveal>
       <h2 class="c1" id="selected-title">Selected work</h2>
-      <a class="end link-ui" href="/work/">All work · ${pad(projects.length)}${OPEN}</a>
+      <a class="end link-ui" href="/work/">All work${DOT}${pad(projects.length)}${OPEN}</a>
     </div>
     <div class="row plates">
 ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; return `      <article class="plate plate-${size} plate-${side}" data-project="${p.slug}">
         <div class="plate-media" data-reveal>${cover(p, size === 'wide' ? '(max-width: 1199px) 100vw, 75vw' : '(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 25vw', 'low')}</div>
         <div class="plate-caption">
-          <p class="plate-line">Plate ${pad(i + 1)} · ${themesOf(p)} · ${p.visibility}</p>
+          <p class="plate-line">Plate ${pad(i + 1)}${DOT}${themesOf(p, DOT)}${DOT}${p.visibility}</p>
           <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h3>
           <p>${esc(p.tagline)}</p>
         </div>
@@ -282,32 +284,29 @@ function work() {
 ${header('work')}
 <main id="main">
   <div class="row page-head">
-    <div class="c1">
-      <h1>Work</h1>
-      <p class="count t-label"><span data-count>${pad(projects.length)}</span> of ${pad(projects.length)} projects</p>
-    </div>
+    <h1>Work</h1>
+    <p class="count"><span data-count>${pad(projects.length)}</span> of ${pad(projects.length)} projects</p>
     <div class="filters" role="group" aria-label="Filter by theme" data-filters>
       <button class="filter" type="button" aria-pressed="true" data-filter="all">All <span class="k num">${pad(projects.length)}</span></button>
 ${site.themes.map(t => `      <button class="filter" type="button" aria-pressed="false" data-filter="${t.id}">${t.name} <span class="k num">${pad(counts[t.id])}</span></button>`).join('\n')}
     </div>
   </div>
   <div class="row work-toolbar">
-    <div class="c1-2"><div class="work-search">${SEARCH}<input type="search" aria-label="Search projects" placeholder="Search projects, stacks, or themes" autocomplete="off" spellcheck="false" data-work-search><button type="button" aria-label="Clear project search" data-clear-search hidden>×</button></div></div>
-    <p class="c3 t-label muted work-hint">Choose a view</p>
+    <div class="work-find"><div class="work-search"><input type="search" aria-label="Search projects" placeholder="Search projects, stacks, or themes" autocomplete="off" spellcheck="false" data-work-search><button type="button" aria-label="Clear project search" data-clear-search hidden>Clear</button></div></div>
     <div class="work-views" role="group" aria-label="Work layout">
-      <button type="button" aria-label="List view" aria-pressed="true" data-work-view="list"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 4h14M3 10h14M3 16h14"/></svg><span>List</span></button>
-      <button type="button" aria-label="Grid view" aria-pressed="false" data-work-view="grid"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z"/></svg><span>Grid</span></button>
+      <button type="button" aria-label="List view" aria-pressed="true" data-work-view="list">List</button>
+      <button type="button" aria-label="Grid view" aria-pressed="false" data-work-view="grid">Grid</button>
     </div>
   </div>
   <ol class="projects" aria-label="Projects">
 ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join(' ')}" data-project="${p.slug}" data-search="${esc([p.name, p.slug, p.tagline, themesOf(p), p.visibility, ...p.stack].join(' '))}">
-      <div class="c1"><span class="idx t-label">${pad(i + 1)}</span><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h2></div>
-      <p class="c2 t-small tagline">${esc(p.tagline)}</p>
-      <p class="c3 facts t-label"><span class="themes-line">${themesOf(p)}</span><span>${p.stack.slice(0, 3).join(' · ')}</span><span>${p.visibility}</span></p>
-      <div class="thumb" aria-hidden="true"><div>${cover(p, '(max-width: 767px) 50vw, 25vw')}</div></div>
+      <span class="idx" aria-hidden="true">${pad(i + 1)}</span>
+      <div class="project-title"><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h2><p>${esc(p.tagline)}</p></div>
+      <p class="facts"><span class="themes-line">${themesOf(p, DOT)}</span><span>${p.stack.slice(0, 3).map(esc).join(DOT)}</span><span>${p.visibility}</span></p>
+      <div class="thumb" aria-hidden="true">${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
     </li>`).join('\n')}
   </ol>
-  <div class="row work-empty" data-work-empty hidden><div class="c1-2"><h2 class="t-s">No matching projects</h2><p class="t-small muted">Try another name, technology, or theme.</p><button class="btn" type="button" data-clear-work>Reset filters</button></div></div>
+  <div class="row work-empty" data-work-empty hidden><div class="work-empty-note"><h2>No matching projects</h2><p>Try another name, technology, or theme.</p><button class="reset" type="button" data-clear-work>Reset filters</button></div></div>
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>

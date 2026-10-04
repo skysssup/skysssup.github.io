@@ -180,15 +180,6 @@
       var clearSearch = doc.querySelector("[data-clear-search]");
       var empty = doc.querySelector("[data-work-empty]");
       var activeTheme = "all";
-      var projectList = doc.querySelector(".projects"), listAnimation = null;
-      var revealList = function () {
-        if (listAnimation) listAnimation.cancel();
-        if (!motion.reduced() && projectList.animate) listAnimation = projectList.animate([
-          { opacity: 0.65, transform: "translateY(4px)" },
-          { opacity: 1, transform: "none" }
-        ], { duration: 240, easing: "cubic-bezier(.16, 1, .3, 1)" });
-      };
-      motion.subscribe(function () { if (motion.reduced() && listAnimation) listAnimation.cancel(); });
       var apply = function (theme, query, historyMode) {
         var result = filterRows(rows.map(function (r) { return (r.getAttribute("data-themes") || "").split(" "); }), theme);
         activeTheme = result.theme;
@@ -203,7 +194,6 @@
           if (url !== win.location.pathname + win.location.search + win.location.hash) win.history[historyMode + "State"](null, "", url);
           var label = result.theme === "all" ? "all themes" : buttons.filter(function (b) { return b.getAttribute("data-filter") === result.theme; })[0].firstChild.textContent.trim();
           say(n + (n === 1 ? " project" : " projects") + " shown for " + label + (query ? ', matching “' + query + '”' : ""));
-          if (historyMode === "push") revealList();
         }
       };
       buttons.forEach(function (b) { b.addEventListener("click", function () { apply(b.getAttribute("data-filter"), search ? search.value : "", "push"); }); });
@@ -233,7 +223,6 @@
       views.forEach(function (button) { button.addEventListener("click", function () {
         if (button.getAttribute("aria-pressed") === "true") return;
         setView(button.getAttribute("data-work-view"), true);
-        revealList();
       }); });
       setView(doc.documentElement.getAttribute("data-work-view"), false);
     }
