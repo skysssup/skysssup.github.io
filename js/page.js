@@ -358,33 +358,10 @@
           if (!entry.isIntersecting) return;
           entry.target.classList.add("is-seen");
           seen.unobserve(entry.target);
-          countUp(entry.target);
         });
       }, { threshold: 0.2 });
       reveals.forEach(function (el) { seen.observe(el); });
     } else reveals.forEach(function (el) { el.classList.add("is-seen"); });
-
-    /* count-up: a number rises to its printed value over 600 ms; the HTML already holds the final text */
-    function countUp(scope) {
-      if (motion.reduced() || !win.requestAnimationFrame) return;
-      Array.prototype.forEach.call(scope.querySelectorAll("[data-count-up]"), function (el, i) {
-        var final = el.textContent, match = /^([^\d]*)([\d,]*\.?\d+)(.*)$/.exec(final);
-        if (!match) return;
-        var target = parseFloat(match[2].replace(/,/g, "")), decimals = (match[2].split(".")[1] || "").length, grouped = match[2].indexOf(",") >= 0;
-        var start = null, duration = 600, delay = i * 60;
-        var step = function (now) {
-          if (start === null) start = now;
-          var k = Math.min(1, Math.max(0, (now - start - delay) / duration));
-          var eased = 1 - Math.pow(1 - k, 3);
-          var value = (target * eased).toFixed(decimals);
-          if (grouped) value = Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-          el.textContent = match[1] + value + match[3];
-          if (k < 1) win.requestAnimationFrame(step);
-          else el.textContent = el.getAttribute("data-final") || final;
-        };
-        win.requestAnimationFrame(step);
-      });
-    }
 
     return { hero: hero };
   }

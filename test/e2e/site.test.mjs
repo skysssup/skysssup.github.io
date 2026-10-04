@@ -77,7 +77,7 @@ test('axe finds no accessibility violations at any width in any mode', async () 
 });
 
 test('content sits on the sheet: left edges on a line or its inset, right-aligned ends likewise, centred blocks on a line', async () => {
-  const blocks = '.row > *, .project > *, .contact-rows > * > *, .prose > section > *, .case-title > *, .aside > *, .meta dd';
+  const blocks = '.row > *, .project > *, .contact-rows > * > *, .colophon-list > * > *, .prose > section > *, .case-title > *, .aside > *, .meta dd';
   for (const url of PAGES) for (const [width, height] of WIDTHS) {
     const { page, context } = await open(url, { width, height, touch: width < 768 });
     const off = await page.evaluate(sel => {
@@ -305,24 +305,20 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
   await context.close();
 });
 
-test('section rules draw in, media wipes in, and the colophon counts up, except under reduced motion', async () => {
+test('section rules draw in and media wipes in, once seen, except under reduced motion', async () => {
   const { page, context } = await open('/');
-  assert.equal(await page.locator('#contact .section-head').evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
-  assert.equal(await page.locator('#contact .section-head').evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
-  const figure = page.locator('.figures dt').first();
-  const printed = await figure.textContent();
+  assert.equal(await page.locator('#colophon').evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
+  assert.equal(await page.locator('#colophon').evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
   await page.locator('#colophon').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('.figures').classList.contains('is-seen'));
-  await page.waitForFunction(printed => document.querySelector('.figures dt').textContent === printed, printed, { timeout: 3000 });
-  assert.equal(await page.evaluate(() => document.querySelector('#colophon .section-head').classList.contains('is-seen')), true);
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#colophon .section-head'), '::before').transform === 'none');
+  await page.waitForFunction(() => document.querySelector('#colophon').classList.contains('is-seen'));
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#colophon'), '::before').transform === 'none');
   await page.locator('#selected .card-media').first().scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector('#selected .card-media').classList.contains('is-seen'));
   await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .card-media > img')).clipPath === 'inset(0px)');
   await context.close();
   const still = await open('/', { reduced: true });
   assert.equal(await still.page.locator('#selected .card-media > img').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
-  assert.equal(await still.page.locator('.figures dt').first().textContent(), printed, 'the printed number stands as is');
+  assert.equal(await still.page.locator('#colophon').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
   await still.context.close();
 });
 

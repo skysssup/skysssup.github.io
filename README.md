@@ -5,8 +5,10 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 
 ## Pages
 
-- `/` — the hero, a short "Essentially" statement, selected work, a colophon with the site's own numbers, and
-  contact.
+- `/` — the hero, a short "Essentially" statement, selected work, and contact.
+- Every page ends on the same footer, the sheet's sign-off: the colophon (how the site is made, the rules it
+  follows, and six numbers the generator measures) and a closing line with the local time, three links, and the
+  motion toggle.
 - `/work/` — all projects, filterable by theme (`?theme=ai-systems`, `developer-tools`, `physics-software`) and searchable by name, technology, or theme (`?q=python`). List/grid preference is saved locally; filters and search are shareable and follow browser history.
 - `/work/<slug>/` — one case study per project. See [docs/case-studies.md](docs/case-studies.md) for how to fill one in.
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
@@ -39,8 +41,8 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   button works by keyboard, and a readout under the caption shows yaw, pitch, and the engine's JS time per frame.
 - `js/page.js` — Kathmandu time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
-  the reveals (`[data-reveal]`: section rules draw in, media wipes in, and the colophon counts up, once, when
-  first seen, never under reduced motion), and mounting the hero. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
+  the reveals (`[data-reveal]`: section rules draw in and media wipes in, once, when first seen, never under
+  reduced motion), and mounting the hero. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
   use arrow keys to browse, Enter to open, and Escape to close. It uses a native dialog, traps focus,
   restores the opener, and locks background scrolling without changing the saved motion preference.
 - `js/diagram.js` — draws case-study diagrams from their JSON specs.
@@ -68,7 +70,7 @@ CI runs both on every push to `main`.
 ## Regenerating pages and assets
 
 - Pages: `node tools/pages/build.mjs` after editing `tools/pages/` (site and project data, case-study bodies in
-  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match. The home
+  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match. The footer's
   colophon prints numbers the generator measures (test counts, gzipped CSS and JS, font sizes), so changing
   CSS, JS, or tests also means regenerating.
 - Share images: `npm run og` (after changing a page title, summary, or cover).

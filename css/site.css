@@ -467,8 +467,8 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
 
 /* ── reveals: a section rule draws itself and a media frame wipes in the first time it is seen ───── */
 /* Text never waits for a scroll; only these graphics do, and only with JavaScript and full motion. */
-html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal] { border-top-color: transparent; }
-html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal]::before {
+html.js:not([data-motion="reduced"]) .rule[data-reveal] { border-top-color: transparent; }
+html.js:not([data-motion="reduced"]) .rule[data-reveal]::before {
   content: "";
   position: absolute;
   left: 0;
@@ -480,29 +480,10 @@ html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal]::before {
   transform-origin: left;
   transition: transform .9s var(--ease-out);
 }
-html.js:not([data-motion="reduced"]) .section-head.rule[data-reveal].is-seen::before { transform: none; }
+html.js:not([data-motion="reduced"]) .rule[data-reveal].is-seen::before { transform: none; }
 /* the frame is observed and stays whole; what it holds wipes in (a clipped element never intersects) */
 html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal] > :is(img, video, .media-type) { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out), transform .6s var(--ease-out); }
 html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal].is-seen > :is(img, video, .media-type) { clip-path: inset(0 0 0 0); }
-
-/* ── colophon ─────────────────────────────────────────── */
-.colophon { row-gap: 24px; }
-.colophon-notes { display: grid; gap: 12px; align-content: start; max-width: 36ch; }
-.colophon-notes p { color: var(--muted); }
-.colophon-notes p a { color: var(--muted); }
-.rules { display: grid; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line); counter-reset: rule; color: var(--muted); }
-.rules li { position: relative; padding-left: 28px; counter-increment: rule; }
-.rules li::before { content: counter(rule, decimal-leading-zero); position: absolute; left: 0; top: 2px; font: 400 10px/16px var(--mono); letter-spacing: .06em; color: var(--muted); }
-.figures { display: grid; grid-template-columns: subgrid; align-content: start; padding: 0 !important; border-top: 1px solid var(--line); }
-.figures > div { grid-column: span 1; padding: 16px var(--p) 24px; border-bottom: 1px solid var(--line); min-width: 0; }
-.figures dt { font-variant-numeric: tabular-nums; }
-.figures dd { margin-top: 8px; max-width: 28ch; }
-.figures dt[data-count-up] { transition: opacity .3s; }
-@media (max-width: 767px) {
-  .colophon-notes { max-width: 44ch; }
-  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .figures > div { padding-left: var(--p); padding-right: var(--p); }
-}
 
 /* ── hero telemetry: the engine's own readout ─────────── */
 .fig-telemetry { margin-top: 4px; }
@@ -542,16 +523,43 @@ html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal].i
   .contact-rows .v { font-size: 15px; }
 }
 
-/* ── footer ─────────────────────────────────────────────── */
+/* ── footer: the sheet's sign-off ──────────────────────── */
+/* The colophon opens on a rule; its numerals and figures hang in the first column so every text edge sits on the
+   second. One closing line follows, then the rule that closes the sheet, below which the sheet lines stop. */
 .site-footer { position: relative; z-index: 1; }
-.site-footer .row { padding-top: 16px; padding-bottom: 24px; align-items: baseline; row-gap: 8px; }
-.site-footer .row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--line); }
-.site-footer .end { grid-column: 4; display: flex; justify-content: flex-end; }
-.motion-toggle { min-height: 32px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.site-footer::after { content: ""; display: block; height: var(--m); background: var(--paper); }
+.colophon { padding-top: 24px; padding-bottom: 64px; row-gap: 24px; align-items: baseline; }
+.colophon-title { grid-column: 1; font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.colophon-notes { grid-column: 2 / span 2; max-width: calc(60ch + 2 * var(--p)); font: 400 13px/20px var(--sans); color: var(--muted); }
+.row > .colophon-list { grid-column: 1 / span 3; display: grid; grid-template-columns: subgrid; row-gap: 4px; padding: 0; }
+.colophon-list > * { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; }
+.colophon-list > * > :first-child { grid-column: 1; justify-self: end; padding-right: var(--p); }
+.colophon-list > * > :last-child { grid-column: 2 / -1; max-width: calc(60ch + 2 * var(--p)); padding-left: var(--p); font: 400 13px/20px var(--sans); color: var(--muted); }
+.rules .n { font: 400 10px/16px var(--mono); color: var(--muted); }
+.figures dt { font: 400 13px/20px var(--sans); font-variant-numeric: tabular-nums; }
+.sign-off { padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); align-items: baseline; row-gap: 8px; }
+.sign-off p, .motion-toggle { font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.sign-name { grid-column: 1; color: var(--muted); }
+.sign-links { grid-column: 2 / span 2; display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.sign-links a { text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
+.sign-links a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.motion-toggle { grid-column: 4; justify-self: end; min-height: 24px; color: var(--muted); transition: color .2s; }
 .motion-toggle:hover { color: var(--accent); }
 .motion-toggle b { font-weight: 400; color: var(--ink); }
+@media (max-width: 1199px) {
+  .colophon-notes { grid-column: 2 / -1; }
+  .row > .colophon-list { grid-column: 1 / -1; }
+  .sign-name { grid-column: 1 / span 2; }
+  .sign-links { grid-column: 3 / span 2; }
+  .motion-toggle { grid-column: 3 / span 2; justify-self: start; }
+}
 @media (max-width: 767px) {
-  .site-footer .end { grid-column: 1 / -1; justify-content: flex-start; }
+  .colophon > *, .sign-off > * { grid-column: 1 / -1; }
+  .colophon-notes { padding-left: calc(100% / 6 + var(--p)); max-width: none; }
+  .row > .colophon-list { grid-template-columns: calc(100% / 6) minmax(0, 1fr); }
+  .colophon-list > * > :last-child { max-width: none; }
+  .sign-links { grid-column: 1 / -1; }
+  .motion-toggle { justify-self: start; }
 }
 
 /* ── work index ─────────────────────────────────────────── */
@@ -1024,7 +1032,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .site-footer .end, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .motion-toggle, .sign-links, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

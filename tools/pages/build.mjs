@@ -19,7 +19,8 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ARROW = '<span class="ext" aria-hidden="true">↗</span>';
+const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
+const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
 const NEXT = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg>';
 
@@ -86,12 +87,38 @@ ${LINES}
 }
 
 function footer() {
+  const n = siteNumbers();
+  const source = `https://github.com/${site.github}/${site.github}.github.io`;
+  const rules = [
+    'Every element informs, navigates, or shows real work. Otherwise it goes.',
+    'Evidence over adjectives: screenshots, recordings, terminal output, demos.',
+    'Small, exact type. One accent. A visible grid the content obeys.',
+    'Motion explains a state change or shows the work, and has a reduced-motion equivalent.',
+    'Content is HTML first. JavaScript enhances and never gates reading.',
+  ];
+  const figures = [
+    [site.dots, 'dots in Fig. 0, drawn in one WebGL call per frame', ' data-dot-count'],
+    [String(n.unitTests), 'unit and content tests, run on every push'],
+    [String(n.renders), 'browser renders per CI run: every page at four widths in light, dark, and Gear Two, each checked with axe-core'],
+    [`${n.homeKb} KB`, 'of CSS and JavaScript on the home page, gzipped'],
+    [`${n.fontKb} KB`, `of type in ${words(n.fontFiles)} files: Instrument Sans and Fragment Mono, subset and self-hosted`],
+    ['0.9 s', 'between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch'],
+  ];
   return `<footer class="site-footer">
-  <div class="row">
-    <p class="t-label muted c1">© ${year} Aakash Dahal</p>
-    <p class="t-label c2"><a class="link-ui" href="https://github.com/${site.github}/${site.github}.github.io">Site source ${ARROW}</a></p>
-    <p class="t-label c3"><a class="link-ui" href="#main">Back to top <span aria-hidden="true">↑</span></a></p>
-    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+  <div class="row colophon rule" id="colophon" data-reveal>
+    <h2 class="colophon-title">Colophon</h2>
+    <p class="colophon-notes">I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns. The sheet has four columns whose lines stay put while the page scrolls, and every block starts on a line or just inside one, which a test checks at four widths.</p>
+    <ol class="colophon-list rules" aria-label="Rules this site follows">
+${rules.map((rule, i) => `      <li><span class="n" aria-hidden="true">${pad(i + 1)}</span><span>${rule}</span></li>`).join('\n')}
+    </ol>
+    <dl class="colophon-list figures">
+${figures.map(([value, label, attrs = '']) => `      <div><dt${attrs}>${esc(value)}</dt><dd>${label}</dd></div>`).join('\n')}
+    </dl>
+  </div>
+  <div class="row sign-off">
+    <p class="sign-name">${site.name} · Kathmandu <span data-time>--:--</span> · ${year}</p>
+    <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="${source}/blob/main/docs/design-spec.md">Design spec${ARROW}</a><a href="#main">Back to top${UP}</a></p>
+    <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
   </div>
 </footer>
 ${siteIndex()}`;
@@ -150,7 +177,7 @@ function cover(p, sizes, priority = '') {
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
-/* ── home: colophon data ─────────────────────────── */
+/* ── footer: colophon data ───────────────────────── */
 // Numbers the colophon prints; test/content.test.cjs regenerates the page, so they cannot go stale.
 function siteNumbers() {
   const ROOT = path.resolve(SRC, '..', '..');
@@ -172,42 +199,6 @@ function siteNumbers() {
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
 const words = n => WORDS[n] || String(n);
 
-function colophon() {
-  const n = siteNumbers();
-  const figures = [
-    [site.dots, 'dots in Fig. 0 on this screen, drawn in one WebGL call per frame', ' data-dot-count'],
-    [String(n.unitTests), 'unit and content tests, run on every push'],
-    [String(n.renders), 'browser renders per CI run: every page at four widths in light, dark, and Gear Two, each checked with axe-core'],
-    [`${n.homeKb} KB`, 'of CSS and JavaScript on this page, gzipped, with no framework and no build step'],
-    [`${n.fontKb} KB`, `of type in ${words(n.fontFiles)} files: Instrument Sans and Fragment Mono, subset and self-hosted`],
-    ['0.9 s', 'between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch'],
-  ];
-  return `  <section class="section" id="colophon" aria-labelledby="colophon-title">
-    <div class="row section-head rule" data-reveal>
-      <h2 class="c1" id="colophon-title">Colophon</h2>
-      <p class="c2-3 section-note t-small muted">How this page is made, in numbers the test suite checks.</p>
-      <a class="end link-ui" href="https://github.com/${site.github}/${site.github}.github.io">Site source ${ARROW}</a>
-    </div>
-    <div class="row colophon">
-      <div class="c1 colophon-notes">
-        <p class="t-small">Plain HTML, CSS, and JavaScript on GitHub Pages. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two.</p>
-        <p class="t-small">Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns, and the color of the avatar around it: the marble stays ink, the wings and the caduceus keep their gold, and the image's own sparkles twinkle. At each turn of its sway a band of light crosses the surface and a burst of dots flares into four-point stars. Gear Two swaps all of it for red, gives the figure a heartbeat, and lasts for the session.</p>
-        <ol class="rules t-small" aria-label="Rules this site follows">
-          <li>Every element informs, navigates, or shows real work. Otherwise it goes.</li>
-          <li>Evidence over adjectives: screenshots, recordings, terminal output, demos.</li>
-          <li>Small, exact type. One accent. A visible grid the content obeys.</li>
-          <li>Motion explains a state change or shows the work, and has a reduced-motion equivalent.</li>
-          <li>Content is HTML first. JavaScript enhances and never gates reading.</li>
-        </ol>
-        <p class="t-small"><a class="link-ui" href="https://github.com/${site.github}/${site.github}.github.io/blob/main/docs/design-spec.md">Design spec ${ARROW}</a></p>
-      </div>
-      <dl class="c2-4 figures" data-reveal>
-${figures.map(([value, label, attrs = '']) => `        <div><dt class="t-l num" data-count-up${attrs}>${esc(value)}</dt><dd class="t-small muted">${label}</dd></div>`).join('\n')}
-      </dl>
-    </div>
-  </section>`;
-}
-
 /* ── home ─────────────────────────────────────────── */
 function home() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
@@ -223,7 +214,7 @@ ${header('home')}
         <p class="intro-label t-label muted">Developer / Kathmandu</p>
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>${esc(site.bio)}</p>
-        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub ${ARROW}</a></div>
+        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring of project names" data-words="${projects.map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}">
         <div class="still" aria-hidden="true"></div>
@@ -258,8 +249,6 @@ ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}"
     </div>
   </section>
 
-${colophon()}
-
   <section class="section" id="contact" aria-labelledby="contact-title">
     <div class="row section-head rule" data-reveal>
       <h2 class="c1" id="contact-title">Contact</h2>
@@ -268,8 +257,8 @@ ${colophon()}
       <p class="c1 t-small contact-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is <span data-time>--:--</span> now.</p>
       <div class="c2-4 contact-rows">
         <div><span class="t-label muted">Email</span><a class="v" href="mailto:${site.email}">${site.email}</a><button class="copy t-label" type="button" data-copy="${site.email}">Copy</button></div>
-        <a href="https://x.com/${site.x}"><span class="t-label muted">X</span><span class="v">@${site.x}</span>${ARROW}</a>
-        <a href="https://github.com/${site.github}"><span class="t-label muted">GitHub</span><span class="v">${site.github}</span>${ARROW}</a>
+        <a href="https://x.com/${site.x}"><span class="t-label muted">X</span><span class="v">@${site.x}</span><span class="ext" aria-hidden="true">↗</span></a>
+        <a href="https://github.com/${site.github}"><span class="t-label muted">GitHub</span><span class="v">${site.github}</span><span class="ext" aria-hidden="true">↗</span></a>
       </div>
     </div>
   </section>
@@ -368,7 +357,7 @@ function caseStudy(p, i) {
   const body = bodyOf(p.slug);
   const toc = body ? body.sections : SECTIONS;
   const repoRow = p.repo
-    ? `<dt class="t-label">Code</dt><dd><a href="${p.repo}">github.com/${site.github}/${p.slug}</a> ${ARROW}</dd>`
+    ? `<dt class="t-label">Code</dt><dd><a href="${p.repo}">github.com/${site.github}/${p.slug}</a>${ARROW}</dd>`
     : `<dt class="t-label">Code</dt><dd>Private repository</dd>`;
   const lead = p.lead;
   const leadFig = `<figure class="fig c2-4">
@@ -385,7 +374,7 @@ ${header('work')}
     <div class="case-title">
       <h1${vt(p)}>${esc(p.name)}</h1>
       <p>${esc(p.summary)}</p>
-      <div class="case-actions"><a class="action-link" href="#problem">Read case study <span aria-hidden="true">↓</span></a>${p.repo ? `<a class="link-ui" href="${p.repo}">View source ${ARROW}</a>` : ''}</div>
+      <div class="case-actions"><a class="action-link" href="#problem">Read case study <span aria-hidden="true">↓</span></a>${p.repo ? `<a class="link-ui" href="${p.repo}">View source${ARROW}</a>` : ''}</div>
     </div>
     <div class="meta">
       <dl>
@@ -419,7 +408,7 @@ ${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="$
       <section id="stack" aria-labelledby="stack-title">
         <h2 id="stack-title">Stack and links</h2>
         <ul class="stack-list">${p.stack.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
-        <p class="links">${p.repo ? `<a href="${p.repo}">Source on GitHub</a> ${ARROW}` : 'The repository is private.'}</p>
+        <p class="links">${p.repo ? `<a href="${p.repo}">Source on GitHub</a>${ARROW}` : 'The repository is private.'}</p>
       </section>
     </article>
     <aside class="aside" aria-label="Key numbers">

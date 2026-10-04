@@ -59,7 +59,7 @@
         <p class="intro-label t-label muted">Developer / Kathmandu</p>
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.</p>
-        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/skysssup">GitHub <span class="ext" aria-hidden="true">↗</span></a></div>
+        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/skysssup">GitHub&nbsp;<span class="ext" aria-hidden="true">↗</span></a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring of project names" data-words="AGENTCRUCIBLE,AIRFORGE,SHIPGATE,RECALL,SPANFORGE,LOCALPULSE,GHOST-NOTETAKER,MOLTDAO">
         <div class="still" aria-hidden="true"></div>
@@ -114,36 +114,6 @@
     </div>
   </section>
 
-  <section class="section" id="colophon" aria-labelledby="colophon-title">
-    <div class="row section-head rule" data-reveal>
-      <h2 class="c1" id="colophon-title">Colophon</h2>
-      <p class="c2-3 section-note t-small muted">How this page is made, in numbers the test suite checks.</p>
-      <a class="end link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a>
-    </div>
-    <div class="row colophon">
-      <div class="c1 colophon-notes">
-        <p class="t-small">Plain HTML, CSS, and JavaScript on GitHub Pages. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two.</p>
-        <p class="t-small">Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns, and the color of the avatar around it: the marble stays ink, the wings and the caduceus keep their gold, and the image's own sparkles twinkle. At each turn of its sway a band of light crosses the surface and a burst of dots flares into four-point stars. Gear Two swaps all of it for red, gives the figure a heartbeat, and lasts for the session.</p>
-        <ol class="rules t-small" aria-label="Rules this site follows">
-          <li>Every element informs, navigates, or shows real work. Otherwise it goes.</li>
-          <li>Evidence over adjectives: screenshots, recordings, terminal output, demos.</li>
-          <li>Small, exact type. One accent. A visible grid the content obeys.</li>
-          <li>Motion explains a state change or shows the work, and has a reduced-motion equivalent.</li>
-          <li>Content is HTML first. JavaScript enhances and never gates reading.</li>
-        </ol>
-        <p class="t-small"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io/blob/main/docs/design-spec.md">Design spec <span class="ext" aria-hidden="true">↗</span></a></p>
-      </div>
-      <dl class="c2-4 figures" data-reveal>
-        <div><dt class="t-l num" data-count-up data-dot-count>22,730</dt><dd class="t-small muted">dots in Fig. 0 on this screen, drawn in one WebGL call per frame</dd></div>
-        <div><dt class="t-l num" data-count-up>58</dt><dd class="t-small muted">unit and content tests, run on every push</dd></div>
-        <div><dt class="t-l num" data-count-up>132</dt><dd class="t-small muted">browser renders per CI run: every page at four widths in light, dark, and Gear Two, each checked with axe-core</dd></div>
-        <div><dt class="t-l num" data-count-up>41 KB</dt><dd class="t-small muted">of CSS and JavaScript on this page, gzipped, with no framework and no build step</dd></div>
-        <div><dt class="t-l num" data-count-up>53 KB</dt><dd class="t-small muted">of type in two files: Instrument Sans and Fragment Mono, subset and self-hosted</dd></div>
-        <div><dt class="t-l num" data-count-up>0.9 s</dt><dd class="t-small muted">between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch</dd></div>
-      </dl>
-    </div>
-  </section>
-
   <section class="section" id="contact" aria-labelledby="contact-title">
     <div class="row section-head rule" data-reveal>
       <h2 class="c1" id="contact-title">Contact</h2>
@@ -159,11 +129,29 @@
   </section>
 </main>
 <footer class="site-footer">
-  <div class="row">
-    <p class="t-label muted c1">© 2026 Aakash Dahal</p>
-    <p class="t-label c2"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a></p>
-    <p class="t-label c3"><a class="link-ui" href="#main">Back to top <span aria-hidden="true">↑</span></a></p>
-    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+  <div class="row colophon rule" id="colophon" data-reveal>
+    <h2 class="colophon-title">Colophon</h2>
+    <p class="colophon-notes">I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns. The sheet has four columns whose lines stay put while the page scrolls, and every block starts on a line or just inside one, which a test checks at four widths.</p>
+    <ol class="colophon-list rules" aria-label="Rules this site follows">
+      <li><span class="n" aria-hidden="true">01</span><span>Every element informs, navigates, or shows real work. Otherwise it goes.</span></li>
+      <li><span class="n" aria-hidden="true">02</span><span>Evidence over adjectives: screenshots, recordings, terminal output, demos.</span></li>
+      <li><span class="n" aria-hidden="true">03</span><span>Small, exact type. One accent. A visible grid the content obeys.</span></li>
+      <li><span class="n" aria-hidden="true">04</span><span>Motion explains a state change or shows the work, and has a reduced-motion equivalent.</span></li>
+      <li><span class="n" aria-hidden="true">05</span><span>Content is HTML first. JavaScript enhances and never gates reading.</span></li>
+    </ol>
+    <dl class="colophon-list figures">
+      <div><dt data-dot-count>22,730</dt><dd>dots in Fig. 0, drawn in one WebGL call per frame</dd></div>
+      <div><dt>58</dt><dd>unit and content tests, run on every push</dd></div>
+      <div><dt>132</dt><dd>browser renders per CI run: every page at four widths in light, dark, and Gear Two, each checked with axe-core</dd></div>
+      <div><dt>41 KB</dt><dd>of CSS and JavaScript on the home page, gzipped</dd></div>
+      <div><dt>53 KB</dt><dd>of type in two files: Instrument Sans and Fragment Mono, subset and self-hosted</dd></div>
+      <div><dt>0.9 s</dt><dd>between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch</dd></div>
+    </dl>
+  </div>
+  <div class="row sign-off">
+    <p class="sign-name">Aakash Dahal · Kathmandu <span data-time>--:--</span> · 2026</p>
+    <p class="sign-links"><a href="https://github.com/skysssup/skysssup.github.io">Source&nbsp;<span class="ext" aria-hidden="true">↗</span></a><a href="https://github.com/skysssup/skysssup.github.io/blob/main/docs/design-spec.md">Design spec&nbsp;<span class="ext" aria-hidden="true">↗</span></a><a href="#main">Back to top&nbsp;<span aria-hidden="true">↑</span></a></p>
+    <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
   </div>
 </footer>
 <dialog class="site-index" id="site-index" aria-labelledby="index-title" data-lenis-prevent>
