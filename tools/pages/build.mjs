@@ -263,7 +263,7 @@ ${header('home')}
         <p>${esc(site.bio)}</p>
         <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub ${ARROW}</a></div>
       </div>
-      <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring of project names" data-words="${projects.map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}">
+      <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: ${esc(site.ringLine)}." data-ring="${esc(site.ringLine)}">
         <div class="still" aria-hidden="true"></div>
       </div>
       <aside class="essentially panel" aria-labelledby="essentially">
@@ -273,7 +273,7 @@ ${header('home')}
       <nav class="themes" aria-labelledby="themes-title">
         <h2 class="t-label muted" id="themes-title">Work by theme</h2>
         <ol>
-${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}" data-names="${projects.filter(p => p.themes.includes(t.id)).map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
+${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
       <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in its own colors, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>

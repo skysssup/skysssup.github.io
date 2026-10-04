@@ -218,7 +218,7 @@ test('real context loss pauses rendering and repeated restoration rebuilds cache
   assert.ok(await page.locator('.hero-words').evaluate(canvas => {
     const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
     return pixels.some((n, i) => i % 4 === 3 && n > 0);
-  }), 'the project-name ring must return too');
+  }), 'the ring must return too');
 });
 
 test('assets finishing during context loss are retained for restoration', async t => {

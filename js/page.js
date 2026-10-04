@@ -314,7 +314,7 @@
       var degrees = function (rad) { var d = rad * 180 / Math.PI; return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + "°"; };
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
-        words: (figure.getAttribute("data-words") || "").split(",").filter(Boolean),
+        line: figure.getAttribute("data-ring") || "",
         motion: motion,
         onCount: function (n) {
           var text = n.toLocaleString("en-US");
@@ -338,15 +338,10 @@
         motion.subscribe(syncRipple);
         syncRipple();
       }
-      var themeLinks = doc.querySelectorAll("[data-theme-link]");
-      Array.prototype.forEach.call(themeLinks, function (link) {
-        var names = (link.getAttribute("data-names") || "").split(",").filter(Boolean);
-        var on = function () { hero.highlight(names); };
-        var off = function () { hero.highlight(null); };
-        link.addEventListener("mouseenter", on);
-        link.addEventListener("focus", on);
-        link.addEventListener("mouseleave", off);
-        link.addEventListener("blur", off);
+      // hovering or focusing a theme brightens the ring for a moment
+      Array.prototype.forEach.call(doc.querySelectorAll("[data-theme-link]"), function (link) {
+        link.addEventListener("mouseenter", function () { hero.highlight(); });
+        link.addEventListener("focus", function () { hero.highlight(); });
       });
     }
 

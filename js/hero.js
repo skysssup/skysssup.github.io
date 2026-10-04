@@ -1,4 +1,4 @@
-/* Hero: the GitHub avatar as a stippled sculpture in WebGL2, wrapped in a ring of project names.
+/* Hero: the GitHub avatar as a stippled sculpture in WebGL2, wrapped in a ring that carries one line in its voice.
    Data comes from tools/hero/build.py (depth, ink and mask maps plus a blue-noise threshold tile).
    Pure helpers are exported for Node tests; the browser gets window.SkyHero. */
 (function (global) {
@@ -253,21 +253,14 @@
     };
   }
 
-  // The ring text: every name once per lap, separated by a middle dot, repeated to fill the circumference.
-  function ringText(words, circumference, advance) {
-    var lap = words.join(" · ") + " · ";
+  // The ring text: the line repeated as many whole times as fill the circumference, each repeat closed by a
+  // middle dot, so a word is never cut. Glyphs are spread evenly around the ring, so spacing flexes a little.
+  function ringText(line, circumference, advance) {
+    var lap = line.trim().split(/\s+/).join(" ") + " · ";
     var reps = Math.max(1, Math.round(circumference / (lap.length * advance)));
-    var glyphs = [], owner = [];
-    for (var r = 0; r < reps; r++) {
-      var w = 0;
-      for (var i = 0; i < lap.length; i++) {
-        var ch = lap.charAt(i);
-        glyphs.push(ch);
-        owner.push(ch === " " || ch === "·" ? -1 : w);
-        if (ch === "·") w++;
-      }
-    }
-    return { glyphs: glyphs, owner: owner, reps: reps };
+    var glyphs = [];
+    for (var r = 0; r < reps; r++) for (var i = 0; i < lap.length; i++) glyphs.push(lap.charAt(i));
+    return { glyphs: glyphs, reps: reps };
   }
 
   // Rotate a point by yaw (around y) then pitch (around x). Points use y up, z towards the viewer.
@@ -524,7 +517,7 @@
   function mount(el, opts) {
     var motion = opts.motion || { reduced: function () { return false; }, subscribe: function () {} };
     var base = opts.base || "/assets/hero/";
-    var words = opts.words || [];
+    var line = (opts.line || "").toUpperCase();
     var canvas = document.createElement("canvas");
     var overlay = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
@@ -556,7 +549,7 @@
     var ripples = [[0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0]], nextRipple = 0;
     var ripFlat = new Float32Array(16);
     var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
-    var ring = null, ringFont = 0, fontReady = false, highlighted = null;
+    var ring = null, ringFont = 0, fontReady = false, ringLitAt = 0;
     var glitchUntil = 0, tear = null, tearBeat = -1, longDone = -1, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
     var sheenIndex = -1, sheenAt = 0, sheenDir = 0, sheenNumber = 0, starChance = 0, lights = new Float32Array(9);
     var cpuMs = 0, telemetryAt = 0;
@@ -756,11 +749,11 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    function drawRing(t, yawNow, pitchNow, fade, beat) {
+    function drawRing(yawNow, pitchNow, fade, beat, glow) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
       drawTiles();
-      if (!fontReady || fade <= 0.01 || !words.length) return;
+      if (!fontReady || fade <= 0.01 || !line) return;
       var spec = meta.ring || {};
       // the ring breathes with the Gear Two heartbeat
       var R = (spec.r || 0.42) * (1 + 0.02 * beat), tilt = spec.tilt == null ? 0.3 : spec.tilt;
@@ -770,10 +763,9 @@
       var font = ringFont;
       ctx.font = "400 " + font + "px \"Fragment Mono\", ui-monospace, monospace";
       var advance = ctx.measureText("M").width * 1.32;
-      if (!ring) ring = ringText(words, TAU * Rpx, advance);
+      if (!ring) ring = ringText(line, TAU * Rpx, advance);
       var n = ring.glyphs.length;
       var accent = colors.gear ? colors.text : colors.accent;
-      var muted = colors.text;
       var ct = Math.cos(tilt), st = Math.sin(tilt);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -803,17 +795,16 @@
         var front = nrm[2] > 0;
         var facing = Math.abs(nrm[2]);
         if (!front && maskAt(sx, sy) > 0.3) continue;
-        var owner = ring.owner[i];
-        var lit = highlighted && owner >= 0 && highlighted.indexOf(words[owner]) >= 0;
-        var dim = highlighted && !lit;
-        var alpha = (front ? 1 : 0.3) * fade * (dim ? 0.3 : 1) * (0.35 + 0.65 * Math.pow(facing, 0.6));
+        var alpha = (front ? 1 : 0.3) * (0.35 + 0.65 * Math.pow(facing, 0.6));
+        // a brighten lifts every glyph toward full strength, the dim ones behind the figure most
+        alpha = (alpha + (1 - alpha) * glow) * fade;
         if (alpha < 0.02) continue;
         var k = pr[2];
         var tx = tg[0] * k, ty = -tg[1] * k, ux = -up[0] * k, uy = up[1] * k;
         ctx.setTransform(tx * dpr, ty * dpr, ux * dpr, uy * dpr, sx * dpr, sy * dpr);
         ctx.globalAlpha = alpha;
         if (front) ctx.strokeText(ch, 0, 0);
-        ctx.fillStyle = dim ? muted : accent;
+        ctx.fillStyle = accent;
         ctx.fillText(ch, 0, 0);
       }
       ctx.globalAlpha = 1;
@@ -976,7 +967,10 @@
       gl.drawArrays(gl.POINTS, 0, count);
       if (measure) { gl.endQuery(gl.ANY_SAMPLES_PASSED); queryPending = true; }
       var fade = live ? smoothstep(1.2, 1.9, built) : 1;
-      drawRing(t, yaw.x, pitch.x, fade, beat);
+      // a theme hover brightens the ring for 400 ms: up in the first 100, back down by the end
+      var lit = live && ringLitAt ? (now - ringLitAt) / 400 : 1;
+      var glow = lit < 0.25 ? smoothstep(0, 0.25, lit) : 1 - smoothstep(0.25, 1, lit);
+      drawRing(yaw.x, pitch.x, fade, beat, glow);
       if (!drawChecked) {
         drawChecked = true;
         if (gl.getError() !== gl.NO_ERROR) fallback();
@@ -1124,7 +1118,8 @@
     }).catch(fallback);
 
     return {
-      highlight: function (list) { highlighted = list && list.length ? list : null; if (motion.reduced()) sync(); },
+      // brighten the ring once (nothing moves under reduced motion; the still is simply redrawn)
+      highlight: function () { if (canInteract()) ringLitAt = performance.now(); else if (motion.reduced()) sync(); },
       count: function () { return count; },
       ripple: function () { if (canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2); }
     };

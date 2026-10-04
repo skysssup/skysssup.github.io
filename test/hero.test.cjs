@@ -139,16 +139,16 @@ test('the figure is centred in its box with the requested margin', () => {
   assert.ok(Math.abs(placed.y + 0.2 * placed.scale - 14) < 1e-9);
 });
 
-test('the ring repeats whole names, separated by middle dots, and knows which name owns each glyph', () => {
-  const words = ['AGENTCRUCIBLE', 'AIRFORGE', 'SHIPGATE'];
-  const ring = hero.ringText(words, 2000, 8);
-  const text = ring.glyphs.join('');
-  assert.equal(ring.reps, Math.round(2000 / ((words.join(' · ') + ' · ').length * 8)));
-  for (const lap of text.split(' · ').filter(Boolean)) assert.ok(words.includes(lap), `fragment "${lap}"`);
-  const first = ring.glyphs.indexOf('S');
-  assert.equal(words[ring.owner[first]], 'SHIPGATE');
-  assert.equal(ring.owner[ring.glyphs.indexOf('·')], -1);
-  assert.equal(hero.ringText(words, 10, 8).reps, 1);
+test('the ring repeats the whole line, closes each repeat with a middle dot, and never cuts a word', () => {
+  const line = 'I STOLE APOLLO’S CATTLE ON DAY ONE.  YOUR AGENT WON’T SNEAK ONE PAST ME';
+  const lap = 'I STOLE APOLLO’S CATTLE ON DAY ONE. YOUR AGENT WON’T SNEAK ONE PAST ME · ';
+  const ring = hero.ringText(line, 2000, 8);
+  assert.equal(ring.reps, Math.round(2000 / (lap.length * 8)));
+  assert.equal(ring.glyphs.join(''), lap.repeat(ring.reps), 'whole repeats, runs of spaces collapsed');
+  const words = ring.glyphs.join('').split(/[\s·]+/).filter(Boolean);
+  for (const w of words) assert.ok(line.split(/\s+/).includes(w), `fragment "${w}"`);
+  assert.equal(hero.ringText(line, 10, 8).reps, 1, 'a short ring still carries the line once');
+  assert.equal(hero.ringText(line, 6000, 8).glyphs.filter(c => c === '·').length, hero.ringText(line, 6000, 8).reps);
 });
 
 test('rotation keeps lengths, and perspective magnifies what is nearer', () => {

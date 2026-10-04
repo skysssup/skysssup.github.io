@@ -23,7 +23,8 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
 - `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), Gear Two's flash → glitch → settle
   with the red ring that leaves the switch and the `--beat-delay` that phases every CSS pulse to the hero's
   0.9 s heartbeat, the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
-- `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring of project names. It stipples
+- `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring that carries one line in the statue's
+  voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms). It stipples
   `assets/hero/ink.webp` (896 px) against a blue-noise tile at load, takes each dot's depth, surface normal, and
   detail from `assets/hero/depth.webp` (the depth smoothed inside the figure first, so the lighting never bands),
   samples the avatar's color under each dot from `assets/hero/color.webp` (its hue, with
