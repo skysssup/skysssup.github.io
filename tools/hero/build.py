@@ -178,6 +178,7 @@ def main():
     im = im.resize((S, S), Image.LANCZOS)
     rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])
     rgba.save(os.path.join(OUT, 'still.webp'), 'WEBP', lossless=True, quality=100, method=6)
+    rgba.resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, 'preview.webp'), 'WEBP', lossless=True, quality=100, method=6)
     print(json.dumps(meta), len(sx), 'still points')
 
 

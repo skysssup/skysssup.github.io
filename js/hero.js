@@ -270,16 +270,23 @@
       c.width = bmp.width;
       c.height = bmp.height;
       var ctx = c.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(bmp, 0, 0);
-      return { width: bmp.width, data: ctx.getImageData(0, 0, bmp.width, bmp.height).data };
+      try {
+        ctx.drawImage(bmp, 0, 0);
+        return { width: bmp.width, height: bmp.height, data: ctx.getImageData(0, 0, bmp.width, bmp.height).data };
+      } finally { bmp.close(); }
     });
   }
 
   function compile(gl, type, src) {
     var sh = gl.createShader(type);
+    if (!sh) throw new Error("hero shader unavailable");
     gl.shaderSource(sh, src);
     gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      var error = gl.getShaderInfoLog(sh);
+      gl.deleteShader(sh);
+      throw new Error(error || "hero shader failed");
+    }
     return sh;
   }
 
@@ -293,43 +300,115 @@
     overlay.setAttribute("aria-hidden", "true");
     canvas.className = "hero-dots";
     overlay.className = "hero-words";
-    var gl = canvas.getContext("webgl2", { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: "high-performance" });
-    if (!gl) {
+    var gl = null, ctx = null;
+    try {
+      gl = canvas.getContext("webgl2", { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: "high-performance" });
+      ctx = overlay.getContext("2d");
+    } catch (e) {}
+    if (!gl || !ctx) {
+      el.classList.remove("is-live");
       el.classList.add("is-fallback");
-      return { highlight: function () {}, count: function () { return 0; } };
+      return { highlight: function () {}, count: function () { return 0; }, ripple: function () {} };
     }
     el.appendChild(canvas);
     el.appendChild(overlay);
-    var ctx = overlay.getContext("2d");
 
-    var prog = gl.createProgram();
-    gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT));
-    gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG));
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-    gl.useProgram(prog);
-    var U = {};
-    ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_color"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
-    var vao = gl.createVertexArray();
-    var vbo = gl.createBuffer();
-    gl.bindVertexArray(vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-
-    var maps = null, noise = null, meta = null, count = 0, res = 0;
+    var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
+    var maps = null, noise = null, meta = null, points = null, count = 0, res = 0;
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
+    var touch = null;
     var ripples = [[0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0]], nextRipple = 0;
     var ripFlat = new Float32Array(16);
-    var startAt = 0, last = 0, raf = 0, visible = true, ready = false, clock = 0, spin = 0;
+    var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
     var ring = null, ringFont = 0, fontReady = false, highlighted = null;
-    var glitchUntil = 0;
+    var glitchUntil = 0, resizeTimer = 0;
+
+    function releaseTouch(event, cancelled) {
+      if (!touch || (event && event.pointerId !== touch.id)) return;
+      var id = touch.id;
+      if (cancelled) touch.ripple[3] = 0;
+      touch = null;
+      pointer.tx = pointer.ty = 0;
+      if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
+    }
+
+    function cancelInteractions() {
+      releaseTouch(null, true);
+      pointer.inside = false;
+      pointer.x = pointer.y = -1e4;
+      pointer.tx = pointer.ty = 0;
+      pushK.x = pushK.v = yaw.v = pitch.v = 0;
+      for (var i = 0; i < ripples.length; i++) ripples[i][3] = 0;
+      glitchUntil = 0;
+    }
+
+    function fallback() {
+      ready = rendered = queryPending = drawChecked = false;
+      cancelAnimationFrame(raf);
+      clearTimeout(resizeTimer);
+      raf = last = 0;
+      cancelInteractions();
+      if (prog) gl.deleteProgram(prog);
+      if (vao) gl.deleteVertexArray(vao);
+      if (vbo) gl.deleteBuffer(vbo);
+      if (query) gl.deleteQuery(query);
+      prog = vao = vbo = query = null;
+      U = {};
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      el.classList.remove("is-live");
+      el.classList.add("is-fallback");
+    }
+
+    function initialize() {
+      if (prog || !meta || gl.isContextLost()) return;
+      var vert = null, frag = null;
+      try {
+        prog = gl.createProgram();
+        if (!prog) throw new Error("hero program unavailable");
+        vert = compile(gl, gl.VERTEX_SHADER, VERT);
+        frag = compile(gl, gl.FRAGMENT_SHADER, FRAG);
+        gl.attachShader(prog, vert);
+        gl.attachShader(prog, frag);
+        gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+        gl.useProgram(prog);
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_color"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        vao = gl.createVertexArray();
+        vbo = gl.createBuffer();
+        query = gl.createQuery();
+        if (!vao || !vbo || !query) throw new Error("hero buffers unavailable");
+        gl.bindVertexArray(vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        ready = size();
+        if (ready && !startAt) startAt = performance.now();
+        sync();
+      } catch (e) { fallback(); }
+      finally {
+        if (vert) gl.deleteShader(vert);
+        if (frag) gl.deleteShader(frag);
+      }
+    }
+
+    function reveal() {
+      if (rendered || !queryPending || !gl.getQueryParameter(query, gl.QUERY_RESULT_AVAILABLE)) return;
+      queryPending = false;
+      if (!gl.getQueryParameter(query, gl.QUERY_RESULT)) {
+        if (motion.reduced()) fallback();
+        return;
+      }
+      rendered = true;
+      el.classList.remove("is-fallback");
+      el.classList.add("is-live");
+    }
 
     function size() {
       var rect = el.getBoundingClientRect();
@@ -353,12 +432,14 @@
       var want = resolutionFor(place.scale);
       if (want !== res) {
         res = want;
-        var pts = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
-        count = pts.length / 4;
-        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, pts, gl.STATIC_DRAW);
+        points = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7);
+        count = points.length / 4;
         if (opts.onCount) opts.onCount(count);
       }
+      if (!count) throw new Error("hero data is empty");
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW);
+      drawChecked = false;
       cell = place.scale / res;
       ringFont = clamp(Math.round(s / 56), 10, 12);
       ring = null;
@@ -447,26 +528,41 @@
 
     function frame(now) {
       raf = 0;
-      if (!ready || !visible || document.hidden || motion.reduced()) return;
+      if (!ready || !visible || document.hidden) return;
+      if (gl.isContextLost()) { fallback(); return; }
+      if (motion.reduced()) {
+        reveal();
+        if (queryPending) raf = requestAnimationFrame(frame);
+        return;
+      }
       render(now);
-      raf = requestAnimationFrame(frame);
+      if (ready) raf = requestAnimationFrame(frame);
     }
 
     function render(now) {
+      if (gl.isContextLost()) { fallback(); return; }
+      reveal();
+      if (!ready) return;
       var live = !motion.reduced();
       var dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
       var gear = colors.gear;
-      clock += dt * (gear ? 1.6 : 1);
-      var t = now / 1000;
+      if (live) clock += dt * (gear ? 1.6 : 1);
+      var t = live ? now / 1000 : 0;
       var built = live ? (now - startAt) / 1000 : 99;
       var swayYaw = live ? 0.28 * Math.sin((TAU * clock) / 14) : 0.12;
       var swayPitch = live ? 0.07 * Math.sin((TAU * clock) / 19 + 1) : 0.02;
-      spring(yaw, swayYaw + (pointer.inside && live ? pointer.tx * 0.5 : 0), dt, 3.2);
-      spring(pitch, swayPitch - (pointer.inside && live ? pointer.ty * 0.25 : 0), dt, 3.2);
-      spring(pushK, pointer.inside && live ? 1 : 0, dt, 9);
-      spin += dt * (gear ? 0.32 : 0.11) * (live ? 1 : 0);
-      if (!live) { yaw.x = swayYaw; pitch.x = swayPitch; }
+      var tilt = pointer.inside || (touch && touch.dragging);
+      if (live) {
+        spring(yaw, swayYaw + (tilt ? pointer.tx * 0.5 : 0), dt, 3.2);
+        spring(pitch, swayPitch - (tilt ? pointer.ty * 0.25 : 0), dt, 3.2);
+        spring(pushK, pointer.inside ? 1 : 0, dt, 9);
+        spin += dt * (gear ? 0.32 : 0.11);
+      } else {
+        yaw.x = swayYaw;
+        pitch.x = swayPitch;
+        yaw.v = pitch.v = pushK.x = pushK.v = 0;
+      }
       if (inkAt) {
         var q = clamp((now - inkAt) / 320, 0, 1);
         inkNow = [0, 1, 2].map(function (c) { return inkFrom[c] + (inkTo[c] - inkFrom[c]) * q; });
@@ -476,7 +572,7 @@
         ripFlat[i * 4] = ripples[i][0];
         ripFlat[i * 4 + 1] = ripples[i][1];
         ripFlat[i * 4 + 2] = ripples[i][2];
-        ripFlat[i * 4 + 3] = ripples[i][3];
+        ripFlat[i * 4 + 3] = live ? ripples[i][3] : 0;
       }
       var beat = gear && live ? heartbeat(t) : 0;
       var glitch = live && now < glitchUntil ? 1 : 0;
@@ -498,18 +594,32 @@
       gl.uniform1f(U.u_glitch, glitch);
       gl.uniform3f(U.u_color, inkNow[0], inkNow[1], inkNow[2]);
       gl.bindVertexArray(vao);
+      var measure = !rendered && !queryPending;
+      if (measure) gl.beginQuery(gl.ANY_SAMPLES_PASSED, query);
       gl.drawArrays(gl.POINTS, 0, count);
+      if (measure) { gl.endQuery(gl.ANY_SAMPLES_PASSED); queryPending = true; }
       var fade = live ? smoothstep(1.2, 1.9, built) : 1;
       drawRing(t, yaw.x, pitch.x, fade);
+      if (!drawChecked) {
+        drawChecked = true;
+        if (gl.getError() !== gl.NO_ERROR) fallback();
+      }
     }
 
     function sync() {
       cancelAnimationFrame(raf);
       raf = 0;
       last = 0;
-      if (!ready) return;
-      if (motion.reduced()) { render(performance.now()); return; }
-      if (visible && !document.hidden) raf = requestAnimationFrame(frame);
+      if (motion.reduced() || !visible || document.hidden) cancelInteractions();
+      if (!ready || !visible || document.hidden) return;
+      if (motion.reduced()) {
+        inkNow = rgb(colors.ink);
+        inkAt = 0;
+        render(performance.now());
+        if (queryPending) raf = requestAnimationFrame(frame);
+        return;
+      }
+      raf = requestAnimationFrame(frame);
     }
 
     function onTheme() {
@@ -524,50 +634,104 @@
       sync();
     }
 
-    el.addEventListener("pointermove", function (e) { if (e.pointerType === "touch") return; pointer.inside = true; setPointer(e); });
-    el.addEventListener("pointerleave", function () { pointer.inside = false; });
-    el.addEventListener("pointerdown", function (e) {
-      if (!ready || motion.reduced()) return;
-      setPointer(e);
-      ripples[nextRipple] = [pointer.x, pointer.y, performance.now() / 1000, colors.gear ? 1.4 : 1];
+    function canInteract() { return ready && visible && !document.hidden && !motion.reduced(); }
+
+    function ripple(x, y) {
+      var wave = [x, y, performance.now() / 1000, colors.gear ? 1.4 : 1];
+      ripples[nextRipple] = wave;
       nextRipple = (nextRipple + 1) % 4;
-      if (e.pointerType !== "touch") pointer.inside = true;
+      return wave;
+    }
+
+    el.addEventListener("pointermove", function (e) {
+      if (!canInteract()) return;
+      if (e.pointerType === "touch") {
+        if (!touch || e.pointerId !== touch.id) return;
+        var dx = e.clientX - touch.x, dy = e.clientY - touch.y;
+        if (!touch.dragging) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
+          if (Math.abs(dy) >= Math.abs(dx)) { releaseTouch(e, true); return; }
+          touch.dragging = true;
+          el.setPointerCapture(e.pointerId);
+        }
+        var rect = el.getBoundingClientRect();
+        pointer.tx = clamp(dx / rect.width, -0.45, 0.45);
+        pointer.ty = clamp(dy / rect.height, -0.16, 0.16);
+        return;
+      }
+      if (touch) return;
+      pointer.inside = true;
+      setPointer(e);
     });
-    new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-gear", "data-phase", "data-motion"] });
+    el.addEventListener("pointerleave", function (e) {
+      if (e.pointerType === "touch") {
+        if (!el.hasPointerCapture(e.pointerId)) releaseTouch(e, true);
+      } else pointer.inside = false;
+    });
+    el.addEventListener("pointerdown", function (e) {
+      if (!canInteract() || touch || (e.pointerType === "touch" && !e.isPrimary)) return;
+      setPointer(e);
+      var wave = ripple(pointer.x, pointer.y);
+      if (e.pointerType === "touch") {
+        pointer.inside = false;
+        pointer.tx = pointer.ty = pushK.x = pushK.v = 0;
+        touch = { id: e.pointerId, x: e.clientX, y: e.clientY, dragging: false, ripple: wave };
+      } else pointer.inside = true;
+    });
+    el.addEventListener("pointerup", function (e) { releaseTouch(e, false); });
+    el.addEventListener("pointercancel", function (e) { releaseTouch(e, true); pointer.inside = false; });
+    el.addEventListener("lostpointercapture", function (e) { releaseTouch(e, true); });
+    canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); fallback(); });
+    canvas.addEventListener("webglcontextrestored", initialize);
+    new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-gear", "data-phase"] });
     var mq = global.matchMedia ? global.matchMedia("(prefers-color-scheme: dark)") : null;
     if (mq && mq.addEventListener) mq.addEventListener("change", onTheme);
     motion.subscribe(sync);
     document.addEventListener("visibilitychange", sync);
     new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; sync(); }).observe(el);
-    var resizeTimer = 0;
     new ResizeObserver(function () {
-      if (!ready) return;
+      if (!prog || !meta || gl.isContextLost()) return;
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () { if (size()) sync(); }, 120);
+      resizeTimer = setTimeout(function () {
+        if (!prog || gl.isContextLost()) return;
+        try {
+          ready = size();
+          if (ready && !startAt) startAt = performance.now();
+          sync();
+        } catch (e) { fallback(); }
+      }, 120);
     }).observe(el);
 
     if (document.fonts && document.fonts.load) {
-      document.fonts.load("400 11px \"Fragment Mono\"").then(function () { fontReady = true; ring = null; sync(); }, function () { fontReady = true; });
+      var onFont = function () { fontReady = true; ring = null; sync(); };
+      document.fonts.load("400 11px \"Fragment Mono\"").then(onFont, onFont);
     } else fontReady = true;
 
     Promise.all([
       loadImageData(base + "data.png"),
       loadImageData(base + "bluenoise.png"),
-      fetch(base + "hero.json").then(function (r) { return r.json(); })
+      fetch(base + "hero.json").then(function (r) {
+        if (!r.ok) throw new Error("hero metadata " + r.status);
+        return r.json();
+      })
     ]).then(function (all) {
+      if (all[0].width < 2 || all[0].width !== all[0].height || all[1].width !== all[1].height) throw new Error("hero maps must be square");
+      var data = all[2];
+      var normalized = function (n) { return Number.isFinite(n) && n >= 0 && n <= 1; };
+      if (!data || data.size !== all[0].width || !Array.isArray(data.bounds) || data.bounds.length !== 4 || !data.bounds.every(normalized) ||
+          data.bounds[2] <= data.bounds[0] || data.bounds[3] <= data.bounds[1] ||
+          !Array.isArray(data.center) || data.center.length !== 2 || !data.center.every(normalized) ||
+          !normalized(data.density) || data.density <= 0) throw new Error("hero metadata is invalid");
       maps = all[0];
       noise = { width: all[1].width, data: (function () { var d = all[1].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
-      meta = all[2];
-      if (!size()) return;
-      ready = true;
-      startAt = performance.now();
-      el.classList.add("is-live");
-      sync();
-    }).catch(function () { el.classList.add("is-fallback"); });
+      meta = data;
+      initialize();
+    }).catch(fallback);
 
     return {
       highlight: function (list) { highlighted = list && list.length ? list : null; if (motion.reduced()) sync(); },
-      count: function () { return count; }
+      count: function () { return count; },
+      ripple: function () { if (canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2); }
     };
   }
 

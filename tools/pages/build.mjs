@@ -19,6 +19,8 @@ const md = s => esc(s)
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
 const ARROW = '<span class="ext" aria-hidden="true">↗</span>';
+const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
+const NEXT = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg>';
 
 function head({ title, description, url, image, imageAlt, type = 'website', boot = '', extra = '' }) {
   return `<!DOCTYPE html>
@@ -72,6 +74,7 @@ ${LINES}
     </nav>
     <div class="header-mid">
       <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
+      <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
     <div class="header-end">
       <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
@@ -86,9 +89,40 @@ function footer() {
   <div class="row">
     <p class="t-label muted c1">© ${year} Aakash Dahal</p>
     <p class="t-label c2"><a class="link-ui" href="https://github.com/${site.github}/${site.github}.github.io">Site source ${ARROW}</a></p>
-    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+    <p class="t-label c3"><a class="link-ui" href="#main">Back to top <span aria-hidden="true">↑</span></a></p>
+    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
   </div>
-</footer>`;
+</footer>
+${siteIndex()}`;
+}
+
+function siteIndex() {
+  return `<dialog class="site-index" id="site-index" aria-labelledby="index-title" data-lenis-prevent>
+  <div class="index-head">
+    <div><p class="t-label muted">Navigate</p><h2 id="index-title">Site index</h2></div>
+    <button class="index-close" type="button" aria-label="Close site index (Esc)" data-index-close><span class="t-label">Esc</span><span aria-hidden="true">×</span></button>
+  </div>
+  <label class="index-search" for="index-search">${SEARCH}<input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search></label>
+  <div class="index-content" data-lenis-prevent>
+    <nav class="index-pages" aria-label="Pages">
+      <a href="/" data-index-item data-search="home aakash dahal">Home ${NEXT}</a>
+      <a href="/work/" data-index-item data-search="all work projects portfolio">All work ${NEXT}</a>
+      <a href="/#contact" data-index-item data-search="contact email github social">Contact ${NEXT}</a>
+    </nav>
+    <nav aria-label="Projects">
+      <p class="index-label t-label muted">Projects</p>
+      <ol class="index-projects">
+${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name, p.slug, p.tagline, themesOf(p), ...p.stack].join(' '))}"><a href="/work/${p.slug}/"><span class="t-label muted">${pad(i + 1)}</span><span class="index-project-name">${esc(p.name)}<span class="t-small muted">${themesOf(p)}</span></span>${NEXT}</a></li>`).join('\n')}
+      </ol>
+    </nav>
+    <p class="index-empty t-small muted" data-index-empty hidden>No matches. Try a project name, a technology, or “contact”.</p>
+  </div>
+  <div class="index-footer">
+    <p class="t-label muted"><kbd>↑</kbd> <kbd>↓</kbd> Browse <span class="index-enter"><kbd>↵</kbd> Open</span></p>
+    <button class="index-motion t-label" type="button" aria-label="Motion Full, toggle reduced motion" aria-pressed="false" data-index-motion>Motion <span data-index-motion-state>Full</span></button>
+  </div>
+  <span class="vh" role="status" aria-live="polite" data-index-status></span>
+</dialog>`;
 }
 
 function scripts(list) {
@@ -107,7 +141,7 @@ function media(m, { eager = false, cls = '' } = {}) {
 }
 
 function cover(p, sizes, priority = '') {
-  if (!p.cover) return `<div class="media-empty"><span class="t-label">Visual to come</span></div>`;
+  if (!p.cover) return `<div class="media-type" aria-hidden="true"><span class="t-label muted">${esc(p.stack.slice(0, 3).join(' / '))}</span><span class="t-l">${esc(p.name)}</span><span class="t-label muted">${p.repo ? 'Source available on GitHub' : 'Private repository'}</span></div>`;
   const b = p.cover.src;
   return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}>`;
 }
@@ -120,15 +154,17 @@ function home() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
   const featured = site.featured.map(slug => projects.find(p => p.slug === slug));
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
-  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
+  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', extra: `<link rel="preload" href="/assets/hero/preview.webp" as="image" fetchpriority="high" crossorigin>\n<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
 <body class="page-home">
 ${header('home')}
 <main id="main">
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
+        <p class="intro-label t-label muted">Developer / Kathmandu</p>
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>${esc(site.bio)}</p>
+        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub ${ARROW}</a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring of project names" data-words="${projects.map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}">
         <div class="still" aria-hidden="true"></div>
@@ -143,18 +179,19 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}" data-names="${projects.filter(p => p.themes.includes(t.id)).map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <p class="fig-note"><span class="t-label muted">Fig. 0</span><span class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap it to send a ripple.</span></span></p>
+      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
     </div>
   </section>
 
   <section class="section" id="selected" aria-labelledby="selected-title">
     <div class="row section-head rule">
       <h2 class="c1" id="selected-title">Selected work</h2>
+      <p class="c2-3 section-note t-small muted">A closer look at four public projects.</p>
       <a class="end link-ui" href="/work/">All work (${pad(projects.length)})</a>
     </div>
     <div class="row cards">
 ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}" data-project="${p.slug}">
-        <div class="card-media">${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}</div>
+        <div class="card-media">${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}<span class="card-open t-label" aria-hidden="true">View project ${NEXT}</span></div>
         <p class="card-meta t-label"><span>${pad(site.order.indexOf(p.slug) + 1)}</span><span>${themesOf(p)}</span><span>${p.visibility}</span></p>
         <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h3>
         <p>${esc(p.tagline)}</p>
@@ -187,7 +224,7 @@ ${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/
 /* ── work index ───────────────────────────────────── */
 function work() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
-  const filterBoot = `(function(r){var m=/[?&]theme=(${site.themes.map(t => t.id).join('|')})(&|$)/.exec(location.search);if(m)r.setAttribute("data-filter",m[1])})(document.documentElement);`;
+  const filterBoot = `(function(r){var m=/[?&]theme=(${site.themes.map(t => t.id).join('|')})(&|$)/.exec(location.search);if(m)r.setAttribute("data-filter",m[1]);try{if(localStorage.getItem("sky-work-view")==="grid")r.setAttribute("data-work-view","grid")}catch(e){}})(document.documentElement);`;
   return `${head({ title: 'Work — Aakash Dahal', description: 'Eight projects by Aakash Dahal across AI systems, developer tools, and physics software, each with a case study.', url: '/work/', image: '/assets/og/work.png', imageAlt: 'Work by Aakash Dahal: eight projects', boot: filterBoot })}
 <body class="page-work">
 ${header('work')}
@@ -202,14 +239,23 @@ ${header('work')}
 ${site.themes.map(t => `      <button class="filter" type="button" aria-pressed="false" data-filter="${t.id}">${t.name} <span class="k num">${pad(counts[t.id])}</span></button>`).join('\n')}
     </div>
   </div>
-  <ol class="projects">
-${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join(' ')}" data-project="${p.slug}">
+  <div class="row work-toolbar">
+    <div class="c1-2"><div class="work-search">${SEARCH}<input type="search" aria-label="Search projects" placeholder="Search projects, stacks, or themes" autocomplete="off" spellcheck="false" data-work-search><button type="button" aria-label="Clear project search" data-clear-search hidden>×</button></div></div>
+    <p class="c3 t-label muted work-hint">Choose a view</p>
+    <div class="work-views" role="group" aria-label="Work layout">
+      <button type="button" aria-label="List view" aria-pressed="true" data-work-view="list"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 4h14M3 10h14M3 16h14"/></svg><span>List</span></button>
+      <button type="button" aria-label="Grid view" aria-pressed="false" data-work-view="grid"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z"/></svg><span>Grid</span></button>
+    </div>
+  </div>
+  <ol class="projects" aria-label="Projects">
+${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join(' ')}" data-project="${p.slug}" data-search="${esc([p.name, p.slug, p.tagline, themesOf(p), p.visibility, ...p.stack].join(' '))}">
       <div class="c1"><span class="idx t-label">${pad(i + 1)}</span><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h2></div>
       <p class="c2 t-small tagline">${esc(p.tagline)}</p>
       <p class="c3 facts t-label"><span class="themes-line">${themesOf(p)}</span><span>${p.stack.slice(0, 3).join(' · ')}</span><span>${p.visibility}</span></p>
-      <div class="thumb" aria-hidden="true"><div>${cover(p, '(max-width: 767px) 100vw, 25vw')}</div></div>
+      <div class="thumb" aria-hidden="true"><div>${cover(p, '(max-width: 767px) 50vw, 25vw')}</div></div>
     </li>`).join('\n')}
   </ol>
+  <div class="row work-empty" data-work-empty hidden><div class="c1-2"><h2 class="t-s">No matching projects</h2><p class="t-small muted">Try another name, technology, or theme.</p><button class="btn" type="button" data-clear-work>Reset filters</button></div></div>
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
@@ -278,6 +324,7 @@ ${header('work')}
     <div class="case-title">
       <h1${vt(p)}>${esc(p.name)}</h1>
       <p>${esc(p.summary)}</p>
+      <div class="case-actions"><a class="action-link" href="#problem">Read case study <span aria-hidden="true">↓</span></a>${p.repo ? `<a class="link-ui" href="${p.repo}">View source ${ARROW}</a>` : ''}</div>
     </div>
     <div class="meta">
       <dl>
@@ -296,7 +343,9 @@ ${header('work')}
 
   <div class="row case-body">
     <nav class="toc" aria-label="On this page">
-      <ol>
+      <div class="toc-head"><span class="t-label muted">On this page</span><span class="t-label muted" data-reading-progress aria-hidden="true">00%</span></div>
+      <div class="reading-track" aria-hidden="true"><span data-reading-bar></span></div>
+      <ol data-lenis-prevent>
 ${toc.map(([id, title]) => `        <li><a href="#${id}">${title}</a></li>`).join('\n')}
         <li><a href="#stack">Stack and links</a></li>
       </ol>

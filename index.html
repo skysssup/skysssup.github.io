@@ -27,6 +27,7 @@
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
 <link rel="stylesheet" href="/css/site.css">
+<link rel="preload" href="/assets/hero/preview.webp" as="image" fetchpriority="high" crossorigin>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics."}</script>
 </head>
 <body class="page-home">
@@ -43,6 +44,7 @@
     </nav>
     <div class="header-mid">
       <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
+      <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
     <div class="header-end">
       <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
@@ -54,8 +56,10 @@
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
+        <p class="intro-label t-label muted">Developer / Kathmandu</p>
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.</p>
+        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/skysssup">GitHub <span class="ext" aria-hidden="true">↗</span></a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring of project names" data-words="AGENTCRUCIBLE,AIRFORGE,SHIPGATE,RECALL,SPANFORGE,LOCALPULSE,GHOST-NOTETAKER,MOLTDAO">
         <div class="still" aria-hidden="true"></div>
@@ -72,36 +76,37 @@
           <li><a href="/work/?theme=physics-software" data-theme-link="physics-software" data-names="AIRFORGE"><span class="t-label muted">03</span><span class="t-small">Physics software</span><span class="t-label muted num">01</span></a></li>
         </ol>
       </nav>
-      <p class="fig-note"><span class="t-label muted">Fig. 0</span><span class="t-small">My GitHub avatar as <span data-dot-count>22,730</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap it to send a ripple.</span></span></p>
+      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>22,730</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
     </div>
   </section>
 
   <section class="section" id="selected" aria-labelledby="selected-title">
     <div class="row section-head rule">
       <h2 class="c1" id="selected-title">Selected work</h2>
+      <p class="c2-3 section-note t-small muted">A closer look at four public projects.</p>
       <a class="end link-ui" href="/work/">All work (08)</a>
     </div>
     <div class="row cards">
       <article class="card c1-2" data-project="agentcrucible">
-        <div class="card-media"><img src="/work/agentcrucible/media/cover-672.webp" srcset="/work/agentcrucible/media/cover-672.webp 672w, /work/agentcrucible/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async" fetchpriority="low"></div>
+        <div class="card-media"><img src="/work/agentcrucible/media/cover-672.webp" srcset="/work/agentcrucible/media/cover-672.webp 672w, /work/agentcrucible/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async" fetchpriority="low"><span class="card-open t-label" aria-hidden="true">View project <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></span></div>
         <p class="card-meta t-label"><span>01</span><span>AI systems</span><span>Public</span></p>
         <h3><a href="/work/agentcrucible/" class="vt" style="view-transition-name: t-agentcrucible">AgentCrucible</a></h3>
         <p>Fault-tests tool-using agents against scripted mock worlds.</p>
       </article>
       <article class="card c3-4" data-project="airforge">
-        <div class="card-media"><img src="/work/airforge/media/cover-672.webp" srcset="/work/airforge/media/cover-672.webp 672w, /work/airforge/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async" fetchpriority="low"></div>
+        <div class="card-media"><img src="/work/airforge/media/cover-672.webp" srcset="/work/airforge/media/cover-672.webp 672w, /work/airforge/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async" fetchpriority="low"><span class="card-open t-label" aria-hidden="true">View project <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></span></div>
         <p class="card-meta t-label"><span>02</span><span>Physics software</span><span>Public</span></p>
         <h3><a href="/work/airforge/" class="vt" style="view-transition-name: t-airforge">AirForge</a></h3>
         <p>Draw ramps, balls, platforms, and curves; Rapier simulates them in 2.5D.</p>
       </article>
       <article class="card c1-2" data-project="shipgate">
-        <div class="card-media"><img src="/work/shipgate/media/cover-672.webp" srcset="/work/shipgate/media/cover-672.webp 672w, /work/shipgate/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async" fetchpriority="low"></div>
+        <div class="card-media"><img src="/work/shipgate/media/cover-672.webp" srcset="/work/shipgate/media/cover-672.webp 672w, /work/shipgate/media/cover-1344.webp 1344w" sizes="(max-width: 767px) 100vw, 50vw" alt="" width="1344" height="840" loading="lazy" decoding="async" fetchpriority="low"><span class="card-open t-label" aria-hidden="true">View project <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></span></div>
         <p class="card-meta t-label"><span>03</span><span>Developer tools</span><span>Public</span></p>
         <h3><a href="/work/shipgate/" class="vt" style="view-transition-name: t-shipgate">Shipgate</a></h3>
         <p>A Git gate that scans what a coding agent is about to push.</p>
       </article>
       <article class="card c3-4" data-project="recall-ai">
-        <div class="card-media"><div class="media-empty"><span class="t-label">Visual to come</span></div></div>
+        <div class="card-media"><div class="media-type" aria-hidden="true"><span class="t-label muted">Python / FastAPI / SQLite</span><span class="t-l">Recall</span><span class="t-label muted">Source available on GitHub</span></div><span class="card-open t-label" aria-hidden="true">View project <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></span></div>
         <p class="card-meta t-label"><span>04</span><span>Developer tools</span><span>Public</span></p>
         <h3><a href="/work/recall-ai/" class="vt" style="view-transition-name: t-recall-ai">Recall</a></h3>
         <p>Spaced repetition for algorithm practice, kept on your machine.</p>
@@ -127,9 +132,43 @@
   <div class="row">
     <p class="t-label muted c1">© 2026 Aakash Dahal</p>
     <p class="t-label c2"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a></p>
-    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+    <p class="t-label c3"><a class="link-ui" href="#main">Back to top <span aria-hidden="true">↑</span></a></p>
+    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
   </div>
 </footer>
+<dialog class="site-index" id="site-index" aria-labelledby="index-title" data-lenis-prevent>
+  <div class="index-head">
+    <div><p class="t-label muted">Navigate</p><h2 id="index-title">Site index</h2></div>
+    <button class="index-close" type="button" aria-label="Close site index (Esc)" data-index-close><span class="t-label">Esc</span><span aria-hidden="true">×</span></button>
+  </div>
+  <label class="index-search" for="index-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search></label>
+  <div class="index-content" data-lenis-prevent>
+    <nav class="index-pages" aria-label="Pages">
+      <a href="/" data-index-item data-search="home aakash dahal">Home <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
+      <a href="/work/" data-index-item data-search="all work projects portfolio">All work <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
+      <a href="/#contact" data-index-item data-search="contact email github social">Contact <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
+    </nav>
+    <nav aria-label="Projects">
+      <p class="index-label t-label muted">Projects</p>
+      <ol class="index-projects">
+        <li data-index-item data-search="AgentCrucible agentcrucible Fault-tests tool-using agents against scripted mock worlds. AI systems TypeScript Node.js YAML"><a href="/work/agentcrucible/"><span class="t-label muted">01</span><span class="index-project-name">AgentCrucible<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="AirForge airforge Draw ramps, balls, platforms, and curves; Rapier simulates them in 2.5D. Physics software TypeScript React Three.js Rapier MediaPipe"><a href="/work/airforge/"><span class="t-label muted">02</span><span class="index-project-name">AirForge<span class="t-small muted">Physics software</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Shipgate shipgate A Git gate that scans what a coding agent is about to push. Developer tools TypeScript Node.js Git"><a href="/work/shipgate/"><span class="t-label muted">03</span><span class="index-project-name">Shipgate<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Recall recall-ai Spaced repetition for algorithm practice, kept on your machine. Developer tools Python FastAPI SQLite React"><a href="/work/recall-ai/"><span class="t-label muted">04</span><span class="index-project-name">Recall<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Spanforge spanforge A local trace proxy for LLM calls, with waterfalls. AI systems · Developer tools TypeScript Node.js React"><a href="/work/spanforge/"><span class="t-label muted">05</span><span class="index-project-name">Spanforge<span class="t-small muted">AI systems · Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="LocalPulse localpulse Token usage, latency, and cost for LLM calls, on disk. AI systems · Developer tools TypeScript Node.js React"><a href="/work/localpulse/"><span class="t-label muted">06</span><span class="index-project-name">LocalPulse<span class="t-small muted">AI systems · Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Ghost Notetaker ghost-notetaker Desktop sticky notes that try to stay out of screen shares. Developer tools JavaScript Electron"><a href="/work/ghost-notetaker/"><span class="t-label muted">07</span><span class="index-project-name">Ghost Notetaker<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="MoltDAO moltdao Agents propose and vote on a treasury, on a local chain. AI systems Solidity Foundry ethers"><a href="/work/moltdao/"><span class="t-label muted">08</span><span class="index-project-name">MoltDAO<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+      </ol>
+    </nav>
+    <p class="index-empty t-small muted" data-index-empty hidden>No matches. Try a project name, a technology, or “contact”.</p>
+  </div>
+  <div class="index-footer">
+    <p class="t-label muted"><kbd>↑</kbd> <kbd>↓</kbd> Browse <span class="index-enter"><kbd>↵</kbd> Open</span></p>
+    <button class="index-motion t-label" type="button" aria-label="Motion Full, toggle reduced motion" aria-pressed="false" data-index-motion>Motion <span data-index-motion-state>Full</span></button>
+  </div>
+  <span class="vh" role="status" aria-live="polite" data-index-status></span>
+</dialog>
 <span class="vh" aria-live="polite" data-announce></span>
 <script src="/js/theme.js" defer></script>
 <script src="/assets/vendor/lenis.min.js" defer></script>

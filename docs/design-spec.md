@@ -58,6 +58,7 @@ Instrument Sans (400, 500) for reading and Fragment Mono (400) for labels, numbe
 | Role | Spec | Use |
 |---|---|---|
 | Title L | Sans 500 24/32, −1% | Page title. Largest size on the site |
+| Card title | Sans 500 20/28 | Selected-work cards |
 | Title S | Sans 500 18/24 | Section heads, project names in lists |
 | Body | Sans 400 15/24, 64ch max | Case-study prose |
 | Small | Sans 400 13/20 | Panels, cards, captions |
@@ -78,7 +79,18 @@ The accent only marks interactive or active things: links on hover, the current 
 ## 6. Components
 Sheet frame and grid · header (name → home, Work, Contact, Gear Two toggle, Kathmandu time with UTC offset, light switch) · panel (1px border, mono head, sans body) · theme index (3 links with counts) · project card (16:10 media, meta row, name, tagline) · project row for `/work` (number, name, tagline, themes, stack and visibility, thumbnail) · filter bar (toggle buttons with counts, `aria-pressed`, URL state) · case-study header (breadcrumb, title, one-liner, meta `<dl>`: role, status, themes, stack, repo) · media figure (numbered "Fig. N" with caption; image with WebP srcset, muted looping video with poster and a pause button, terminal block with real output, click-to-load demo frame) · sticky section index with scrollspy · prose section · decisions list (decision, why, cost) · numbers panel (verified facts) · diagram (inline SVG drawn in the site's type and colors, follows the theme and Gear Two) · previous/next project · contact block · footer (©, source link, motion toggle) · skip link · cat · 404.
 
-Arrows appear only where they carry meaning: ↗ marks a link that leaves the site.
+Arrows appear only where they carry meaning: ↗ marks a link that leaves the site; ↓ leads into a page section;
+→ opens a project or destination; ↑ returns to the top.
+
+### Navigation and browsing
+
+- The home introduction has an immediate link to selected work and a GitHub link; the bio and Essentially copy stay unchanged.
+- The header's site index is a searchable native dialog containing static page and project links. `/` and `Ctrl/Cmd+K` open it; arrows browse results, Enter opens a result, and Escape closes it. Focus stays inside and returns to the opener. Background scrolling is locked while it is open.
+- Work search matches all query words against existing names, themes, taglines, visibility, and stacks. `?theme=…&q=…` is shareable; browser Back and Forward restore it. An empty state offers a reset rather than leaving an unexplained blank page.
+- The work index offers list and grid layouts with a saved local preference. Mobile list rows put a thumbnail alongside the facts to make all eight projects easier to scan; grid view keeps larger visuals. Image source sizes follow the chosen layout.
+- The case-study index stays available on mobile and tablet as a sticky, horizontally scrollable row. The reading progress indicator follows the article, and section anchors account for both sticky bars.
+- Card previews, contact rows, filters, and view changes have restrained feedback. List changes move by 4px over 240ms; reduced motion disables this as well as the original animations.
+- A typographic card uses a project's existing name and stack when no cover exists. It does not imitate a product screenshot or introduce a new project description.
 
 ## 7. Hero engine (`js/hero.js`, WebGL2)
 - **Offline preparation, committed with its script.**

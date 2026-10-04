@@ -42,6 +42,7 @@
     </nav>
     <div class="header-mid">
       <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
+      <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
     <div class="header-end">
       <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
@@ -55,6 +56,7 @@
     <div class="case-title">
       <h1 class="vt" style="view-transition-name: t-recall-ai">Recall</h1>
       <p>Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode result capture.</p>
+      <div class="case-actions"><a class="action-link" href="#problem">Read case study <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/skysssup/recall-ai">View source <span class="ext" aria-hidden="true">↗</span></a></div>
     </div>
     <div class="meta">
       <dl>
@@ -76,7 +78,9 @@
 
   <div class="row case-body">
     <nav class="toc" aria-label="On this page">
-      <ol>
+      <div class="toc-head"><span class="t-label muted">On this page</span><span class="t-label muted" data-reading-progress aria-hidden="true">00%</span></div>
+      <div class="reading-track" aria-hidden="true"><span data-reading-bar></span></div>
+      <ol data-lenis-prevent>
         <li><a href="#problem">The problem</a></li>
         <li><a href="#built">What I built</a></li>
         <li><a href="#how">How it works</a></li>
@@ -139,9 +143,43 @@
   <div class="row">
     <p class="t-label muted c1">© 2026 Aakash Dahal</p>
     <p class="t-label c2"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a></p>
-    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
+    <p class="t-label c3"><a class="link-ui" href="#main">Back to top <span aria-hidden="true">↑</span></a></p>
+    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
   </div>
 </footer>
+<dialog class="site-index" id="site-index" aria-labelledby="index-title" data-lenis-prevent>
+  <div class="index-head">
+    <div><p class="t-label muted">Navigate</p><h2 id="index-title">Site index</h2></div>
+    <button class="index-close" type="button" aria-label="Close site index (Esc)" data-index-close><span class="t-label">Esc</span><span aria-hidden="true">×</span></button>
+  </div>
+  <label class="index-search" for="index-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search></label>
+  <div class="index-content" data-lenis-prevent>
+    <nav class="index-pages" aria-label="Pages">
+      <a href="/" data-index-item data-search="home aakash dahal">Home <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
+      <a href="/work/" data-index-item data-search="all work projects portfolio">All work <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
+      <a href="/#contact" data-index-item data-search="contact email github social">Contact <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
+    </nav>
+    <nav aria-label="Projects">
+      <p class="index-label t-label muted">Projects</p>
+      <ol class="index-projects">
+        <li data-index-item data-search="AgentCrucible agentcrucible Fault-tests tool-using agents against scripted mock worlds. AI systems TypeScript Node.js YAML"><a href="/work/agentcrucible/"><span class="t-label muted">01</span><span class="index-project-name">AgentCrucible<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="AirForge airforge Draw ramps, balls, platforms, and curves; Rapier simulates them in 2.5D. Physics software TypeScript React Three.js Rapier MediaPipe"><a href="/work/airforge/"><span class="t-label muted">02</span><span class="index-project-name">AirForge<span class="t-small muted">Physics software</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Shipgate shipgate A Git gate that scans what a coding agent is about to push. Developer tools TypeScript Node.js Git"><a href="/work/shipgate/"><span class="t-label muted">03</span><span class="index-project-name">Shipgate<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Recall recall-ai Spaced repetition for algorithm practice, kept on your machine. Developer tools Python FastAPI SQLite React"><a href="/work/recall-ai/"><span class="t-label muted">04</span><span class="index-project-name">Recall<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Spanforge spanforge A local trace proxy for LLM calls, with waterfalls. AI systems · Developer tools TypeScript Node.js React"><a href="/work/spanforge/"><span class="t-label muted">05</span><span class="index-project-name">Spanforge<span class="t-small muted">AI systems · Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="LocalPulse localpulse Token usage, latency, and cost for LLM calls, on disk. AI systems · Developer tools TypeScript Node.js React"><a href="/work/localpulse/"><span class="t-label muted">06</span><span class="index-project-name">LocalPulse<span class="t-small muted">AI systems · Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="Ghost Notetaker ghost-notetaker Desktop sticky notes that try to stay out of screen shares. Developer tools JavaScript Electron"><a href="/work/ghost-notetaker/"><span class="t-label muted">07</span><span class="index-project-name">Ghost Notetaker<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="MoltDAO moltdao Agents propose and vote on a treasury, on a local chain. AI systems Solidity Foundry ethers"><a href="/work/moltdao/"><span class="t-label muted">08</span><span class="index-project-name">MoltDAO<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+      </ol>
+    </nav>
+    <p class="index-empty t-small muted" data-index-empty hidden>No matches. Try a project name, a technology, or “contact”.</p>
+  </div>
+  <div class="index-footer">
+    <p class="t-label muted"><kbd>↑</kbd> <kbd>↓</kbd> Browse <span class="index-enter"><kbd>↵</kbd> Open</span></p>
+    <button class="index-motion t-label" type="button" aria-label="Motion Full, toggle reduced motion" aria-pressed="false" data-index-motion>Motion <span data-index-motion-state>Full</span></button>
+  </div>
+  <span class="vh" role="status" aria-live="polite" data-index-status></span>
+</dialog>
 <span class="vh" aria-live="polite" data-announce></span>
 <script src="/js/theme.js" defer></script>
 <script src="/assets/vendor/lenis.min.js" defer></script>

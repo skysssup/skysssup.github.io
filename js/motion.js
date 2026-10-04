@@ -15,6 +15,7 @@
     var timers = [];
     var gearOn = root.getAttribute("data-gear") === "two";
     var smoother = null;
+    var scrollLocked = false;
 
     /* motion preference: an explicit choice on the site wins over the OS setting */
     function choice() {
@@ -36,6 +37,7 @@
       var toggles = doc.querySelectorAll("[data-motion-toggle]");
       for (var i = 0; i < toggles.length; i++) {
         toggles[i].setAttribute("aria-pressed", r ? "true" : "false");
+        toggles[i].setAttribute("aria-label", "Reduce motion " + (r ? "On" : "Off"));
         var state = toggles[i].querySelector("[data-motion-state]");
         if (state) state.textContent = r ? "On" : "Off";
       }
@@ -50,7 +52,11 @@
     var motion = {
       reduced: reduced,
       subscribe: function (fn) { subscribers.push(fn); },
-      set: setMotion
+      set: setMotion,
+      setScrollLocked: function (locked) {
+        scrollLocked = locked;
+        if (smoother) smoother[locked ? "stop" : "start"]();
+      }
     };
 
     /* smooth scrolling */
@@ -63,6 +69,7 @@
           anchors: true,
           prevent: function (node) { return !!(node && node.closest && node.closest("[data-lenis-prevent]")); }
         });
+        if (scrollLocked) smoother.stop();
       } else if (reduced() && smoother) {
         smoother.destroy();
         smoother = null;
