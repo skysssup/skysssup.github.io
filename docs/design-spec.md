@@ -56,14 +56,22 @@ Instrument Sans (400, 500) for reading and Fragment Mono (400) for labels, numbe
 
 | Role | Spec | Use |
 |---|---|---|
-| Title L | Sans 500 24/32, −1% | Page title. Largest size on the site |
+| Title L | Sans 500 24/32 | Page title. Largest size on the site |
 | Title S | Sans 500 18/24 | Project names on plates and in lists (with the tagline as a second line at 400), contact values |
 | Body | Sans 400 15/24, 64ch max | Case-study prose |
-| Small | Sans 400 13/20 | Panels, cards, captions |
+| Small | Sans 400 13/20 | Notes, captions, list text. In Fragment Mono for code and measured figures |
 | UI | Mono 11/16 caps, +6% | Nav, buttons, panel heads |
 | Label | Mono 10/16 caps, +6% | Meta, indices, figure numbers |
 
 Sentence case everywhere except mono labels. Numerals for numbers. No text is set above 24px.
+
+The small rules that hold it together:
+- Every vertical measure is on the 4 px baseline: line heights of 16, 20, 24, and 32, and spacing from the scale in §3. No measure compensates for a border.
+- Letter-spacing only on mono caps. Numbers that change or stand in columns are tabular.
+- Headings balance their lines; paragraphs wrap with `text-wrap: pretty`, and the generator ties the last three words of a run of copy so no block ends on a line of one or two words.
+- Measure: 52–64ch for prose, 34–44ch for captions.
+- `·` is the only separator, held to the word before it with a non-breaking space so it ends a line rather than starting one. Arrows follow §6, also after a non-breaking space.
+- Text links are underlined 1 px in `--line-strong` at a 3 px offset and turn the accent on hover. Labels, numerals, and figures hang right-aligned in the first column, so the text beside them starts on the second column's inset.
 
 ## 5. Color
 | | Paper | Ink | Muted | Accent |

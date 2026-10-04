@@ -77,7 +77,7 @@ test('axe finds no accessibility violations at any width in any mode', async () 
 });
 
 test('content sits on the sheet: left edges on a line or its inset, right-aligned ends likewise, centred blocks on a line', async () => {
-  const blocks = '.row > *, .plate > *, .project > *, .hang-list > * > *, .prose > section > *, .case-title > *, .aside > *, .meta dd';
+  const blocks = '.row > *, .plate > *, .plate-caption > *, .project > *, .hang-list > * > *, .prose > section > *, .case-title > *, .aside > *, .numbers dl > * > *, .meta dd';
   for (const url of PAGES) for (const [width, height] of WIDTHS) {
     const { page, context } = await open(url, { width, height, touch: width < 768 });
     const off = await page.evaluate(sel => {

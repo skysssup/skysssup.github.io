@@ -13,6 +13,8 @@ const site = JSON.parse(fs.readFileSync(path.join(SRC, 'site.json'), 'utf8'));
 const projects = site.order.map(slug => JSON.parse(fs.readFileSync(path.join(SRC, 'projects', slug + '.json'), 'utf8')));
 const themeName = Object.fromEntries(site.themes.map(t => [t.id, t.name]));
 const pad = n => String(n).padStart(2, '0');
+// Binds the last three words of a run of copy, so no line of it ends the block with one or two words.
+const tie = text => text.replace(/ (\S+) (\S+)$/, '&nbsp;$1&nbsp;$2');
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const md = s => esc(s)
   .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -113,12 +115,12 @@ function footer() {
   return `<footer class="site-footer">
   <div class="row band rule" id="colophon" data-reveal>
     <h2 class="band-title">Colophon</h2>
-    <p class="band-note">I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns. The sheet has four columns whose lines stay put while the page scrolls, and every block starts on a line or just inside one, which a test checks at four widths.</p>
+    <p class="band-note">${tie(`I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns. The sheet’s column lines stay put while the page scrolls; every block starts on one of them or just inside it, and a test checks that at four widths.`)}</p>
     <ol class="hang-list rules" aria-label="Rules this site follows">
-${rules.map((rule, i) => `      <li><span class="n" aria-hidden="true">${pad(i + 1)}</span><span>${rule}</span></li>`).join('\n')}
+${rules.map((rule, i) => `      <li><span class="n" aria-hidden="true">${pad(i + 1)}</span><span>${tie(rule)}</span></li>`).join('\n')}
     </ol>
     <dl class="hang-list figures">
-${figures.map(([value, label, attrs = '']) => `      <div><dt${attrs}>${esc(value)}</dt><dd>${label}</dd></div>`).join('\n')}
+${figures.map(([value, label, attrs = '']) => `      <div><dt${attrs}>${esc(value)}</dt><dd>${tie(label)}</dd></div>`).join('\n')}
     </dl>
   </div>
   <div class="row sign-off">
@@ -217,7 +219,7 @@ ${header('home')}
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
-        <p class="intro-label t-label muted">Developer / Kathmandu</p>
+        <p class="intro-label t-label muted">Developer${DOT}Kathmandu</p>
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>${esc(site.bio)}</p>
         <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
@@ -235,7 +237,7 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}" data-names="${projects.filter(p => p.themes.includes(t.id)).map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in its own colors, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
+      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in its own colors, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
     </div>
   </section>
 
@@ -250,7 +252,7 @@ ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; retur
         <div class="plate-caption">
           <p class="plate-line">Plate ${pad(i + 1)}${DOT}${themesOf(p, DOT)}${DOT}${p.visibility}</p>
           <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h3>
-          <p>${esc(p.tagline)}</p>
+          <p>${tie(esc(p.tagline))}</p>
         </div>
       </article>`; }).join('\n')}
     </div>
@@ -259,7 +261,7 @@ ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; retur
   <section class="section" id="contact" aria-labelledby="contact-title">
     <div class="row band rule" data-reveal>
       <h2 class="band-title" id="contact-title">Contact</h2>
-      <p class="band-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is <span data-time>--:--</span> now.</p>
+      <p class="band-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is&nbsp;<span data-time>--:--</span>&nbsp;now.</p>
       <ul class="hang-list contact-lines">
         <li><span>Email</span><span><a href="mailto:${site.email}">${site.email}</a> <button class="copy" type="button" data-copy="${site.email}">Copy</button></span></li>
         <li><span>X</span><span><a href="https://x.com/${site.x}">@${site.x}${ARROW}</a></span></li>
@@ -302,7 +304,7 @@ ${site.themes.map(t => `      <button class="filter" type="button" aria-pressed=
   <ol class="projects" aria-label="Projects">
 ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join(' ')}" data-project="${p.slug}" data-search="${esc([p.name, p.slug, p.tagline, themesOf(p), p.visibility, ...p.stack].join(' '))}">
       <span class="idx" aria-hidden="true">${pad(i + 1)}</span>
-      <div class="project-title"><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h2><p>${esc(p.tagline)}</p></div>
+      <div class="project-title"><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h2><p>${tie(esc(p.tagline))}</p></div>
       <p class="facts"><span class="themes-line">${themesOf(p, DOT)}</span><span>${p.stack.slice(0, 3).map(esc).join(DOT)}</span><span>${p.visibility}</span></p>
       <div class="thumb" aria-hidden="true">${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
     </li>`).join('\n')}
@@ -328,7 +330,7 @@ const SECTIONS = [
 ];
 
 function placeholder(text) {
-  return `<p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">${esc(text)}</span></p>`;
+  return `<p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">${tie(esc(text))}</span></p>`;
 }
 
 function diagramPlaceholder() {
@@ -336,7 +338,7 @@ function diagramPlaceholder() {
   return `<figure class="diagram wide" data-diagram data-placeholder>
             <script type="application/json">${JSON.stringify(spec)}</script>
             <ol class="diagram-steps t-small">${spec.nodes.map(n => `<li>${esc(n.label)}: ${esc(n.sub)}</li>`).join('')}</ol>
-            <figcaption><span class="t-label muted">Fig. 2</span><span class="t-small">Placeholder diagram: 3–7 nodes in one direction, readable in ten seconds.</span></figcaption>
+            <figcaption><span class="t-label muted">Fig. 2</span><span class="t-small">${tie('Placeholder diagram: 3–7 nodes in one direction, readable in ten seconds.')}</span></figcaption>
           </figure>`;
 }
 
@@ -364,7 +366,7 @@ function caseStudy(p, i) {
   const lead = p.lead;
   const leadFig = `<figure class="fig c2-4">
         <div class="fig-frame${lead ? '' : ' is-empty'}" data-reveal>${lead ? media(lead, { eager: true }) : '<div class="media-empty"><span class="t-label">Visual to come</span></div>'}</div>
-        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${lead ? esc(lead.caption) : 'To come: a screenshot, recording, or demo of the real product.'}</span></figcaption>
+        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie(lead ? esc(lead.caption) : 'To come: a screenshot, recording, or demo of the real product.')}</span></figcaption>
       </figure>`;
   const preload = lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '';
   return `${head({ title: `${p.name} — Aakash Dahal`, description: p.summary, url, image: `/assets/og/${p.slug}.png`, imageAlt: `${p.name}: ${p.tagline}`, type: 'article', extra: preload })}
