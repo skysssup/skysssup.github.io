@@ -5,8 +5,8 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 
 ## Pages
 
-- `/` — the hero, a short "Essentially" statement, selected work, the stack matrix (technologies × projects,
-  read from the project data), a colophon with the site's own numbers, and contact.
+- `/` — the hero, a short "Essentially" statement, selected work, a colophon with the site's own numbers, and
+  contact.
 - `/work/` — all projects, filterable by theme (`?theme=ai-systems`, `developer-tools`, `physics-software`) and searchable by name, technology, or theme (`?q=python`). List/grid preference is saved locally; filters and search are shareable and follow browser history.
 - `/work/<slug>/` — one case study per project. See [docs/case-studies.md](docs/case-studies.md) for how to fill one in.
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
@@ -39,9 +39,8 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   button works by keyboard, and a readout under the caption shows yaw, pitch, and the engine's JS time per frame.
 - `js/page.js` — Kathmandu time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
-  the reveals (`[data-reveal]`: section rules draw in, media wipes in, the stack matrix's dots pop in, and the
-  colophon counts up, once, when first seen, never under reduced motion), the stack matrix's column highlight,
-  and mounting the hero. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
+  the reveals (`[data-reveal]`: section rules draw in, media wipes in, and the colophon counts up, once, when
+  first seen, never under reduced motion), and mounting the hero. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
   use arrow keys to browse, Enter to open, and Escape to close. It uses a native dialog, traps focus,
   restores the opener, and locks background scrolling without changing the saved motion preference.
 - `js/diagram.js` — draws case-study diagrams from their JSON specs.

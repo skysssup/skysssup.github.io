@@ -305,37 +305,10 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
   await context.close();
 });
 
-test('the stack matrix draws in once seen, lights a column on hover, and reads as a list on small screens', async () => {
-  const { page, context, problems } = await open('/');
-  const dot = page.locator('.matrix-cell[data-on] .dot').first();
-  assert.equal(await page.evaluate(() => document.querySelector('.matrix').classList.contains('is-seen')), false, 'the matrix waits below the fold');
-  assert.equal(await dot.evaluate(el => getComputedStyle(el).transform), 'matrix(0, 0, 0, 0, 0, 0)', 'dots start collapsed');
-  await page.locator('#stack').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('.matrix').classList.contains('is-seen'));
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('.matrix-cell[data-on] .dot')).transform === 'none');
-  const rows = await page.$$eval('.matrix-row', rows => rows.map(r => ({ tech: r.querySelector('.matrix-tech .t-small').textContent, n: Number(r.querySelector('.matrix-tech .num').textContent), dots: r.querySelectorAll('[data-on]').length })));
-  assert.ok(rows.length >= 10);
-  for (const row of rows) assert.equal(row.dots, row.n, `${row.tech} shows ${row.dots} dots for ${row.n} projects`);
-  for (let i = 1; i < rows.length; i++) assert.ok(rows[i].n <= rows[i - 1].n, 'technologies are ordered by use');
-  await page.hover('.matrix-project[data-col="2"] a');
-  await page.waitForFunction(() => document.querySelector('.matrix').getAttribute('data-hover-col') === '2');
-  await page.mouse.move(5, 5);
-  await page.waitForFunction(() => !document.querySelector('.matrix').hasAttribute('data-hover-col'));
-  await page.focus('.matrix-project[data-col="5"] a');
-  assert.equal(await page.getAttribute('.matrix', 'data-hover-col'), '5');
-  assert.equal(await page.getAttribute('.matrix-tech a', 'href'), '/work/?q=typescript');
-  assert.deepEqual(problems, []);
-  await context.close();
-  const small = await open('/', { width: 390, height: 844, touch: true });
-  assert.equal(await small.page.locator('.matrix-head').evaluate(el => getComputedStyle(el).display), 'none');
-  assert.equal(await small.page.locator('.matrix-cell[data-on] .matrix-name').first().evaluate(el => getComputedStyle(el).position), 'static', 'project names read inline');
-  await small.context.close();
-});
-
 test('section rules draw in, media wipes in, and the colophon counts up, except under reduced motion', async () => {
   const { page, context } = await open('/');
-  assert.equal(await page.locator('#stack .section-head').evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
-  assert.equal(await page.locator('#stack .section-head').evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
+  assert.equal(await page.locator('#contact .section-head').evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
+  assert.equal(await page.locator('#contact .section-head').evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
   const figure = page.locator('.figures dt').first();
   const printed = await figure.textContent();
   await page.locator('#colophon').scrollIntoViewIfNeeded();
@@ -349,7 +322,6 @@ test('section rules draw in, media wipes in, and the colophon counts up, except 
   await context.close();
   const still = await open('/', { reduced: true });
   assert.equal(await still.page.locator('#selected .card-media > img').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
-  assert.equal(await still.page.locator('.matrix-cell[data-on] .dot').first().evaluate(el => getComputedStyle(el).transform), 'none', 'dots are simply there under reduced motion');
   assert.equal(await still.page.locator('.figures dt').first().textContent(), printed, 'the printed number stands as is');
   await still.context.close();
 });

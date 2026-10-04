@@ -108,7 +108,6 @@ function siteIndex() {
     <nav class="index-pages" aria-label="Pages">
       <a href="/" data-index-item data-search="home aakash dahal">Home ${NEXT}</a>
       <a href="/work/" data-index-item data-search="all work projects portfolio">All work ${NEXT}</a>
-      <a href="/#stack" data-index-item data-search="stack technologies matrix languages">Stack ${NEXT}</a>
       <a href="/#contact" data-index-item data-search="contact email github social">Contact ${NEXT}</a>
     </nav>
     <nav aria-label="Projects">
@@ -151,17 +150,7 @@ function cover(p, sizes, priority = '') {
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
-/* ── home: stack matrix and colophon data ─────────── */
-// Technologies by how many projects use them, then by first appearance in the project order.
-function technologies() {
-  const seen = new Map();
-  projects.forEach((p, i) => p.stack.forEach(tech => {
-    if (!seen.has(tech)) seen.set(tech, { name: tech, first: i, projects: [] });
-    seen.get(tech).projects.push(p.slug);
-  }));
-  return [...seen.values()].sort((a, b) => b.projects.length - a.projects.length || a.first - b.first);
-}
-
+/* ── home: colophon data ─────────────────────────── */
 // Numbers the colophon prints; test/content.test.cjs regenerates the page, so they cannot go stale.
 function siteNumbers() {
   const ROOT = path.resolve(SRC, '..', '..');
@@ -182,33 +171,6 @@ function siteNumbers() {
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
 const words = n => WORDS[n] || String(n);
-const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-
-function stack() {
-  const techs = technologies();
-  const query = tech => `/work/?q=${encodeURIComponent(tech.toLowerCase())}`;
-  return `  <section class="section" id="stack" aria-labelledby="stack-title">
-    <div class="row section-head rule" data-reveal>
-      <h2 class="c1" id="stack-title">Stack</h2>
-      <p class="c2-3 section-note t-small muted">${cap(words(techs.length))} technologies across ${words(projects.length)} projects, read from the case studies. A dot marks a project that uses the technology; a name opens the search for it.</p>
-      <a class="end link-ui" href="/work/">Search by stack</a>
-    </div>
-    <div class="row">
-      <div class="matrix c1-4" role="table" aria-label="Technologies by project" data-reveal>
-        <div class="matrix-head" role="row">
-          <div class="matrix-corner t-label muted" role="columnheader">Technology <span class="matrix-count">/ projects</span></div>
-${projects.map((p, i) => `          <div class="matrix-project" role="columnheader" data-col="${i}"><a href="/work/${p.slug}/"><span class="t-label muted num">${pad(i + 1)}</span><span class="t-label">${esc(p.name)}</span></a></div>`).join('\n')}
-        </div>
-${techs.map((t, r) => `        <div class="matrix-row" role="row">
-          <div class="matrix-tech" role="rowheader"><a href="${query(t.name)}"><span class="t-small">${esc(t.name)}</span><span class="t-label muted num">${pad(t.projects.length)}</span></a></div>
-${projects.map((p, i) => t.projects.includes(p.slug)
-  ? `          <div class="matrix-cell" role="cell" data-col="${i}" data-on style="--i: ${r * projects.length + i}"><span class="dot" aria-hidden="true"></span><span class="matrix-name">${esc(p.name)}</span></div>`
-  : `          <div class="matrix-cell" role="cell" data-col="${i}"></div>`).join('\n')}
-        </div>`).join('\n')}
-      </div>
-    </div>
-  </section>`;
-}
 
 function colophon() {
   const n = siteNumbers();
@@ -295,8 +257,6 @@ ${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}"
       </article>`).join('\n')}
     </div>
   </section>
-
-${stack()}
 
 ${colophon()}
 

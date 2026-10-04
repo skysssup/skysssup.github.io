@@ -386,20 +386,6 @@
       });
     }
 
-    /* stack matrix: hovering or focusing a project column lights the whole column */
-    var matrix = doc.querySelector(".matrix");
-    if (matrix) {
-      var column = function (event) {
-        var cell = event.target && event.target.closest ? event.target.closest("[data-col]") : null;
-        if (cell && matrix.contains(cell)) matrix.setAttribute("data-hover-col", cell.getAttribute("data-col"));
-        else matrix.removeAttribute("data-hover-col");
-      };
-      matrix.addEventListener("mouseover", column);
-      matrix.addEventListener("mouseleave", function () { matrix.removeAttribute("data-hover-col"); });
-      matrix.addEventListener("focusin", column);
-      matrix.addEventListener("focusout", function (event) { if (!event.relatedTarget || !matrix.contains(event.relatedTarget)) matrix.removeAttribute("data-hover-col"); });
-    }
-
     return { hero: hero };
   }
 
