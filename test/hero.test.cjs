@@ -241,6 +241,18 @@ test('each dot samples the avatar color map bilinearly, sparkle included', () =>
   assert.equal(out.length, 16);
 });
 
+test('a dot takes the material at the nearest pixel, never a blend of two, and Gear Two keeps 40% of the colors', () => {
+  const size = 4, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) rgba[(y * size + x) * 4] = x < 2 ? 0 : 204;  // gold on the left, glint on the right
+  assert.equal(hero.materialAt(rgba, size, 0, 0), 0);
+  assert.equal(hero.materialAt(rgba, size, 1, 1), 204);
+  for (const u of [0.45, 0.5, 0.55]) assert.ok([0, 204].includes(hero.materialAt(rgba, size, u, 0.5)), `material at u = ${u}`);
+  assert.equal(hero.sampleColors(rgba, size, new Float32Array([0.5, 0.5, 0]), 3)[0], 102, 'bilinear sampling would invent cloud between gold and glint');
+  assert.equal(hero.materialAt(rgba, size, -1, 2), 0, 'points off the map clamp to its edge');
+  assert.equal(hero.tintFor({ gear: false }), 1);
+  assert.equal(hero.tintFor({ gear: true }), 0.4);
+});
+
 test('glitch tiles are deterministic per frame, land inside the box on the figure, and jump sideways', () => {
   const box = { x: 100, y: 50, size: 400 };
   const a = hero.glitchTiles(7, box, 3), b = hero.glitchTiles(7, box, 3);

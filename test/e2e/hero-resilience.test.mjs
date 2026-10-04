@@ -445,6 +445,26 @@ test('Gear Two keeps tearing the figure after the switch; light mode, reduced mo
   await touch.send('touchEnd');
 });
 
+test('the material map names five materials inside the figure', async t => {
+  const { page } = await open(t);
+  await live(page);
+  const counts = await page.evaluate(async () => {
+    const decode = async url => {
+      const bitmap = await createImageBitmap(await (await fetch(url)).blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+      const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d');
+      ctx.drawImage(bitmap, 0, 0);
+      return ctx.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    };
+    const color = await decode('/assets/hero/color.webp'), depth = await decode('/assets/hero/depth.webp');
+    const found = {};
+    for (let i = 0; i < color.length; i += 4) if (depth[i] > 0) { const m = Math.round(color[i] / 51); found[m] = (found[m] || 0) + 1; }
+    return found;
+  });
+  assert.deepEqual(Object.keys(counts).map(Number).sort(), [0, 1, 2, 3, 4], 'gold, marble, cloud, lightning, glint');
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
+});
+
 test('the public ripple API emits at the center without adding control semantics to the image', async t => {
   const { page } = await open(t);
   await live(page);
@@ -458,7 +478,7 @@ test('the public ripple API emits at the center without adding control semantics
   assert.equal(await page.locator('#figure').getAttribute('tabindex'), null);
 });
 
-test('the figure wears the avatar\'s colors, and draws in plain ink when the color map is missing', async t => {
+test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, and draws in plain ink without the map', async t => {
   const { page } = await open(t);
   await live(page);
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
@@ -466,7 +486,7 @@ test('the figure wears the avatar\'s colors, and draws in plain ink when the col
   assert.ok(painted.colored > 300, `${painted.colored} colored pixels: the wings and the caduceus should carry gold`);
   assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
   await page.evaluate(() => window.skyGear.setGear(true));
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_tint[0] === 0, null, { timeout: 3000 });
+  await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);

@@ -229,7 +229,7 @@ function colophon() {
     <div class="row colophon">
       <div class="c1 colophon-notes">
         <p class="t-small">Plain HTML, CSS, and JavaScript on GitHub Pages. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two.</p>
-        <p class="t-small">Fig. 0 stipples my avatar, upscaled four times from its 424 px original, against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns, and the color of the avatar around it: the marble stays ink, the wings and the caduceus keep their gold, and the image's own sparkles twinkle. At each turn of its sway a band of light crosses the surface and a burst of dots flares into four-point stars. Gear Two swaps all of it for red, gives the figure a heartbeat, and lasts for the session.</p>
+        <p class="t-small">Fig. 0 stipples my avatar, upscaled four times from its 424 px original, against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns, and one of five materials in a palette designed for each mode: the marble is ink, the wings, the caduceus, and the hair are gold that brightens toward the light, the clouds are rose, the lightning cyan, and the image's own sparkles twinkle. At each turn of its sway a band of light crosses the surface and a burst of dots flares into four-point stars. Gear Two swaps all of it for red but a trace of gold, gives the figure a heartbeat, and lasts for the session.</p>
         <ol class="rules t-small" aria-label="Rules this site follows">
           <li>Every element informs, navigates, or shows real work. Otherwise it goes.</li>
           <li>Evidence over adjectives: screenshots, recordings, terminal output, demos.</li>
@@ -276,7 +276,7 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in its own colors, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
+      <div class="fig-note"><p class="t-label muted">Fig. 0 / Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap for a ripple; drag sideways to turn.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p><button class="figure-ripple link-ui" type="button" data-hero-ripple hidden>Send a ripple <span aria-hidden="true">↻</span></button></div>
     </div>
   </section>
 

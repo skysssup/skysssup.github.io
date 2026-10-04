@@ -204,9 +204,17 @@
     return lit;
   }
 
+  // The material under a point of the color map: its red channel at the nearest pixel (index x 51). Never
+  // interpolated, since the average of two material indices would name a third.
+  var MARBLE = 51;
+  function materialAt(rgba, size, x, y) {
+    var last = size - 1;
+    return rgba[(Math.round(clamp(y, 0, 1) * last) * size + Math.round(clamp(x, 0, 1) * last)) * 4];
+  }
+
   // A map's four channels under each dot, bilinear from the size x size RGBA map: bytes per dot. For the color
-  // map that is [r, g, b, a], where a is 128 plus the image's own sparkle (its highlights, which the shader
-  // twinkles). `points` holds `stride` floats per dot, x and y first.
+  // map that is [material, weight, -, a], where a is 128 plus the image's own sparkle (its highlights, which the
+  // shader twinkles). `points` holds `stride` floats per dot, x and y first.
   function sampleColors(rgba, size, points, stride) {
     var n = points.length / stride, out = new Uint8Array(n * 4), last = size - 1;
     for (var i = 0; i < n; i++) {
@@ -308,7 +316,9 @@
     "uniform float u_alpha;",
     "uniform vec3 u_color;",
     "uniform float u_tint;",
-    "uniform float u_dark;",
+    "uniform vec3 u_palette[5];",
+    "uniform vec3 u_lit[5];",
+    "uniform float u_deep;",
     "uniform vec3 u_hot;",
     "uniform vec4 u_sheen;",
     "uniform vec4 u_span;",
@@ -373,15 +383,13 @@
     "  }",
     // Gear Two heartbeat: a few dots run white-hot at each beat
     "  if (u_beat > 0.45 && r01(id * 5u + 3u) < 0.035) hot = max(hot, u_beat);",
-    // the avatar's own color where it has one (gold, pink, the cyan rim light); marble stays ink.
-    // On light paper the color is deepened so it holds against white; on dark paper it is lifted.
-    // the hue comes from the image; the brightness comes from the paper, so gold reads as gold on both
-    "  vec2 rb = a_c.rg * 2.0 - 1.0;",
-    "  vec3 c = vec3(rb.x, -(0.2126 * rb.x + 0.0722 * rb.y) / 0.7152, rb.y);",
-    "  float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));",
-    "  float keep = u_tint * smoothstep(0.05, 0.2, chroma);",
-    "  vec3 shown = clamp(mix(0.46, 0.84, u_dark) + c * 2.4, 0.0, 1.0);",
-    "  vec3 col = mix(u_color, shown, keep);",
+    // the dot's material in the mode's designed palette (gold, marble, cloud, lightning, glint), moving from
+    // its base color to its lit one as the surface turns to the light; marble carries no weight, so it stays ink
+    "  int m = int(a_c.r * 5.0 + 0.5);",
+    "  vec3 mat = mix(u_palette[m], u_lit[m], smoothstep(0.15, 0.9, lam));",
+    // on light paper the densest dots of a material lean toward the ink, so gold has bronze in its crevices
+    "  mat = mix(mat, u_color, u_deep * smoothstep(0.45, 0.95, a_p.w));",
+    "  vec3 col = mix(u_color, mat, a_c.g * u_tint);",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853));",
@@ -461,6 +469,10 @@
 
   /* ── engine ───────────────────────────────────────────── */
 
+  // How much of its materials' colors the figure wears: all of it on light and dark paper; in Gear Two 40%, over
+  // a palette that is red but for its gold, so only the wings and the caduceus keep a trace of their own.
+  function tintFor(colors) { return colors.gear ? 0.4 : 1; }
+
   function readColors() {
     var s = getComputedStyle(document.documentElement);
     var get = function (name) { return s.getPropertyValue(name).trim(); };
@@ -469,6 +481,9 @@
       ink: get("--figure-ink"), accent: get("--accent"), paper: paper, text: get("--ink"),
       // the sheen's fringe and core and the stars of its burst, one hue family per mode
       light: [get("--figure-sheen"), get("--figure-sheen-core"), get("--figure-star")],
+      // each material's base and lit color, in index order; marble is the figure's ink
+      palette: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m); }),
+      lit: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m + "-lit"); }),
       gear: document.documentElement.getAttribute("data-gear") === "two", dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5
     };
   }
@@ -542,7 +557,7 @@
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
-    var tintNow = colors.gear ? 0 : 1, tintFrom = tintNow, tintTo = tintNow;
+    var tintNow = tintFor(colors), tintFrom = tintNow, tintTo = tintNow;
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
     var touch = null;
@@ -552,9 +567,14 @@
     var ring = null, ringFont = 0, fontReady = false, ringLitAt = 0;
     var glitchUntil = 0, tear = null, tearBeat = -1, longDone = -1, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
     var sheenIndex = -1, sheenAt = 0, sheenDir = 0, sheenNumber = 0, starChance = 0, lights = new Float32Array(9);
+    var materials = new Float32Array(15), materialsLit = new Float32Array(15);
     var cpuMs = 0, telemetryAt = 0;
 
-    function paintLights() { colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); }); }
+    function paintLights() {
+      colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); });
+      colors.palette.forEach(function (css, i) { materials.set(rgb(css), i * 3); });
+      colors.lit.forEach(function (css, i) { materialsLit.set(rgb(css), i * 3); });
+    }
     paintLights();
 
     function releaseTouch(event, cancelled) {
@@ -609,14 +629,14 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_dark", "u_hot", "u_sheen", "u_span", "u_light"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_light"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
         if (!vao || !vbo || !query) throw new Error("hero buffers unavailable");
         gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        // per dot: x, y, z, ink (4 floats), normal (2 floats), color offset, detail, and sparkle (4 bytes): 28 bytes
+        // per dot: x, y, z, ink (4 floats), normal (2 floats), material, its weight, detail, and sparkle (4 bytes): 28 bytes
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 28, 0);
         gl.enableVertexAttribArray(1);
@@ -682,16 +702,10 @@
           floats[i * 7 + 3] = spots[i * 3 + 2];
           floats[i * 7 + 4] = normals[i * 3];
           floats[i * 7 + 5] = normals[i * 3 + 1];
-          // color as its offset from grey (red and blue against luminance, so it fits two bytes), then the
-          // detail value and the sparkle
-          var o = i * 28 + 24, cr = 0, cb = 0;
-          if (tints) {
-            var lum = 0.2126 * tints[i * 4] + 0.7152 * tints[i * 4 + 1] + 0.0722 * tints[i * 4 + 2];
-            cr = (tints[i * 4] - lum) / 2;
-            cb = (tints[i * 4 + 2] - lum) / 2;
-          }
-          bytes[o] = Math.round(127.5 + cr);
-          bytes[o + 1] = Math.round(127.5 + cb);
+          // material (nearest, never blended), how strongly the dot belongs to it, its detail, its sparkle
+          var o = i * 28 + 24;
+          bytes[o] = palette ? materialAt(palette.data, palette.width, spots[i * 3], spots[i * 3 + 1]) : MARBLE;
+          bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
           bytes[o + 2] = details[i * 4 + 1];
           bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
         }
@@ -939,9 +953,12 @@
       gl.uniform4fv(U.u_tile, tileFlat);
       gl.uniform2fv(U.u_shift, shiftFlat);
       gl.uniform3f(U.u_color, inkNow[0], inkNow[1], inkNow[2]);
-      // no avatar color in Gear Two: the figure is red. Sparkles and hot dots run warm white on dark paper, gold on light.
+      // the materials' colors (Gear Two keeps only its gold, at 40%); without the material map every dot is ink.
+      // Sparkles and hot dots run warm white on dark paper, gold on light.
       gl.uniform1f(U.u_tint, palette ? tintNow : 0);
-      gl.uniform1f(U.u_dark, colors.dark ? 1 : 0);
+      gl.uniform3fv(U.u_palette, materials);
+      gl.uniform3fv(U.u_lit, materialsLit);
+      gl.uniform1f(U.u_deep, colors.dark ? 0 : 0.45);
       if (colors.dark) gl.uniform3f(U.u_hot, 1.0, 0.95, 0.86);
       else gl.uniform3f(U.u_hot, 0.86, 0.6, 0.16);
       if (sheening) gl.uniform4f(U.u_sheen, easeInOut(clamp(sheenAge / SHEEN_SWEEP, 0, 1)), sheenDir, sheenNumber, sheenAge);
@@ -990,7 +1007,7 @@
       if (!ready || !visible || document.hidden) return;
       if (motion.reduced()) {
         inkNow = rgb(colors.ink);
-        tintNow = tintTo = colors.gear ? 0 : 1;
+        tintNow = tintTo = tintFor(colors);
         inkAt = 0;
         render(performance.now());
         if (queryPending) raf = requestAnimationFrame(frame);
@@ -1003,7 +1020,7 @@
       var was = colors;
       colors = readColors();
       paintLights();
-      var next = rgb(colors.ink), tint = colors.gear ? 0 : 1;
+      var next = rgb(colors.ink), tint = tintFor(colors);
       if (motion.reduced() || !ready) { inkNow = next; tintNow = tintFrom = tintTo = tint; inkAt = 0; }
       else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
@@ -1142,6 +1159,8 @@
     reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,
+    materialAt: materialAt,
+    tintFor: tintFor,
     glitchTiles: glitchTiles,
     resolutionFor: resolutionFor,
     fit: fit,

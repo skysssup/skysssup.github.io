@@ -17,8 +17,9 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
 
 ## How it works
 
-- `css/site.css` — tokens for light, dark, and Gear Two; the sheet grid; every component; the Gear Two
-  choreography (flash, shockwave ring, text split, media slices, settle) and its heartbeat keyframes.
+- `css/site.css` — tokens for light, dark, and Gear Two (including the figure's material palette and sheen); the
+  sheet grid; every component; the Gear Two choreography (flash, shockwave ring, text split, media slices, settle)
+  and its heartbeat keyframes.
 - `js/theme.js` — the light switch: saved choice, OS sync, cross-tab sync.
 - `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), Gear Two's flash → glitch → settle
   with the red ring that leaves the switch and the `--beat-delay` that phases every CSS pulse to the hero's
@@ -27,20 +28,19 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms). It stipples
   `assets/hero/ink.webp` (896 px) against a blue-noise tile at load, takes each dot's depth, surface normal, and
   detail from `assets/hero/depth.webp` (the depth smoothed inside the figure first, so the lighting never bands),
-  samples the avatar's color under each dot from `assets/hero/color.webp` (its hue, with
-  the brightness set by the paper, so marble stays ink and gold stays gold on light and dark alike; the map's
-  alpha carries the image's sparkles, which twinkle), then animates sway, lighting, blinking, cursor push,
-  click ripples, and Gear Two entirely in the vertex shader. At each turn of the sway a band of light crosses the
-  figure and a burst of dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in
-  Gear Two. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
-  white-hot, the ring breathes, and the glitch tears tiles out of the figure with two faint afterimages; while
-  Gear Two stays on, about a third of the heartbeats tear it again for a few frames, with a longer tear about
-  every 6 s. It
-  pauses off-screen and draws one still frame under reduced motion. A small, preloaded `assets/hero/preview.webp`
-  covers startup; without WebGL2 it shows the full-resolution `assets/hero/still.webp`. Both masks come from the
-  same stipple render. Context restoration rebuilds GPU resources from cached geometry without fetching the
-  assets again. Horizontal touch drags turn the figure without blocking vertical scrolling; the caption's ripple
-  button works by keyboard, and a readout under the caption shows yaw, pitch, and the engine's JS time per frame.
+  and its material from `assets/hero/color.webp` (gold, marble, cloud, lightning, or glint), colored from a palette
+  designed per mode in `css/site.css` that moves each material from its base to its lit color as the figure turns
+  (marble stays ink; the map's alpha carries the image's sparkles, which twinkle). Sway, lighting, blinking, cursor
+  push, click ripples, and Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses
+  the figure and a burst of dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white
+  in Gear Two. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them white-hot, the
+  ring breathes, and the glitch tears tiles out of the figure with two faint afterimages; while Gear Two stays on,
+  about a third of the heartbeats tear it again for a few frames, with a longer tear about every 6 s. It pauses
+  off-screen and draws one still frame under reduced motion. A small, preloaded `assets/hero/preview.webp` covers
+  startup; without WebGL2 it shows the full-resolution `assets/hero/still.webp`. Both masks come from the same
+  stipple render. Context restoration rebuilds GPU resources from cached geometry without fetching the assets
+  again. Horizontal touch drags turn the figure without blocking vertical scrolling; the caption's ripple button
+  works by keyboard, and a readout under the caption shows yaw, pitch, and the engine's JS time per frame.
 - `js/page.js` — Kathmandu time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
   the reveals (`[data-reveal]`: section rules draw in, media wipes in, the stack matrix's dots pop in, and the
@@ -81,7 +81,7 @@ CI runs both on every push to `main`.
   424 px GitHub avatar (`tools/hero/avatar-424.jpg`) upscaled 4× by Real-ESRGAN and Real-ESRNet; `--upscale`
   redoes that (torch and spandrel; the weights are fetched and checked against their SHA-256). The depth map is
   cached as 16-bit in `tools/hero/depth.png`; `--depth` regenerates it with Depth Anything V2 Base (torch and
-  transformers). `--color` rewrites only `assets/hero/color.webp`.
+  transformers). `--color` stops after the material map, `assets/hero/color.webp`.
 
 ## Moving to aakashdahal.fun
 

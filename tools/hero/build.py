@@ -4,7 +4,8 @@ Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at 
 
   assets/hero/ink.webp       896x896, lossless, gray: where the dots go, the engraving's ink density in 64 levels
   assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), G = detail
-  assets/hero/color.webp     448x448, RGBA: the avatar's own colors for the dots, A = its sparkle highlights
+  assets/hero/color.webp     448x448, lossless RGBA: R = material (gold, marble, cloud, lightning, glint) x 51,
+                             G = how strongly the pixel belongs to it, A = 128 + its sparkle highlights
   assets/hero/bluenoise.png  64x64 void-and-cluster threshold map, tiled by the engine
   assets/hero/hero.json      map sizes, figure bounds and centre of mass, used to frame the figure
   assets/hero/still.webp     transparent still frame, used before WebGL starts and without WebGL
@@ -14,7 +15,7 @@ even blend of Real-ESRGAN x4plus, which sharpens edges, and Real-ESRNet x4plus, 
 which does not invent texture (both BSD-3-Clause). The depth map comes from Depth Anything V2 Base
 (CC BY-NC 4.0) run at 1036 px and is cached as 16-bit in tools/hero/depth.png. Rebuilding from the caches
 needs only numpy and Pillow; --upscale and --depth redo those steps (torch, spandrel, transformers).
---color rewrites only color.webp.
+--color stops after the material map (color.webp).
 
     python3 tools/hero/build.py [--upscale] [--depth] [--color]
 """
@@ -165,24 +166,86 @@ def maps():
     return dep, ink, mask, detail
 
 
-def color_map():
-    """The avatar's colors for the dots (saturation lifted a little, since each dot shows only a speck of it)
-    and, in alpha, its sparkles: small bright specks against their surroundings, which the engine twinkles."""
+# The five materials, in index order. css/site.css gives each a base and a lit color per mode.
+MATERIALS = ['gold', 'marble', 'cloud', 'lightning', 'glint']
+
+
+def lab(rgb):
+    c = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    x = (c @ np.array([0.4124, 0.2126, 0.0193]), c @ np.array([0.3576, 0.7152, 0.1192]), c @ np.array([0.1805, 0.0722, 0.9505]))
+    f = lambda t: np.where(t > 0.008856, np.cbrt(t), 7.787 * t + 16 / 116)
+    fx, fy, fz = f(x[0] / 0.9505), f(x[1]), f(x[2] / 1.089)
+    return np.dstack([116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)])
+
+
+def zone(shape):
+    """A filled polygon (points in the 424 px avatar's coordinates) or an ellipse (cx, cy, rx, ry) at M px."""
+    im = Image.new('L', (M, M), 0)
+    if len(shape) == 4 and not isinstance(shape[0], tuple):
+        cx, cy, rx, ry = (v / 424 * M for v in shape)
+        ImageDraw.Draw(im).ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=255)
+    else:
+        ImageDraw.Draw(im).polygon([(x / 424 * M, y / 424 * M) for x, y in shape], fill=255)
+    return np.asarray(im) > 0
+
+
+def material_map(inside):
+    """Which material each pixel of the figure is made of. Color alone cannot tell them apart in this image: gold,
+    marble, cloud, and glint overlap in every CIELAB channel, and a five-way k-means over the figure splits it by
+    lightness instead (shadows one cluster, highlights another). So the avatar's layout names a few zones once,
+    and color decides inside each, by how far a pixel leans warm (b* > 0) or blue (b* < 0): the wings and the
+    caduceus are gold, except where the sky's blue glints catch them; the hair is gold around the marble face (lit
+    as warm as the hair, so the zone leaves it out); below the statue the clouds are rose, with cyan lightning and
+    gold rubble in them; everything else is marble.
+    Writes color.webp: R = material index x 51; G = how strongly the pixel belongs to it, fading to 0 within
+    2 px of a boundary, so a dot on an edge shows ink instead of flickering between two materials; B unused;
+    A = 128 + sparkle (an opaque floor: browsers premultiply canvas pixels by alpha, so a transparent pixel would
+    lose its other channels on the way to the engine)."""
     src = Image.open(AVATAR).convert('RGB').resize((M, M), Image.LANCZOS)
     rgb = np.asarray(src, np.float32) / 255
+    L, _, b = lab(np.dstack([blurf(rgb[..., c], 1.5) for c in range(3)])).transpose(2, 0, 1)
+    yy = np.mgrid[0:M, 0:M][0] * (424 / M)
+    fist = zone([(86, 104), (124, 100), (130, 140), (92, 142)])
+    caduceus = zone([(0, 0), (200, 0), (200, 88), (128, 88), (126, 104), (122, 150), (125, 200), (122, 248), (100, 250),
+                     (86, 200), (84, 150), (88, 104), (84, 88), (0, 88)]) & ~fist
+    wing = zone([(30, 158), (95, 182), (150, 215), (178, 238), (172, 268), (120, 266), (70, 240), (38, 205)]) \
+        & ~zone([(118, 128), (140, 140), (200, 230), (170, 250), (128, 170)])
+    face = zone([(198, 182), (214, 176), (230, 182), (232, 204), (224, 220), (207, 221), (199, 206)])
+    hair = zone((205, 187, 34, 25)) & ~face
+    torso = zone([(168, 280), (276, 280), (268, 338), (240, 350), (200, 350), (178, 338)])
+    arm = zone([(250, 318), (300, 322), (385, 352), (380, 372), (300, 360), (250, 345)])
+    below = (yy > 330) & ~torso & ~arm
+    warm, blue = smoothstep(6, 14, b), smoothstep(4, 14, -b)
+    index = np.full((M, M), MATERIALS.index('marble'))
+    weight = np.ones((M, M))
+    def paint(area, name, strength):
+        index[area] = MATERIALS.index(name)
+        weight[area] = strength[area]
+    paint(caduceus | wing, 'gold', np.ones((M, M)))
+    # glints are small bright blue specks, brighter than the bronze around them, not whole blue regions
+    speck = smoothstep(2, 10, L - blurf(L, 4.0))
+    glint = smoothstep(4, 12, -b) * smoothstep(25, 45, L) * speck
+    paint((caduceus | wing) & (glint > 0.25), 'glint', glint)
+    paint(hair & (b > 6), 'gold', warm)
+    paint(below, 'cloud', np.ones((M, M)))
+    paint(below & (b > 8), 'gold', warm)
+    lightning = blue * smoothstep(50, 70, L)
+    paint(below & (lightning > 0.35), 'lightning', lightning)
+    edge = np.zeros((M, M))
+    edge[:, 1:] += index[:, 1:] != index[:, :-1]
+    edge[1:, :] += index[1:, :] != index[:-1, :]
+    weight = blurf(weight, 1.0) * (1 - np.clip(blurf(np.clip(edge, 0, 1), 2.0) * 3, 0, 1))
+    weight[index == MATERIALS.index('marble')] = 0   # marble is the figure's ink, exactly, in every mode
+    index[~inside] = MATERIALS.index('marble')
+    weight[~inside] = 0
+    levels = set(np.unique(index[inside]).tolist())
+    assert levels == set(range(len(MATERIALS))), f'the figure must hold all five materials, found {sorted(levels)}'
     lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
-    # Dots sit in the image's shadows, so a dot takes the color of its surroundings, not of the dark pixel
-    # under it: blur the color first, then lift its saturation.
-    soft = np.dstack([blurf(rgb[..., c], 4.0) for c in range(3)])
-    soft_lum = 0.2126 * soft[..., 0] + 0.7152 * soft[..., 1] + 0.0722 * soft[..., 2]
-    color = np.clip(soft_lum[..., None] + (soft - soft_lum[..., None]) * 1.8, 0, 1)
     sparkle = np.clip((lum - blurf(lum, 2.5) - 0.10) / 0.22, 0, 1) * smoothstep(0.55, 0.85, lum)
     sparkle = np.clip(blurf(sparkle, 0.7) * 1.4, 0, 1)
-    # Alpha carries the sparkle on top of an opaque floor (128 + sparkle * 127): browsers premultiply canvas
-    # pixels by alpha, so a fully transparent pixel would lose its color on the way to the engine.
-    rgba = np.dstack([color, 0.502 + sparkle * 0.498])
-    Image.fromarray(u8(rgba), 'RGBA').save(os.path.join(OUT, 'color.webp'), 'WEBP', quality=82, method=6, exact=True)
-    return sparkle
+    rgba = np.dstack([index * 51, u8(weight), np.zeros((M, M)), 128 + np.round(sparkle * 127)]).astype(np.uint8)
+    lossless(rgba, 'color.webp')
+    return index, weight, sparkle
 
 
 def void_and_cluster(n=64, sigma=1.9, seed=7):
@@ -236,15 +299,15 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     if '--upscale' in sys.argv:
         upscale()
-    sparkle = color_map()
-    if '--color' in sys.argv:
-        print('wrote color.webp;', int((sparkle > 0.5).sum()), 'sparkle pixels')
-        return
     dep, ink, mask, detail = maps()
+    inside = half(mask) > 0.04
+    index, weight, sparkle = material_map(inside)
+    if '--color' in sys.argv:
+        print('wrote color.webp:', ', '.join(f'{n} {float((index[inside] == k).mean()):.1%}' for k, n in enumerate(MATERIALS)))
+        return
     # The ink is quantized to 64 levels: the stipple cannot show finer steps, and it halves the file.
     levels = np.round(ink * (INK_LEVELS - 1)) / (INK_LEVELS - 1)
     lossless(u8(levels), 'ink.webp')
-    inside = half(mask) > 0.04
     relief = np.dstack([np.where(inside, np.maximum(u8(half(dep)), 1), 0), np.where(inside, u8(half(detail)), 0), np.zeros((M, M), np.uint8)])
     lossless(relief.astype(np.uint8), 'depth.webp')
     bn_path = os.path.join(OUT, 'bluenoise.png')
