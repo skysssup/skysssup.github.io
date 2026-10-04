@@ -56,11 +56,11 @@
     /* smooth scrolling */
     function syncSmoother() {
       if (!reduced() && !smoother && win.Lenis) {
-        var header = doc.querySelector(".site-header");
+        // Anchor links land where the native jump would: Lenis reads the root's scroll-padding-top.
         smoother = new win.Lenis({
           autoRaf: true,
           lerp: 0.1,
-          anchors: { offset: -((header ? header.offsetHeight : 56) + 24) },
+          anchors: true,
           prevent: function (node) { return !!(node && node.closest && node.closest("[data-lenis-prevent]")); }
         });
       } else if (reduced() && smoother) {

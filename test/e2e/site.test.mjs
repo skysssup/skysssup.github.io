@@ -76,6 +76,30 @@ test('axe finds no accessibility violations in any mode', async () => {
   }
 });
 
+test('section links land each section just under the header, with smooth scrolling and without', async () => {
+  for (const reduced of [false, true]) {
+    const { page, context } = await open('/work/agentcrucible/', { reduced });
+    const header = await page.evaluate(() => document.querySelector('.site-header').offsetHeight);
+    for (const id of await page.$$eval('.toc a', as => as.map(a => a.getAttribute('href').slice(1)))) {
+      const link = page.locator(`.toc a[href="#${id}"]`);
+      await link.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(100);
+      await link.click();
+      for (let last = -1, i = 0; i < 50; i++) {
+        await page.waitForTimeout(100);
+        const y = await page.evaluate(() => scrollY);
+        if (y === last && i >= 3) break;
+        last = y;
+      }
+      const { top, bottom } = await page.evaluate(i => ({ top: document.getElementById(i).getBoundingClientRect().top, bottom: scrollY + innerHeight >= document.documentElement.scrollHeight - 2 }), id);
+      if (!bottom) assert.ok(Math.abs(top - (header + 24)) <= 2, `#${id} ${reduced ? 'reduced' : 'smooth'}: top at ${top}, expected ${header + 24}`);
+      else assert.ok(top >= header, `#${id} hidden under the header at the end of the page`);
+    }
+    await context.close();
+  }
+});
+
+
 test('Gear Two flashes, glitches, settles, turns the page red, and survives navigation', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForTimeout(1500);
