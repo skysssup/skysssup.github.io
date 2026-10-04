@@ -5,10 +5,10 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 
 ## Pages
 
-- `/` — the hero, a short "Essentially" statement, selected work, and contact.
-- Every page ends on the same footer, the sheet's sign-off: the colophon (how the site is made, the rules it
-  follows, and six numbers the generator measures) and a closing line with the local time, three links, and the
-  motion toggle.
+- `/` — the hero (the intro, and "Why the statue" beside the figure), selected work as four plates that develop
+  from stipple drawings, and contact, with my day on a 24-hour dial.
+- Every page ends on the same closing line: name, local time, year, three links, and two quiet toggles, Grid
+  (the construction grid, also on `G` and in the header) and Reduce motion.
 - `/work/` — all projects, filterable by theme (`?theme=ai-systems`, `developer-tools`, `physics-software`) and searchable by name, technology, or theme (`?q=python`). List/grid preference is saved locally; filters and search are shareable and follow browser history.
 - `/work/<slug>/` — one case study per project. See [docs/case-studies.md](docs/case-studies.md) for how to fill one in.
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
@@ -43,10 +43,14 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   stipple render. Context restoration rebuilds GPU resources from cached geometry without fetching the assets
   again. Horizontal touch drags turn the figure without blocking vertical scrolling; the caption's ripple button
   works by keyboard, and a readout under the caption shows yaw, pitch, and the engine's JS time per frame.
-- `js/page.js` — Kathmandu time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
+- `js/page.js` — local time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
   the reveals (`[data-reveal]`: section rules draw in and media wipes in, once, when first seen, never under
-  reduced motion), and mounting the hero. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
+  reduced motion), and mounting the hero. Below the hero it also runs the contact dial (my day on a 24-hour face,
+  the night stippled in from a sunrise and sunset worked out for the date, a hand for now, and a readout that
+  follows the pointer), the plates that develop from a stipple drawing of their own screenshot the first time
+  they are seen, the construction grid (`G`: minor columns, insets, and a tag naming the role, size, and line of
+  whatever text the pointer rests on), and Gear Two's drafting crosshair. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
   use arrow keys to browse, Enter to open, and Escape to close. It uses a native dialog, traps focus,
   restores the opener, and locks background scrolling without changing the saved motion preference.
 - `js/diagram.js` — draws case-study diagrams from their JSON specs.
@@ -74,9 +78,7 @@ CI runs both on every push to `main`.
 ## Regenerating pages and assets
 
 - Pages: `node tools/pages/build.mjs` after editing `tools/pages/` (site and project data, case-study bodies in
-  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match. The footer's
-  colophon prints numbers the generator measures (test counts, gzipped CSS and JS, font sizes), so changing
-  CSS, JS, or tests also means regenerating.
+  `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match.
 - Share images: `npm run og` (after changing a page title, summary, or cover).
 - Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). Its source, `assets/avatar.jpg`, is the
   424 px GitHub avatar (`tools/hero/avatar-424.jpg`) upscaled 4× by Real-ESRGAN and Real-ESRNet; `--upscale`

@@ -47,6 +47,52 @@
 
   function pad(n) { return String(n).padStart(2, "0"); }
 
+  /* Kathmandu, for the contact dial: UTC+5:45 all year, so its minute of the day is plain arithmetic. */
+  var KATHMANDU = 345;
+  function kathmanduMinute(date) { return ((date.getUTCHours() * 60 + date.getUTCMinutes() + KATHMANDU) % 1440 + 1440) % 1440; }
+  function clock(minute) { return pad(Math.floor(minute / 60) % 24) + ":" + pad(Math.floor(minute % 60)); }
+
+  // What I am probably doing at a minute of the Kathmandu day.
+  var DAY = [[0, "asleep"], [330, "up early, with tea"], [420, "reading last night’s email"], [570, "eating dal bhat"], [630, "writing tests"], [780, "at my desk, building"], [1050, "fixing what the tests caught"], [1170, "eating dal bhat again"], [1230, "debugging something"]];
+  function kathmanduStatus(minute) {
+    var status = DAY[0][1];
+    for (var i = 0; i < DAY.length; i++) if (minute >= DAY[i][0]) status = DAY[i][1];
+    return status;
+  }
+
+  // How far Kathmandu is ahead of a visitor whose clock is `offset` minutes east of UTC.
+  function timeGap(offset) {
+    var gap = KATHMANDU - offset, h = Math.floor(Math.abs(gap) / 60), m = Math.abs(gap) % 60;
+    if (!gap) return "the same time as you";
+    return (h ? h + " h" : "") + (h && m ? " " : "") + (m ? m + " min" : "") + (gap > 0 ? " ahead of you" : " behind you");
+  }
+
+  // Sunrise and sunset in Kathmandu, in minutes after its midnight, from the NOAA approximation of the sun's path.
+  // `date` carries Kathmandu's calendar day in its UTC fields.
+  function sunTimes(date) {
+    var lat = 27.7172 * Math.PI / 180, lon = 85.324, rad = Math.PI / 180;
+    var day = Math.floor((date - Date.UTC(date.getUTCFullYear(), 0, 0)) / 864e5);
+    var g = 2 * Math.PI / 365 * (day - 1);
+    var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+    var decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+    var ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat) * Math.cos(decl)) - Math.tan(lat) * Math.tan(decl)) / rad;
+    return { rise: 720 - 4 * (lon + ha) - eq + KATHMANDU, set: 720 - 4 * (lon - ha) - eq + KATHMANDU };
+  }
+
+  // 0 in full day, 1 in full night, 0.5 at sunrise and sunset, with 40 minutes of twilight either side.
+  function darkness(minute, sun) {
+    var ramp = Math.min(Math.min(Math.abs(minute - sun.rise), Math.abs(minute - sun.set)) / 40, 1);
+    return minute > sun.rise && minute < sun.set ? 0.5 - 0.5 * ramp : 0.5 + 0.5 * ramp;
+  }
+
+  // The type role a computed style belongs to, named as in docs/design-spec.md §4.
+  function typeRole(size, line, mono) {
+    var key = (mono ? "mono " : "") + size + "/" + line;
+    return { "24/32": "Title L", "18/24": "Title S", "15/24": "Body", "13/20": "Small", "mono 13/20": "Small, mono", "mono 11/16": "UI", "mono 10/16": "Label" }[key] || key;
+  }
+
+  function noise(x, y) { var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); }
+
   function boot(doc, win) {
     var motion = win.SkyMotion || { reduced: function () { return false; }, subscribe: function () {} };
     var announce = doc.querySelector("[data-announce]");
@@ -334,6 +380,235 @@
       });
     }
 
+    /* contact: Kathmandu's day on a 24-hour dial, the night stippled in, a hand for now, and a readout that follows
+       the pointer round the face */
+    var note = doc.querySelector("[data-contact-note]");
+    var dialFigure = doc.querySelector("[data-dial]");
+    if (note || dialFigure) {
+      var offset = -new Date().getTimezoneOffset();
+      var svg = dialFigure && dialFigure.querySelector("svg");
+      var NS = "http://www.w3.org/2000/svg";
+      var at = function (minute, r) { var a = minute / 1440 * 2 * Math.PI; return [200 - r * Math.sin(a), 200 + r * Math.cos(a)]; };
+      var line = function (minute, r0, r1, cls) {
+        var p0 = at(minute, r0), p1 = at(minute, r1), el = doc.createElementNS(NS, "line");
+        el.setAttribute("x1", p0[0].toFixed(1)); el.setAttribute("y1", p0[1].toFixed(1)); el.setAttribute("x2", p1[0].toFixed(1)); el.setAttribute("y2", p1[1].toFixed(1));
+        el.setAttribute("class", cls);
+        return el;
+      };
+      var dot = function (minute, r, size, cls) {
+        var p = at(minute, r), el = doc.createElementNS(NS, "circle");
+        el.setAttribute("cx", p[0].toFixed(1)); el.setAttribute("cy", p[1].toFixed(1)); el.setAttribute("r", size); el.setAttribute("class", cls);
+        return el;
+      };
+      var readTime = dialFigure && dialFigure.querySelector("[data-dial-time]");
+      var readStatus = dialFigure && dialFigure.querySelector("[data-dial-status]");
+      var readPlace = dialFigure && dialFigure.querySelector("[data-dial-place]");
+      var you = dialFigure && dialFigure.querySelector("[data-dial-you]");
+      var hands = svg && svg.querySelector("[data-dial-hands]");
+      var nightDay = null, pointing = null;
+      var drawNight = function (now) {
+        var night = svg.querySelector("[data-dial-night]"), sun = sunTimes(new Date(now.getTime() + KATHMANDU * 6e4)), dots = [];
+        for (var r = 72, ring = 0; r <= 152; r += 4.8, ring++) {
+          var count = Math.round(2 * Math.PI * r / 4.8);
+          for (var k = 0; k < count; k++) {
+            var minute = (k + noise(ring, k) * 0.8) / count * 1440, d = darkness(minute, sun);
+            if (0.006 + 0.86 * d * d > noise(k, ring)) { var p = at(minute, r + (noise(ring + 7, k) - 0.5) * 3); dots.push('<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="1"/>'); }
+          }
+        }
+        night.innerHTML = dots.join("");
+      };
+      var render = function () {
+        var now = new Date(), minute = kathmanduMinute(now), shown = pointing === null ? minute : pointing;
+        if (note) note.textContent = "It’s " + clock(minute) + " for me, so I’m probably " + kathmanduStatus(minute) + ". Email reaches me fastest.";
+        if (!svg) return;
+        var day = now.getUTCFullYear() * 400 + Math.floor((now.getTime() + KATHMANDU * 6e4) / 864e5);
+        if (day !== nightDay) { drawNight(now); nightDay = day; }
+        hands.textContent = "";
+        hands.appendChild(line(minute, 58, 186, "hand"));
+        hands.appendChild(dot(minute, 186, 3.5, "hand-tip"));
+        var mine = ((minute - (KATHMANDU - offset)) % 1440 + 1440) % 1440;
+        if (pointing !== null) hands.appendChild(line(pointing, 58, 186, "hand ghost"));
+        readTime.textContent = clock(shown);
+        readPlace.textContent = pointing === null ? "My time, now" : "My time";
+        readStatus.textContent = "Probably " + kathmanduStatus(shown);
+        if (you) {
+          var yours = ((shown - (KATHMANDU - offset)) % 1440 + 1440) % 1440;
+          you.hidden = offset === KATHMANDU;
+          you.textContent = (pointing === null ? "You " : "Yours ") + clock(yours);
+          if (!you.hidden && pointing === null) {
+            var p = at(minute - (KATHMANDU - offset), 214);
+            you.style.left = (p[0] + 24) / 448 * 100 + "%";
+            you.style.top = (p[1] + 24) / 448 * 100 + "%";
+            hands.appendChild(dot(mine, 180, 2.5, "you-tip"));
+          }
+          you.classList.toggle("is-pointing", pointing !== null);
+        }
+      };
+      if (svg) {
+        var aim = function (event) {
+          var box = svg.getBoundingClientRect(), x = (event.clientX - box.left) / box.width * 448 - 24 - 200, y = (event.clientY - box.top) / box.height * 448 - 24 - 200;
+          if (Math.sqrt(x * x + y * y) < 40) { pointing = null; render(); return; }
+          var minute = Math.atan2(-x, y) / (2 * Math.PI) * 1440;
+          pointing = Math.round(((minute % 1440) + 1440) % 1440 / 15) * 15 % 1440;
+          render();
+        };
+        svg.addEventListener("pointermove", aim);
+        svg.addEventListener("pointerdown", aim);
+        svg.addEventListener("pointerleave", function () { pointing = null; render(); });
+        dialFigure.classList.add("is-live");
+      }
+      render();
+      win.setInterval(render, 15000);
+    }
+
+    /* plates: a screenshot first appears as a stipple drawing in the figure's own ink, then develops into the image
+       the first time it is seen; in Gear Two, hovering a plate shows the drawing again, in red */
+    var stippled = Array.prototype.slice.call(doc.querySelectorAll(".plate-media > img, .thumb > img"));
+    if (stippled.length && win.IntersectionObserver && win.ResizeObserver && !motion.reduced()) {
+      var drawStipple = function (img, canvas) {
+        var w = canvas.clientWidth, h = canvas.clientHeight;
+        if (!w || !h || !img.complete || !img.naturalWidth) return false;
+        var dpr = Math.min(win.devicePixelRatio || 1, 2), step = 3, cols = Math.ceil(w / step), rows = Math.ceil(h / step);
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        var probe = doc.createElement("canvas");
+        probe.width = cols;
+        probe.height = rows;
+        var pctx = probe.getContext("2d", { willReadFrequently: true });
+        pctx.drawImage(img, 0, 0, cols, rows);
+        var px = pctx.getImageData(0, 0, cols, rows).data;
+        var styles = win.getComputedStyle(doc.documentElement);
+        var paper = styles.getPropertyValue("--paper").trim(), darkPaper = parseInt(paper.slice(1, 3), 16) < 128;
+        var ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = styles.getPropertyValue("--figure-ink").trim();
+        ctx.beginPath();
+        for (var y = 0; y < rows; y++) for (var x = 0; x < cols; x++) {
+          var i = (y * cols + x) * 4, lum = (0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255, ink = darkPaper ? lum : 1 - lum;
+          if (0.72 * Math.pow(ink, 1.4) > noise(x, y)) {
+            var cx = (x + 0.5 + (noise(y, x) - 0.5) * 0.7) * step, cy = (y + 0.5 + (noise(x + 31, y) - 0.5) * 0.7) * step;
+            ctx.moveTo(cx + 1.05, cy);
+            ctx.arc(cx, cy, 1.05, 0, 2 * Math.PI);
+          }
+        }
+        ctx.fill();
+        return true;
+      };
+      var plates = stippled.map(function (img) {
+        var frame = img.parentNode, canvas = doc.createElement("canvas");
+        canvas.className = "stipple";
+        canvas.setAttribute("aria-hidden", "true");
+        frame.appendChild(canvas);
+        frame.classList.add("is-stippled");
+        var plate = { img: img, frame: frame, canvas: canvas, drawn: false, seen: false };
+        plate.draw = function () { plate.drawn = drawStipple(img, canvas) || plate.drawn; if (plate.drawn && plate.seen) frame.classList.add("is-developed"); };
+        if (!img.complete) img.addEventListener("load", plate.draw, { once: true });
+        return plate;
+      });
+      var sight = new win.IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var plate = plates.filter(function (p) { return p.frame === entry.target; })[0];
+          plate.seen = true;
+          sight.unobserve(entry.target);
+          if (!plate.drawn) plate.draw();
+          if (plate.drawn) win.setTimeout(function () { plate.frame.classList.add("is-developed"); }, 120);
+          else plate.img.addEventListener("load", function () { plate.frame.classList.add("is-developed"); }, { once: true });
+        });
+      }, { threshold: 0.35 });
+      var sizes = new win.ResizeObserver(function (entries) { entries.forEach(function (entry) { plates.forEach(function (p) { if (p.frame === entry.target) p.draw(); }); }); });
+      plates.forEach(function (p) { p.draw(); sight.observe(p.frame); sizes.observe(p.frame); });
+      new win.MutationObserver(function () { plates.forEach(function (p) { p.draw(); }); }).observe(doc.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-gear"] });
+    }
+
+    /* the construction grid: minor columns and insets drawn over the sheet, and the role, size, and alignment of
+       whatever text the pointer rests on; G or either Grid control turns it on for the session */
+    var gridToggles = Array.prototype.slice.call(doc.querySelectorAll("[data-grid-toggle]"));
+    if (gridToggles.length) {
+      var inspect = null;
+      var gridOn = function () { return doc.documentElement.getAttribute("data-grid") === "on"; };
+      var syncGrid = function () {
+        gridToggles.forEach(function (button) {
+          button.setAttribute("aria-pressed", gridOn() ? "true" : "false");
+          var state = button.querySelector("[data-grid-state]");
+          if (state) state.textContent = gridOn() ? "On" : "Off";
+        });
+        if (!gridOn() && inspect) inspect.hidden = true;
+      };
+      var setGrid = function (on) {
+        if (on) doc.documentElement.setAttribute("data-grid", "on"); else doc.documentElement.removeAttribute("data-grid");
+        try { if (on) win.sessionStorage.setItem("sky-grid", "on"); else win.sessionStorage.removeItem("sky-grid"); } catch (e) {}
+        syncGrid();
+        say(on ? "Construction grid on" : "Construction grid off");
+      };
+      gridToggles.forEach(function (button) { button.addEventListener("click", function () { setGrid(!gridOn()); }); });
+      doc.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.metaKey || event.ctrlKey || event.key.toLowerCase() !== "g") return;
+        if (event.target.closest && event.target.closest("input, textarea, select, [contenteditable]:not([contenteditable=false]), dialog")) return;
+        setGrid(!gridOn());
+      });
+      syncGrid();
+      if (win.matchMedia && win.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        inspect = doc.createElement("div");
+        inspect.className = "inspect";
+        inspect.setAttribute("aria-hidden", "true");
+        inspect.hidden = true;
+        inspect.innerHTML = '<span class="inspect-tag"></span>';
+        doc.body.appendChild(inspect);
+        var tag = inspect.firstChild;
+        var lines = function () {
+          var spans = Array.prototype.filter.call(doc.querySelectorAll("body > .lines > span"), function (el) { return win.getComputedStyle(el).display !== "none"; });
+          var majors = spans.map(function (el) { return el.getBoundingClientRect().left; }).concat(spans[spans.length - 1].getBoundingClientRect().right);
+          return majors.slice(0, -1).reduce(function (list, x, i) { var w = (majors[i + 1] - x) / 3; return list.concat([[x, "column " + (i + 1)], [x + w, "minor " + (i * 3 + 2)], [x + 2 * w, "minor " + (i * 3 + 3)]]); }, []).concat([[majors[majors.length - 1], "frame"]]);
+        };
+        var place = function (x) {
+          var p = parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--p")), best = null;
+          lines().forEach(function (l) { [[l[0], ""], [l[0] + p, " + " + p]].forEach(function (c) { var d = Math.abs(c[0] - x); if (!best || d < best[0]) best = [d, l[1] + c[1]]; }); });
+          return best[0] <= 0.5 ? best[1] : Math.round(x) + " px";
+        };
+        doc.addEventListener("pointerover", function (event) {
+          if (!gridOn()) return;
+          var el = event.target.closest && event.target.closest("main h1, main h2, main h3, main p, main li > span, main dt, main dd, main figcaption > span, footer p, footer button, main .plate-line");
+          if (!el) { inspect.hidden = true; return; }
+          var box = el.getBoundingClientRect(), cs = win.getComputedStyle(el);
+          var size = Math.round(parseFloat(cs.fontSize)), lh = Math.round(parseFloat(cs.lineHeight)) || size, mono = /Fragment/.test(cs.fontFamily);
+          tag.textContent = typeRole(size, lh, mono) + " · " + size + "/" + lh + " · " + (mono ? "Fragment Mono" : "Instrument Sans " + cs.fontWeight) + " · " + place(box.left + parseFloat(cs.paddingLeft));
+          inspect.style.transform = "translate(" + box.left + "px, " + box.top + "px)";
+          inspect.style.width = box.width + "px";
+          inspect.style.height = box.height + "px";
+          inspect.hidden = false;
+        });
+        win.addEventListener("scroll", function () { if (inspect) inspect.hidden = true; }, { passive: true });
+      }
+    }
+
+    /* Gear Two: a drafting crosshair follows the pointer across the sheet and reads out where it is */
+    if (win.matchMedia && win.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      var cross = doc.createElement("div");
+      cross.className = "crosshair";
+      cross.setAttribute("aria-hidden", "true");
+      cross.innerHTML = '<i class="crosshair-x"></i><i class="crosshair-y"></i><span class="crosshair-read"></span>';
+      doc.body.appendChild(cross);
+      var crossRead = cross.lastChild, crossQueued = false, crossX = 0, crossY = 0;
+      var moveCross = function () {
+        crossQueued = false;
+        var m = parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--m")), n = parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--n"));
+        var column = Math.min(n, Math.max(1, Math.floor((crossX - m) / ((win.innerWidth - 2 * m) / n)) + 1));
+        cross.style.setProperty("--x", crossX + "px");
+        cross.style.setProperty("--y", crossY + "px");
+        crossRead.textContent = "x " + String(Math.round(crossX + win.scrollX)).padStart(4, "0") + " · y " + String(Math.round(crossY + win.scrollY)).padStart(4, "0") + " · col " + column;
+        cross.classList.add("is-on");
+      };
+      doc.addEventListener("pointermove", function (event) {
+        if (doc.documentElement.getAttribute("data-gear") !== "two" || event.pointerType !== "mouse") return;
+        crossX = event.clientX;
+        crossY = event.clientY;
+        if (!crossQueued) { crossQueued = true; win.requestAnimationFrame(moveCross); }
+      }, { passive: true });
+      doc.documentElement.addEventListener("pointerleave", function () { cross.classList.remove("is-on"); });
+    }
+
     /* reveals: graphics that draw in the first time they come into view (text is never hidden) */
     var reveals = Array.prototype.slice.call(doc.querySelectorAll("[data-reveal]"));
     if (reveals.length && win.IntersectionObserver) {
@@ -350,7 +625,7 @@
     return { hero: hero };
   }
 
-  var api = { filterRows: filterRows, themeFromSearch: themeFromSearch, queryFromSearch: queryFromSearch, searchFor: searchFor, matchesQuery: matchesQuery, activeSection: activeSection, kathmanduTime: kathmanduTime, THEMES: THEMES };
+  var api = { filterRows: filterRows, themeFromSearch: themeFromSearch, queryFromSearch: queryFromSearch, searchFor: searchFor, matchesQuery: matchesQuery, activeSection: activeSection, kathmanduTime: kathmanduTime, kathmanduMinute: kathmanduMinute, kathmanduStatus: kathmanduStatus, timeGap: timeGap, sunTimes: sunTimes, darkness: darkness, typeRole: typeRole, THEMES: THEMES };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else {
     global.SkyPage = api;

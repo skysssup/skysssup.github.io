@@ -299,6 +299,10 @@ html.lenis, html.lenis body { height: auto; }
 .lamp-knob { position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: currentColor; transition: transform .35s var(--ease-out); }
 .lamp[aria-pressed="true"] { color: var(--ink); }
 .lamp[aria-pressed="true"] .lamp-knob { transform: translateX(12px); }
+.grid-switch { display: inline-flex; align-items: center; min-height: 32px; font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-underline-offset: 3px; transition: color .2s; }
+.grid-switch:hover { color: var(--accent); }
+.grid-switch[aria-pressed="true"] { color: var(--accent); text-decoration: underline 1px; }
+html:not(.js) .grid-switch { display: none; }
 .index-open { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 32px; font: 400 11px/16px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .index-open:hover { color: var(--accent); }
 .index-open svg { width: 16px; height: 16px; }
@@ -318,6 +322,7 @@ html:not(.js) .index-open { display: none; }
   .header-mid { margin-left: auto; padding: 0; gap: 8px; }
   .header-end { padding-left: 0; gap: 8px; }
   .index-open { width: 32px; min-height: 40px; }
+  .grid-switch { display: none; }
   .index-open span { display: none; }
   .lamp { height: 40px; }
   .gear { height: 32px; }
@@ -514,8 +519,14 @@ html.js:not([data-motion="reduced"]) .rule[data-reveal]::before {
 }
 html.js:not([data-motion="reduced"]) .rule[data-reveal].is-seen::before { transform: none; }
 /* the frame is observed and stays whole; what it holds wipes in (a clipped element never intersects) */
-html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal] > :is(img, video, .media-type) { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out); }
-html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal].is-seen > :is(img, video, .media-type) { clip-path: inset(0 0 0 0); }
+html.js:not([data-motion="reduced"]) .fig-frame[data-reveal] > :is(img, video) { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out); }
+html.js:not([data-motion="reduced"]) .fig-frame[data-reveal].is-seen > :is(img, video) { clip-path: inset(0 0 0 0); }
+/* a screenshot develops from a stipple drawing in the figure's ink the first time it is seen (js/page.js) */
+.is-stippled { position: relative; }
+.stipple { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 1.2s var(--ease-out) .15s; }
+.is-stippled > img { transition: opacity 1s var(--ease-out); }
+html:not([data-motion="reduced"]) .is-stippled:not(.is-developed) > img { opacity: 0; }
+.is-developed > .stipple, :root[data-motion="reduced"] .stipple { opacity: 0; }
 
 /* ── hero telemetry: the engine's own readout ─────────── */
 .fig-telemetry { margin-top: 4px; }
@@ -550,30 +561,68 @@ html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal].
 }
 
 /* ── footer: the sheet's sign-off ──────────────────────── */
-/* The colophon band, one closing line, then the rule that closes the sheet, below which the sheet lines stop. */
+/* One closing line on a rule, then the rule that closes the sheet, below which the sheet lines stop. */
 .site-footer { position: relative; z-index: 1; }
 .site-footer::after { content: ""; display: block; height: var(--m); background: var(--paper); }
-.site-footer .band { padding-bottom: 64px; }
-.rules > * > :last-child, .figures > * > :last-child { max-width: calc(60ch + 2 * var(--p)); font: 400 13px/20px var(--sans); color: var(--muted); }
-.rules .n { font: 400 10px/16px var(--mono); color: var(--muted); }
-.figures dt { font: 400 13px/20px var(--mono); }
 .sign-off { padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); align-items: baseline; row-gap: 8px; }
-.sign-off p, .motion-toggle { font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.sign-off p, .sign-toggles button { font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
 .sign-name { grid-column: 1; color: var(--muted); }
 .sign-links { grid-column: 2 / span 2; display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .sign-links a { text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
 .sign-links a:hover { color: var(--accent); text-decoration-color: currentColor; }
-.motion-toggle { grid-column: 4; justify-self: end; min-height: 24px; color: var(--muted); transition: color .2s; }
-.motion-toggle:hover { color: var(--accent); }
-.motion-toggle b { font-weight: 400; color: var(--ink); }
+.sign-toggles { grid-column: 4; justify-self: end; display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.sign-toggles button { min-height: 24px; color: var(--muted); transition: color .2s; }
+.sign-toggles button:hover { color: var(--accent); }
+.sign-toggles b { font-weight: 400; color: var(--ink); }
+html:not(.js) .grid-toggle { display: none; }
 @media (max-width: 1199px) {
   .sign-name { grid-column: 1 / span 2; }
   .sign-links { grid-column: 3 / span 2; }
-  .motion-toggle { grid-column: 3 / span 2; justify-self: start; }
+  .sign-toggles { grid-column: 3 / span 2; justify-self: start; }
 }
 @media (max-width: 767px) {
-  .sign-off > *, .sign-links { grid-column: 1 / -1; }
-  .motion-toggle { justify-self: start; }
+  .sign-off > *, .sign-links, .sign-toggles { grid-column: 1 / -1; }
+}
+
+/* ── contact: the band, and Kathmandu's day on a dial ───── */
+/* Midnight at the foot and noon at the top, so the sun rises on the left and sets on the right; the night is
+   stippled in the figure's ink, the hand is now, and the readout follows the pointer round the face. */
+.contact { grid-template-rows: auto auto 1fr; }
+.contact .band-note { grid-column: 2; }
+.row > .contact-lines { grid-column: 1 / span 2; }
+.dial { grid-column: 3 / span 2; grid-row: 1 / span 3; align-self: start; justify-self: center; width: min(100%, 420px); }
+.dial-face { position: relative; aspect-ratio: 1; }
+.dial-face svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; touch-action: pan-y; }
+.dial.is-live svg { cursor: crosshair; }
+.dial .rim, .dial .ticks line { fill: none; stroke: var(--line-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.dial .night circle { fill: var(--figure-ink); }
+.dial .hand { stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.dial .hand.ghost { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 4; opacity: .6; }
+.dial .hand-tip { fill: var(--accent); transform-box: fill-box; transform-origin: center; }
+.dial .you-tip { fill: var(--ink); }
+.dial-hour, .dial-you { position: absolute; transform: translate(-50%, -50%); pointer-events: none; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.dial-hour { color: var(--muted); }
+.dial-hour.h00 { left: 50%; top: 94.64%; }
+.dial-hour.h06 { left: 5.36%; top: 50%; }
+.dial-hour.h12 { left: 50%; top: 5.36%; }
+.dial-hour.h18 { left: 94.64%; top: 50%; }
+.dial-you { padding: 0 4px; background: var(--paper); color: var(--ink); }
+.dial-you.is-pointing { left: 50%; top: 66%; color: var(--muted); }
+.dial-readout { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; width: 50%; text-align: center; pointer-events: none; }
+.dial-readout > * { padding: 0 4px; background: var(--paper); }
+.dial-readout b { font: 500 24px/32px var(--sans); font-variant-numeric: tabular-nums; }
+.dial-readout span { font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dial figcaption { display: grid; gap: 4px; margin-top: 16px; }
+.dial figcaption .t-small { max-width: 44ch; color: var(--muted); }
+html:not(.js) .dial-readout { display: none; }
+@media (max-width: 1199px) {
+  .contact { grid-template-rows: none; }
+  .contact .band-note { grid-column: 2 / -1; }
+  .row > .contact-lines { grid-column: 1 / -1; }
+  .dial { grid-column: 1 / -1; grid-row: auto; margin-top: 24px; }
+}
+@media (max-width: 767px) {
+  .contact .band-note { grid-column: 1 / -1; }
 }
 
 /* ── work index: a list ─────────────────────────────────── */
@@ -629,7 +678,7 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 .project .facts { grid-column: 3; grid-row: 1; display: grid; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .project .facts .themes-line { color: var(--ink); }
 .project .thumb { grid-column: 4; grid-row: 1; align-self: start; }
-.thumb > * { border-bottom: 1px solid var(--line); }
+.thumb > :not(canvas) { border-bottom: 1px solid var(--line); }
 .thumb img { width: 100%; }
 .project:hover h2 { color: var(--accent); }
 .project:hover .go { transform: translateX(3px); }
@@ -956,6 +1005,64 @@ html.index-is-open { scrollbar-gutter: stable; }
   30% { opacity: .82; transform: scale(1.02); }
 }
 
+/* ── the construction grid (G, or Grid in the header or footer) ─────── */
+/* Minor columns dashed, the insets dotted, and a tag on whatever text the pointer rests on: its role, size, face,
+   and the line its edge sits on. */
+body > .lines span { position: relative; }
+:root[data-grid="on"] body > .lines span::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .4;
+  background:
+    repeating-linear-gradient(to bottom, var(--accent) 0 4px, transparent 4px 8px) calc(100% / 3) 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--accent) 0 4px, transparent 4px 8px) calc(200% / 3) 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--accent) 0 1px, transparent 1px 4px) var(--p) 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--accent) 0 1px, transparent 1px 4px) calc(100% - var(--p)) 0 / 1px 100% no-repeat;
+}
+.inspect { position: fixed; left: 0; top: 0; z-index: 45; pointer-events: none; outline: 1px dashed var(--accent); }
+.inspect-tag { position: absolute; left: -1px; bottom: calc(100% + 4px); padding: 0 4px; background: var(--paper); font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+
+/* ── Gear Two, below the hero ───────────────────────────── */
+/* A drafting crosshair follows the pointer and reads out where it is, and a pulse runs down each sheet line in
+   step with the heartbeat, every other beat, a quarter of the way round from the line before. */
+.crosshair { position: fixed; inset: 0; z-index: 45; display: none; pointer-events: none; }
+:root[data-gear="two"]:not([data-motion="reduced"]) .crosshair.is-on { display: block; }
+.crosshair-x, .crosshair-y { position: absolute; left: 0; top: 0; background: var(--accent); opacity: .3; }
+.crosshair-x { right: 0; height: 1px; transform: translateY(var(--y)); }
+.crosshair-y { bottom: 0; width: 1px; transform: translateX(var(--x)); }
+.crosshair-read { position: absolute; left: 0; top: 0; padding: 0 4px; transform: translate(calc(var(--x) + 12px), calc(var(--y) + 12px)); background: var(--paper); font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+:root[data-gear="two"]:not([data-motion="reduced"]) body > .lines span::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 1px;
+  height: 12vh;
+  background: var(--accent);
+  opacity: 0;
+  animation: line-pulse 1.8s linear infinite;
+  animation-delay: var(--beat-delay, 0s);
+}
+:root[data-gear="two"] body > .lines span:nth-child(2)::after { animation-delay: calc(var(--beat-delay, 0s) - .45s); }
+:root[data-gear="two"] body > .lines span:nth-child(3)::after { animation-delay: calc(var(--beat-delay, 0s) - .9s); }
+:root[data-gear="two"] body > .lines span:nth-child(4)::after { animation-delay: calc(var(--beat-delay, 0s) - 1.35s); }
+@keyframes line-pulse {
+  0% { opacity: 0; transform: translateY(-12vh); }
+  6% { opacity: .9; }
+  55%, 100% { opacity: 0; transform: translateY(100vh); }
+}
+/* hovering a plate in Gear Two shows its stipple drawing again, in red */
+:root[data-gear="two"] :is(.plate, .project):hover .is-developed > .stipple { opacity: 1; transition: opacity .2s; }
+:root[data-gear="two"] :is(.plate, .project):hover .is-developed > img { opacity: .12; transition: opacity .2s; }
+:root[data-gear="two"]:not([data-motion="reduced"]) .dial .hand-tip { animation: tip-beat .9s linear infinite; animation-delay: var(--beat-delay, 0s); }
+@keyframes tip-beat {
+  0%, 42%, 100% { transform: scale(1); }
+  8% { transform: scale(1.8); }
+  18% { transform: scale(1.1); }
+  30% { transform: scale(1.5); }
+}
+
 /* ── theme reveal (View Transitions) ───────────────────── */
 html.theme-reveal::view-transition-new(root) {
   z-index: 9999;
@@ -1024,7 +1131,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .motion-toggle, .sign-links, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .crosshair, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

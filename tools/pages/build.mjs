@@ -4,7 +4,6 @@
 // result; test/pages.test.cjs fails when a committed page and the generator disagree.
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
 
 const SRC = path.dirname(new URL(import.meta.url).pathname);
 const BODIES = path.join(SRC, 'bodies');
@@ -65,7 +64,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 ${extra}</head>`;
 }
 
-const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
+const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
 
 const LINES = '<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
 
@@ -84,6 +83,7 @@ ${LINES}
     </nav>
     <div class="header-mid">
       <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
+      <button class="grid-switch" type="button" aria-pressed="false" aria-keyshortcuts="g" data-grid-toggle>Grid</button>
       <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
     <div class="header-end">
@@ -95,38 +95,15 @@ ${LINES}
 }
 
 function footer() {
-  const n = siteNumbers();
   const source = `https://github.com/${site.github}/${site.github}.github.io`;
-  const rules = [
-    'Every element informs, navigates, or shows real work. Otherwise it goes.',
-    'Evidence over adjectives: screenshots, recordings, terminal output, demos.',
-    'Small, exact type. One accent. A visible grid the content obeys.',
-    'Motion explains a state change or shows the work, and has a reduced-motion equivalent.',
-    'Content is HTML first. JavaScript enhances and never gates reading.',
-  ];
-  const figures = [
-    [site.dots, 'dots in Fig. 0, drawn in one WebGL call per frame', ' data-dot-count'],
-    [String(n.unitTests), 'unit and content tests, run on every push'],
-    [String(n.renders), 'browser renders per CI run: every page at four widths in light, dark, and Gear Two, each checked with axe-core'],
-    [`${n.homeKb} KB`, 'of CSS and JavaScript on the home page, gzipped'],
-    [`${n.fontKb} KB`, `of type in ${words(n.fontFiles)} files: Instrument Sans and Fragment Mono, subset and self-hosted`],
-    ['0.9 s', 'between heartbeats in Gear Two, shared by the dots, the ring, the glow, and the switch'],
-  ];
   return `<footer class="site-footer">
-  <div class="row band rule" id="colophon" data-reveal>
-    <h2 class="band-title">Colophon</h2>
-    <p class="band-note">${tie(`I keep this site to plain HTML, CSS, and JavaScript, served by GitHub Pages as committed, with no framework and no build step. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two. Fig. 0 stipples my avatar, upscaled four times from its 424 px original, against a blue-noise tile and lifts the dots with a depth map; each dot carries a surface normal, so the light moves across the figure as it turns, and one of five materials in a palette designed for each mode. The sheet’s column lines stay put while the page scrolls; every block starts on one of them or just inside it, and a test checks that at four widths.`)}</p>
-    <ol class="hang-list rules" aria-label="Rules this site follows">
-${rules.map((rule, i) => `      <li><span class="n" aria-hidden="true">${pad(i + 1)}</span><span>${tie(rule)}</span></li>`).join('\n')}
-    </ol>
-    <dl class="hang-list figures">
-${figures.map(([value, label, attrs = '']) => `      <div><dt${attrs}>${esc(value)}</dt><dd>${tie(label)}</dd></div>`).join('\n')}
-    </dl>
-  </div>
-  <div class="row sign-off">
-    <p class="sign-name">${site.name}${DOT}Kathmandu <span data-time>--:--</span>${DOT}${year}</p>
+  <div class="row sign-off rule">
+    <p class="sign-name">${site.name}${DOT}<span data-time>--:--</span> UTC+5:45${DOT}${year}</p>
     <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="${source}/blob/main/docs/design-spec.md">Design spec${ARROW}</a><a href="#main">Back to top${UP}</a></p>
-    <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
+    <div class="sign-toggles">
+      <button class="grid-toggle" type="button" aria-pressed="false" aria-label="Construction grid" data-grid-toggle><span aria-hidden="true">Grid</span> <b aria-hidden="true" data-grid-state>Off</b></button>
+      <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
+    </div>
   </div>
 </footer>
 ${siteIndex()}`;
@@ -185,27 +162,23 @@ function cover(p, sizes, priority = '') {
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
-/* ── footer: colophon data ───────────────────────── */
-// Numbers the colophon prints; test/content.test.cjs regenerates the page, so they cannot go stale.
-function siteNumbers() {
-  const ROOT = path.resolve(SRC, '..', '..');
-  const read = p => fs.readFileSync(path.join(ROOT, p));
-  const gz = p => zlib.gzipSync(read(p), { level: 9 }).length;
-  const count = (dir, suffix, pattern) => fs.readdirSync(path.join(ROOT, dir)).filter(f => f.endsWith(suffix)).reduce((n, f) => n + (read(path.join(dir, f)).toString().match(pattern) || []).length, 0);
-  const home = ['css/site.css', 'js/theme.js', 'js/motion.js', 'js/hero.js', 'js/page.js', 'assets/vendor/lenis.min.js'];
-  const fonts = fs.readdirSync(path.join(ROOT, 'assets/fonts')).filter(f => f.endsWith('.woff2'));
-  return {
-    unitTests: count('test', '.test.cjs', /^test\(/gm),
-    browserTests: count('test/e2e', '.test.mjs', /^test\(/gm),
-    renders: (2 + projects.length + 1) * 4 * 3,
-    homeKb: Math.round(home.reduce((n, p) => n + gz(p), 0) / 1024),
-    fontKb: Math.round(fonts.reduce((n, f) => n + fs.statSync(path.join(ROOT, 'assets/fonts', f)).size, 0) / 1024),
-    fontFiles: fonts.length,
-  };
+/* ── home: the contact dial ───────────────────────── */
+// My day on a 24-hour dial, midnight at the foot and noon at the top, so the sun rises on the left and sets
+// on the right. The generator draws the face; js/page.js stipples the night in and sets the hands and the readout.
+function dial() {
+  const at = (t, r) => { const a = t / 24 * 2 * Math.PI; return [+(200 - r * Math.sin(a)).toFixed(2), +(200 + r * Math.cos(a)).toFixed(2)]; };
+  const ticks = Array.from({ length: 96 }, (_, k) => {
+    const len = k % 24 === 0 ? 14 : k % 4 === 0 ? 8 : 4;
+    const [x1, y1] = at(k / 4, 180 - len), [x2, y2] = at(k / 4, 180);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }).join('');
+  return `<div class="dial-face">
+          <svg viewBox="-24 -24 448 448" aria-hidden="true"><circle class="rim" cx="200" cy="200" r="180"/><g class="ticks">${ticks}</g><g class="night" data-dial-night></g><g class="hands" data-dial-hands></g></svg>
+          ${[0, 6, 12, 18].map(h => `<span class="dial-hour h${pad(h)}" aria-hidden="true">${pad(h)}</span>`).join('')}
+          <p class="dial-readout" aria-hidden="true"><b data-dial-time></b><span data-dial-place></span><span data-dial-status></span></p>
+          <span class="dial-you" aria-hidden="true" data-dial-you hidden></span>
+        </div>`;
 }
-
-const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
-const words = n => WORDS[n] || String(n);
 
 /* ── home ─────────────────────────────────────────── */
 function home() {
@@ -219,17 +192,17 @@ ${header('home')}
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
-        <p class="intro-label t-label muted">Developer${DOT}Kathmandu</p>
+        <p class="intro-label t-label muted">Developer</p>
         <h1 id="hero-name">Aakash Dahal</h1>
-        <p>${esc(site.bio)}</p>
-        <div class="intro-actions"><a class="action-link" href="#selected">Explore selected work <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
+        <p>${tie(esc(site.intro))}</p>
+        <div class="intro-actions"><a class="action-link" href="#selected">See the evidence <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: ${esc(site.ringLine)}." data-ring="${esc(site.ringLine)}">
         <div class="still" aria-hidden="true"></div>
       </div>
-      <aside class="essentially panel" aria-labelledby="essentially">
-        <h2 class="panel-head" id="essentially">Essentially</h2>
-        <p class="panel-body">${esc(site.essentially)}</p>
+      <aside class="essentially panel" aria-labelledby="why-title">
+        <h2 class="panel-head" id="why-title">${esc(site.why.title)}</h2>
+        <p class="panel-body">${tie(esc(site.why.body))}</p>
       </aside>
       <nav class="themes" aria-labelledby="themes-title">
         <h2 class="t-label muted" id="themes-title">Work by theme</h2>
@@ -248,7 +221,7 @@ ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-t
     </div>
     <div class="row plates">
 ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; return `      <article class="plate plate-${size} plate-${side}" data-project="${p.slug}">
-        <div class="plate-media" data-reveal>${cover(p, size === 'wide' ? '(max-width: 1199px) 100vw, 75vw' : '(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 25vw', 'low')}</div>
+        <div class="plate-media">${cover(p, size === 'wide' ? '(max-width: 1199px) 100vw, 75vw' : '(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 25vw', 'low')}</div>
         <div class="plate-caption">
           <p class="plate-line">Plate ${pad(i + 1)}${DOT}${themesOf(p, DOT)}${DOT}${p.visibility}</p>
           <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h3>
@@ -259,14 +232,18 @@ ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; retur
   </section>
 
   <section class="section" id="contact" aria-labelledby="contact-title">
-    <div class="row band rule" data-reveal>
+    <div class="row band rule contact" data-reveal>
       <h2 class="band-title" id="contact-title">Contact</h2>
-      <p class="band-note">Email reaches me fastest. I work from Kathmandu (UTC+5:45), where it is&nbsp;<span data-time>--:--</span>&nbsp;now.</p>
+      <p class="band-note" data-contact-note>My clock reads&nbsp;<span data-time>--:--</span>&nbsp;(UTC+5:45). Email reaches me&nbsp;fastest.</p>
       <ul class="hang-list contact-lines">
         <li><span>Email</span><span><a href="mailto:${site.email}">${site.email}</a> <button class="copy" type="button" data-copy="${site.email}">Copy</button></span></li>
         <li><span>X</span><span><a href="https://x.com/${site.x}">@${site.x}${ARROW}</a></span></li>
         <li><span>GitHub</span><span><a href="https://github.com/${site.github}">${site.github}${ARROW}</a></span></li>
       </ul>
+      <figure class="dial" data-dial>
+        ${dial()}
+        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie('My day on a 24-hour dial, noon at the top and the night stippled in. Point at any hour to see what I’m probably doing then.')}</span></figcaption>
+      </figure>
     </div>
   </section>
 </main>

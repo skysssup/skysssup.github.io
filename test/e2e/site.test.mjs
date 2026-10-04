@@ -344,21 +344,56 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
   await context.close();
 });
 
-test('section rules draw in and media wipes in, once seen, except under reduced motion', async () => {
-  const { page, context } = await open('/');
-  assert.equal(await page.locator('#colophon').evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
-  assert.equal(await page.locator('#colophon').evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
-  await page.locator('#colophon').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('#colophon').classList.contains('is-seen'));
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#colophon'), '::before').transform === 'none');
-  await page.locator('#selected .plate-media').first().scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('#selected .plate-media').classList.contains('is-seen'));
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .plate-media > img')).clipPath === 'inset(0px)');
+test('section rules draw in and plates develop from a stipple drawing, once seen, except under reduced motion', async () => {
+  const { page, context, problems } = await open('/');
+  const band = page.locator('#contact .band');
+  assert.equal(await band.evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
+  assert.equal(await band.evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
+  const plate = page.locator('#selected .plate-wide.plate-right .plate-media');
+  assert.equal(await plate.evaluate(el => el.classList.contains('is-stippled') && !!el.querySelector('canvas.stipple')), true, 'a plate waits as a drawing');
+  assert.equal(await plate.evaluate(el => getComputedStyle(el.querySelector('img')).opacity), '0', 'its screenshot waits under the drawing');
+  await plate.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('#selected .plate-wide.plate-right .plate-media').classList.contains('is-developed'));
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .plate-wide.plate-right .plate-media img')).opacity === '1');
+  const inked = await plate.evaluate(el => { const c = el.querySelector('canvas'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n / (d.length / 4); });
+  assert.ok(inked > 0.05 && inked < 0.9, `the drawing is stippled, not blank or solid (${inked.toFixed(2)})`);
+  await band.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#contact .band'), '::before').transform === 'none');
+  assert.deepEqual(problems, []);
   await context.close();
   const still = await open('/', { reduced: true });
-  assert.equal(await still.page.locator('#selected .plate-media > img').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
-  assert.equal(await still.page.locator('#colophon').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
+  assert.equal(await still.page.locator('#selected .plate-media.is-stippled').count(), 0, 'no drawing under reduced motion');
+  assert.equal(await still.page.locator('#selected .plate-media img').first().evaluate(el => getComputedStyle(el).opacity), '1', 'the screenshot is simply there');
+  assert.equal(await still.page.locator('#contact .band').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
   await still.context.close();
+});
+
+test('contact reads my time off a 24-hour dial, and G draws the construction grid for the session', async () => {
+  const { page, context, problems } = await open('/');
+  assert.match(await page.textContent('[data-contact-note]'), /^It’s \d\d:\d\d for me, so I’m probably [a-z ,’]+\. Email reaches me fastest\.$/);
+  const dial = page.locator('[data-dial] svg');
+  await dial.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(600);
+  assert.ok(await page.locator('[data-dial-night] circle').count() > 200, 'the night is stippled in');
+  assert.equal(await page.locator('[data-dial-hands] .hand').count(), 1);
+  assert.match(await page.textContent('[data-dial-time]'), /^\d\d:\d\d$/);
+  const box = await dial.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height * (104 / 448));
+  assert.equal(await page.textContent('[data-dial-time]'), '12:00', 'pointing at the top of the dial reads noon');
+  assert.equal(await page.textContent('[data-dial-status]'), 'Probably writing tests');
+  await page.mouse.move(5, 5);
+  assert.match(await page.textContent('[data-dial-place]'), /now/);
+  await page.keyboard.press('g');
+  assert.equal(await page.getAttribute('html', 'data-grid'), 'on');
+  assert.deepEqual(await page.$$eval('[data-grid-toggle]', bs => bs.map(b => b.getAttribute('aria-pressed'))), ['true', 'true']);
+  assert.notEqual(await page.locator('body > .lines span').first().evaluate(el => getComputedStyle(el, '::before').content), 'none', 'the minor columns and insets are drawn');
+  await page.reload({ waitUntil: 'networkidle' });
+  assert.equal(await page.getAttribute('html', 'data-grid'), 'on', 'it lasts for the session');
+  await page.locator('.sign-off [data-grid-toggle]').click();
+  assert.equal(await page.getAttribute('html', 'data-grid'), null);
+  assert.equal(await page.textContent('.sign-off [data-grid-state]'), 'Off');
+  assert.deepEqual(problems, []);
+  await context.close();
 });
 
 test('every internal link resolves, and old /portfolio/ links land on /work/', async () => {
