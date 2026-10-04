@@ -77,7 +77,7 @@ test('axe finds no accessibility violations at any width in any mode', async () 
 });
 
 test('content sits on the sheet: left edges on a line or its inset, right-aligned ends likewise, centred blocks on a line', async () => {
-  const blocks = '.row > *, .project > *, .contact-rows > * > *, .colophon-list > * > *, .prose > section > *, .case-title > *, .aside > *, .meta dd';
+  const blocks = '.row > *, .plate > *, .project > *, .contact-rows > * > *, .colophon-list > * > *, .prose > section > *, .case-title > *, .aside > *, .meta dd';
   for (const url of PAGES) for (const [width, height] of WIDTHS) {
     const { page, context } = await open(url, { width, height, touch: width < 768 });
     const off = await page.evaluate(sel => {
@@ -312,12 +312,12 @@ test('section rules draw in and media wipes in, once seen, except under reduced 
   await page.locator('#colophon').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector('#colophon').classList.contains('is-seen'));
   await page.waitForFunction(() => getComputedStyle(document.querySelector('#colophon'), '::before').transform === 'none');
-  await page.locator('#selected .card-media').first().scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('#selected .card-media').classList.contains('is-seen'));
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .card-media > img')).clipPath === 'inset(0px)');
+  await page.locator('#selected .plate-media').first().scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('#selected .plate-media').classList.contains('is-seen'));
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .plate-media > img')).clipPath === 'inset(0px)');
   await context.close();
   const still = await open('/', { reduced: true });
-  assert.equal(await still.page.locator('#selected .card-media > img').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
+  assert.equal(await still.page.locator('#selected .plate-media > img').first().evaluate(el => getComputedStyle(el).clipPath), 'none', 'nothing is clipped under reduced motion');
   assert.equal(await still.page.locator('#colophon').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
   await still.context.close();
 });

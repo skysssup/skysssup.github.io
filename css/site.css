@@ -431,38 +431,44 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
   .section-note { margin-top: 8px; margin-bottom: 8px; }
 }
 
-/* ── selected work cards ───────────────────────────────── */
-.cards { row-gap: 64px; }
-.card { position: relative; }
-.card-media {
-  position: relative;
-  aspect-ratio: 16 / 10;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: var(--wash);
-  transition: border-color .2s;
+/* ── selected work: four plates ─────────────────────────── */
+/* Wide and narrow plates alternate, mirrored from one band to the next: in the first band the narrow plate hangs
+   from the top; in the second it drops until its hairline meets the wide plate's, so the eye runs 01, 02, 03, 04
+   in a Z and both plate lines share a baseline. Each plate is a figure on a hairline, then its caption: a mono
+   plate line and one block of type, the title and then the tagline. */
+.plates { row-gap: 64px; align-items: start; }
+.row > .plate { position: relative; margin: 0 var(--p); padding: 0; }
+.plate-media { border-bottom: 1px solid var(--line); }
+.plate-media img { width: 100%; }
+.plate-caption { padding-top: 16px; max-width: 44ch; font: 500 18px/24px var(--sans); letter-spacing: -0.005em; }
+.plate-line { margin-bottom: 4px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.plate-caption h3 { font: inherit; transition: color .2s; }
+.plate-caption h3 + p { font-weight: 400; color: var(--muted); }
+.plate h3 a::after { content: ""; position: absolute; inset: 0; z-index: 2; }
+.plate:hover h3 { color: var(--accent); }
+.go { display: inline-block; transition: transform .2s var(--ease-out); }
+.plate:hover .go, a:hover > .go { transform: translateX(3px); }
+.plate a:focus-visible { outline: none; }
+.plate:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 8px; }
+/* A project without a screenshot shows its stack, set between two hairlines, instead of an imitation of one. */
+.media-type { display: flex; flex-direction: column; justify-content: flex-end; aspect-ratio: 16 / 10; padding: 16px 0; border-top: 1px solid var(--line); font: 400 18px/24px var(--sans); letter-spacing: -0.005em; color: var(--ink); }
+@media (min-width: 1200px) {
+  .plates { grid-auto-flow: row dense; }
+  .plate-wide.plate-left { grid-column: 1 / span 3; }
+  .plate-narrow.plate-right { grid-column: 4; }
+  .plate-wide.plate-right { grid-column: 2 / span 3; }
+  /* 16:10 figures two majors apart differ in height by 125% of a major, the width of this plate's grid area */
+  .plate-narrow.plate-left { grid-column: 1; margin-top: 125%; }
 }
-.card-media img, .card-media video { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease-out); }
-.card .card-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: none; margin-top: 16px; color: var(--muted); font: 400 10px/16px var(--mono); }
-.card-meta > :last-child { margin-left: auto; }
-.card h3 { margin-top: 8px; font: 500 20px/28px var(--sans); letter-spacing: -0.005em; transition: color .2s; }
-.card h3 a::after { content: ""; position: absolute; inset: 0; z-index: 2; }
-.card p { margin-top: 4px; max-width: 52ch; color: var(--muted); font: 400 13px/20px var(--sans); }
-.card:hover h3 { color: var(--accent); }
-.card:hover .card-media { border-color: var(--line-strong); }
-.card-open { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 16px; padding: 7px 12px; border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink); opacity: 0; transform: translateY(6px); transition: opacity .3s var(--ease-out), transform .3s var(--ease-out); }
-.card:hover .card-open, .card:focus-within .card-open { opacity: 1; transform: none; }
-.card:hover .card-media img { transform: scale(1.015); }
-.media-type { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 16px; height: 100%; min-height: 120px; padding: 24px; background: var(--paper); }
-.media-type .t-l { color: var(--ink); }
-.media-type > :last-child { padding-top: 16px; border-top: 1px solid var(--line-strong); width: 100%; }
-.card a:focus-visible { outline: none; }
-.card:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 6px; }
+@media (min-width: 768px) and (max-width: 1199px) {
+  .plate-wide { grid-column: 1 / -1; }
+  .plate-narrow.plate-right { grid-column: 3 / span 2; }
+  .plate-narrow.plate-left { grid-column: 1 / span 2; }
+}
 @media (max-width: 767px) {
-  .cards { row-gap: 48px; }
-}
-@media (hover: none) {
-  .card-open { opacity: 1; transform: none; }
+  .plates { row-gap: 48px; }
+  .plate { grid-column: 1 / -1; }
+  .plate .media-type { aspect-ratio: auto; }
 }
 
 /* ── reveals: a section rule draws itself and a media frame wipes in the first time it is seen ───── */
@@ -482,8 +488,8 @@ html.js:not([data-motion="reduced"]) .rule[data-reveal]::before {
 }
 html.js:not([data-motion="reduced"]) .rule[data-reveal].is-seen::before { transform: none; }
 /* the frame is observed and stays whole; what it holds wipes in (a clipped element never intersects) */
-html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal] > :is(img, video, .media-type) { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out), transform .6s var(--ease-out); }
-html.js:not([data-motion="reduced"]) :is(.card-media, .fig-frame)[data-reveal].is-seen > :is(img, video, .media-type) { clip-path: inset(0 0 0 0); }
+html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal] > :is(img, video, .media-type) { clip-path: inset(0 100% 0 0); transition: clip-path .8s var(--ease-out); }
+html.js:not([data-motion="reduced"]) :is(.plate-media, .fig-frame)[data-reveal].is-seen > :is(img, video, .media-type) { clip-path: inset(0 0 0 0); }
 
 /* ── hero telemetry: the engine's own readout ─────────── */
 .fig-telemetry { margin-top: 4px; }
@@ -912,7 +918,7 @@ html.index-is-open { scrollbar-gutter: stable; }
 :root[data-phase="settle"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-rows .v, .intro-label, .section-head h2) { animation: unsplit .4s var(--ease-out) 1; }
 :root[data-phase="glitch"] .site-header { animation: slice 180ms steps(1, end) 3; }
 :root[data-phase="glitch"] main { animation: jitter 180ms steps(1, end) 3; }
-:root[data-phase="glitch"] :is(.card-media, .fig-frame, .project .thumb > div, .panel, .media-type) { animation: slice 180ms steps(1, end) 3; }
+:root[data-phase="glitch"] :is(.plate-media, .fig-frame, .project .thumb > div, .panel, .media-type) { animation: slice 180ms steps(1, end) 3; }
 :root[data-phase="settle"] .hero-figure { animation: settle 400ms var(--ease-out) 1; }
 @keyframes slice {
   0% { clip-path: inset(0 0 60% 0); transform: translateX(3px); }
@@ -1032,7 +1038,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .motion-toggle, .sign-links, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar, .card-open { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .motion-toggle, .sign-links, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }
@@ -1048,7 +1054,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
   .prose { grid-column: 1 / span 3; }
   .prose a[href^="http"]::after, .meta a[href^="http"]::after { content: " (" attr(href) ")"; font: 400 11px/16px var(--mono); }
   .ext { display: none; }
-  figure, .panel, pre, .project, .card, .decisions li { break-inside: avoid; }
+  figure, .panel, pre, .project, .plate, .decisions li { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }
   .term { white-space: pre-wrap; overflow: visible; }
 }

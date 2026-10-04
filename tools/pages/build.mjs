@@ -21,6 +21,9 @@ const md = s => esc(s)
 const year = 2026;
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
+const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
+// Selected work alternates wide and narrow plates, mirrored from one band to the next.
+const PLATES = [['wide', 'left'], ['narrow', 'right'], ['wide', 'right'], ['narrow', 'left']];
 const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
 const NEXT = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg>';
 
@@ -169,7 +172,7 @@ function media(m, { eager = false, cls = '' } = {}) {
 }
 
 function cover(p, sizes, priority = '') {
-  if (!p.cover) return `<div class="media-type" aria-hidden="true"><span class="t-label muted">${esc(p.stack.slice(0, 3).join(' / '))}</span><span class="t-l">${esc(p.name)}</span><span class="t-label muted">${p.repo ? 'Source available on GitHub' : 'Private repository'}</span></div>`;
+  if (!p.cover) return `<div class="media-type" aria-hidden="true">${p.stack.slice(0, 3).map(t => `<span>${esc(t)}</span>`).join('')}</div>`;
   const b = p.cover.src;
   return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}>`;
 }
@@ -236,16 +239,17 @@ ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-t
   <section class="section" id="selected" aria-labelledby="selected-title">
     <div class="row section-head rule" data-reveal>
       <h2 class="c1" id="selected-title">Selected work</h2>
-      <p class="c2-3 section-note t-small muted">A closer look at four public projects.</p>
-      <a class="end link-ui" href="/work/">All work (${pad(projects.length)})</a>
+      <a class="end link-ui" href="/work/">All work · ${pad(projects.length)}${OPEN}</a>
     </div>
-    <div class="row cards">
-${featured.map((p, i) => `      <article class="card ${i % 2 ? 'c3-4' : 'c1-2'}" data-project="${p.slug}">
-        <div class="card-media" data-reveal>${cover(p, '(max-width: 767px) 100vw, 50vw', 'low')}<span class="card-open t-label" aria-hidden="true">View project ${NEXT}</span></div>
-        <p class="card-meta t-label"><span>${pad(site.order.indexOf(p.slug) + 1)}</span><span>${themesOf(p)}</span><span>${p.visibility}</span></p>
-        <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a></h3>
-        <p>${esc(p.tagline)}</p>
-      </article>`).join('\n')}
+    <div class="row plates">
+${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; return `      <article class="plate plate-${size} plate-${side}" data-project="${p.slug}">
+        <div class="plate-media" data-reveal>${cover(p, size === 'wide' ? '(max-width: 1199px) 100vw, 75vw' : '(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 25vw', 'low')}</div>
+        <div class="plate-caption">
+          <p class="plate-line">Plate ${pad(i + 1)} · ${themesOf(p)} · ${p.visibility}</p>
+          <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h3>
+          <p>${esc(p.tagline)}</p>
+        </div>
+      </article>`; }).join('\n')}
     </div>
   </section>
 
