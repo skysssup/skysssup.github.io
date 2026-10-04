@@ -145,6 +145,29 @@ test('a /work link with a theme shows only that theme from the first paint, with
   await context.close();
 });
 
+test('the AirForge demo loads only on request, by keyboard, framed without camera access', async () => {
+  const { page, context, problems } = await open('/work/airforge/');
+  const framed = [];
+  await page.route('**/airforge/?example=*', route => { framed.push(route.request().url()); route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>AirForge</title><p>AirForge</p>' }); });
+  await page.waitForTimeout(400);
+  assert.deepEqual(framed, [], 'nothing loads before the visitor asks');
+  assert.equal(await page.locator('.demo iframe').count(), 0);
+  await page.locator('[data-demo-load]').focus();
+  await page.keyboard.press('Enter');
+  const frame = page.locator('.demo iframe');
+  await frame.waitFor();
+  assert.equal(await frame.getAttribute('src'), '/airforge/?example=ramp-and-ball');
+  assert.equal(await frame.getAttribute('title'), 'AirForge, running live');
+  assert.match(await frame.getAttribute('allow'), /camera 'none'/);
+  assert.equal(await page.evaluate(() => document.activeElement.tagName), 'IFRAME');
+  assert.equal(await page.locator('[data-demo-load]').count(), 0);
+  await page.waitForFunction(() => document.querySelector('.demo iframe').contentDocument?.title === 'AirForge');
+  assert.equal(framed.length, 1);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0);
+  assert.deepEqual(problems, []);
+  await context.close();
+});
+
 test('Gear Two flashes, glitches, settles, turns the page red, and survives navigation', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForTimeout(1500);

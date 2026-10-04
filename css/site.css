@@ -548,8 +548,9 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 .decisions { display: grid; gap: 24px; max-width: 64ch; counter-reset: d; }
 .decisions li { display: grid; grid-template-columns: 32px minmax(0, 1fr); counter-increment: d; }
 .decisions li::before { content: counter(d, decimal-leading-zero); font: 400 10px/24px var(--mono); letter-spacing: .06em; color: var(--muted); }
-.decisions b { font-weight: 500; }
+.prose b { font-weight: 500; }
 .prose .fig, .prose .diagram { margin-top: 24px; }
+.prose figure + p { margin-top: 24px; }
 .wide { margin-right: calc(-50% - var(--p)); }
 
 .numbers .panel-body { padding: 0; }

@@ -14,21 +14,21 @@
   "Rapier",
   "MediaPipe"
  ],
- "tagline": "Draw ramps and balls; Rapier simulates them in 2.5D.",
+ "tagline": "Draw ramps, balls, and platforms; Rapier simulates them in 2.5D.",
  "description": "Browser-based 2.5D sketch-to-physics playground with mouse drawing, optional webcam gestures, and JSON scene import/export.",
- "summary": "Browser-based 2.5D sketch-to-physics playground with mouse drawing, optional webcam gestures, and JSON scene import/export.",
- "placeholder": true,
+ "summary": "A browser physics sandbox: drawn strokes become ramps, balls, and platforms that Rapier simulates at a fixed 60 Hz.",
  "cover": {
   "src": "/work/airforge/media/cover",
   "w": 1344,
   "h": 840
  },
  "lead": {
-  "kind": "image",
-  "src": "/work/airforge/media/overview.webp",
-  "w": 1280,
-  "h": 720,
-  "caption": "The Ramp & Ball example: a drawn ramp, a ball, and a catch platform simulated by Rapier.",
-  "alt": "AirForge in the browser with a ball above a teal ramp and a small platform, toolbar along the top."
+  "kind": "video",
+  "src": "/work/airforge/media/overview.mp4",
+  "poster": "/work/airforge/media/overview-poster.webp",
+  "w": 1440,
+  "h": 900,
+  "caption": "Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform.",
+  "alt": "Screen recording of AirForge on a gridded sheet: a drawn line becomes a black ramp, a small circle becomes a ball, a long rectangle becomes a platform, and after Drop the blue ball rolls down the ramp, flies off its end, and lands on the platform."
  }
 }

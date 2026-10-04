@@ -1,93 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AirForge — Aakash Dahal</title>
-<meta name="description" content="A browser physics sandbox: drawn strokes become ramps, balls, and platforms that Rapier simulates at a fixed 60 Hz.">
-<link rel="canonical" href="https://skysssup.github.io/work/airforge/">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="Aakash Dahal">
-<meta property="og:title" content="AirForge — Aakash Dahal">
-<meta property="og:description" content="A browser physics sandbox: drawn strokes become ramps, balls, and platforms that Rapier simulates at a fixed 60 Hz.">
-<meta property="og:url" content="https://skysssup.github.io/work/airforge/">
-<meta property="og:image" content="https://skysssup.github.io/assets/og/airforge.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="AirForge: Draw ramps, balls, and platforms; Rapier simulates them in 2.5D.">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@skysssup">
-<meta name="twitter:creator" content="@skysssup">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff">
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/favicon.ico" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
-<link rel="stylesheet" href="/css/site.css">
-<link rel="preload" href="/work/airforge/media/overview-poster.webp" as="image" fetchpriority="high">
-</head>
-<body class="page-case" data-project="airforge">
-<a class="skip" href="#main">Skip to content</a>
-<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-<div class="fx-flash" aria-hidden="true"></div>
-<header class="site-header">
-  <div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-  <div class="row">
-    <nav class="nav" aria-label="Primary">
-      <a class="home" href="/">Aakash Dahal</a>
-      <a href="/work/" aria-current="page">Work</a>
-      <a class="contact-link" href="/#contact">Contact</a>
-    </nav>
-    <div class="header-mid">
-      <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
-    </div>
-    <div class="header-end">
-      <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
-      <button class="lamp" type="button" aria-pressed="true" aria-label="Lights" data-lamp><span class="lamp-label" aria-hidden="true">Lights</span><span class="lamp-track" aria-hidden="true"><span class="lamp-knob"></span></span></button>
-    </div>
-  </div>
-</header>
-<main id="main">
-  <div class="row case-head">
-    <p class="crumb t-label"><a href="/work/">Work</a> / 02</p>
-    <div class="case-title">
-      <h1 class="vt" style="view-transition-name: t-airforge">AirForge</h1>
-      <p>A browser physics sandbox: drawn strokes become ramps, balls, and platforms that Rapier simulates at a fixed 60 Hz.</p>
-    </div>
-    <div class="meta">
-      <dl>
-        <dt class="t-label">Role</dt><dd>Designed and built solo</dd>
-        <dt class="t-label">Status</dt><dd>Working tool</dd>
-        <dt class="t-label">Themes</dt><dd>Physics software</dd>
-        <dt class="t-label">Stack</dt><dd>TypeScript, React, Three.js, Rapier, MediaPipe</dd>
-        <dt class="t-label">Code</dt><dd><a href="https://github.com/skysssup/airforge">github.com/skysssup/airforge</a> <span class="ext" aria-hidden="true">↗</span></dd>
-      </dl>
-    </div>
-  </div>
-
-  <div class="row lead-media">
-    <figure class="fig c2-4">
-        <div class="fig-frame"><video class="" src="/work/airforge/media/overview.mp4" poster="/work/airforge/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of AirForge on a gridded sheet: a drawn line becomes a black ramp, a small circle becomes a ball, a long rectangle becomes a platform, and after Drop the blue ball rolls down the ramp, flies off its end, and lands on the platform." data-autoplay></video></div>
-        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform.</span></figcaption>
-      </figure>
-  </div>
-
-  <div class="row case-body">
-    <nav class="toc" aria-label="On this page">
-      <ol>
-        <li><a href="#problem">The problem</a></li>
-        <li><a href="#built">What I built</a></li>
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#decisions">Key decisions</a></li>
-        <li><a href="#hard">What’s hard</a></li>
-        <li><a href="#status">Status and next</a></li>
-        <li><a href="#stack">Stack and links</a></li>
-      </ol>
-    </nav>
-    <article class="prose">
+<!-- The hand-written part of /work/airforge/. Edit here, run `node tools/pages/build.mjs`, and commit both. Facts: research/airforge/facts.md -->
       <section id="problem" aria-labelledby="problem-title">
         <h2 id="problem-title">The problem</h2>
         <p>Trying a marble-run idea, or showing how gravity and bounce change motion, usually means scripting a physics engine or settling for a fixed simulation with a few sliders. I wanted the drawing to be the input: sketch a ramp, a ball, and somewhere for it to land, press Drop, and watch what happens. That puts three problems in one small app. A freehand stroke has to become a clean shape without a wrong guess. The simulation must not depend on the frame rate, or the same scene behaves differently on a slow laptop. And undo, save, and restart have to agree with what is on screen, even though Rapier, not the app, decides where each ball is.</p>
@@ -148,16 +59,7 @@
         <h2 id="status-title">Status and next</h2>
         <p>AirForge 1.2.0 is what the demo above loads, and GitHub Pages deploys it from <code>main</code>. On every push, CI runs 208 Vitest tests (unit, component, and headless physics), lint, a production build, and 12 Playwright browser tests in Chromium. The documented limits stand: shapes live in one plane, ramps and platforms never move, a scene holds at most 40 objects, and the JavaScript bundle is about 3.5 MB, 2.1 MB of it Rapier's WebAssembly inlined as base64. The webcam path has only been tested with Chrome's simulated camera. The next steps follow from those limits: test with physical webcams, move hand tracking off the main thread, and split the bundle.</p>
       </section>
-      <section id="stack" aria-labelledby="stack-title">
-        <h2 id="stack-title">Stack and links</h2>
-        <ul class="stack-list"><li>TypeScript</li><li>React</li><li>Three.js</li><li>Rapier</li><li>MediaPipe</li></ul>
-        <p class="links"><a href="https://github.com/skysssup/airforge">Source on GitHub</a> <span class="ext" aria-hidden="true">↗</span></p>
-      </section>
-    </article>
-    <aside class="aside" aria-label="Key numbers">
-      <div class="panel numbers">
-        <h2 class="panel-head">Numbers</h2>
-        <div class="panel-body">
+<!-- numbers -->
           <dl>
             <div><dt>208</dt><dd>Vitest tests: unit, component, and headless physics</dd></div>
             <div><dt>12</dt><dd>Playwright browser tests, run by CI on every push</dd></div>
@@ -165,30 +67,3 @@
             <div><dt>1/60 s</dt><dd>fixed physics step, the same in the browser and in tests</dd></div>
             <div><dt>40</dt><dd>objects per scene; files over 512 KB are refused</dd></div>
           </dl>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <nav class="row pager" aria-label="More projects">
-    <a class="c1-2" href="/work/agentcrucible/"><span class="t-label muted">Previous</span><span class="t-s">AgentCrucible</span></a>
-    <a class="c3-4 next" href="/work/shipgate/"><span class="t-label muted">Next</span><span class="t-s">Shipgate</span></a>
-  </nav>
-</main>
-<footer class="site-footer">
-  <div class="row">
-    <p class="t-label muted c1">© 2026 Aakash Dahal</p>
-    <p class="t-label c2"><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io">Site source <span class="ext" aria-hidden="true">↗</span></a></p>
-    <div class="end"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div>
-  </div>
-</footer>
-<span class="vh" aria-live="polite" data-announce></span>
-<script src="/js/theme.js" defer></script>
-<script src="/assets/vendor/lenis.min.js" defer></script>
-<script src="/js/motion.js" defer></script>
-<script src="/js/diagram.js" defer></script>
-<script src="/js/demo.js" defer></script>
-<script src="/js/cat.js" defer></script>
-<script src="/js/page.js" defer></script>
-</body>
-</html>
