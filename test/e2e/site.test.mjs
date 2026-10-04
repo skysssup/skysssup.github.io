@@ -65,8 +65,8 @@ test('every page loads cleanly at every width in light, dark, and Gear Two', asy
   }
 });
 
-test('axe finds no accessibility violations in any mode', async () => {
-  for (const url of PAGES) for (const [width, height] of [WIDTHS[0], WIDTHS[3]]) for (const mode of MODES) {
+test('axe finds no accessibility violations at any width in any mode', async () => {
+  for (const url of PAGES) for (const [width, height] of WIDTHS) for (const mode of MODES) {
     const { page, context } = await open(url, { width, height, mode, touch: width < 768 });
     await page.waitForTimeout(url === '/' ? 2200 : 400);
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
@@ -75,6 +75,36 @@ test('axe finds no accessibility violations in any mode', async () => {
     await context.close();
   }
 });
+
+test('content sits on the sheet: left edges on a line or its inset, right-aligned ends likewise, centred blocks on a line', async () => {
+  const blocks = '.row > *, .project > *, .contact-rows > * > *, .prose > section > *, .case-title > *, .aside > *, .meta dd';
+  for (const url of PAGES) for (const [width, height] of WIDTHS) {
+    const { page, context } = await open(url, { width, height, touch: width < 768 });
+    const off = await page.evaluate(sel => {
+      const spans = [...document.querySelectorAll('body > .lines > span')].filter(s => getComputedStyle(s).display !== 'none');
+      const majors = spans.map(s => s.getBoundingClientRect().left).concat(spans[spans.length - 1].getBoundingClientRect().right);
+      const lines = majors.flatMap((x, i) => i < majors.length - 1 ? [x, x + (majors[i + 1] - x) / 3, x + (majors[i + 1] - x) * 2 / 3] : [x]);
+      const p = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--p'));
+      const near = (x, list) => list.some(a => Math.abs(a - x) <= 0.5);
+      const found = [];
+      for (const el of document.querySelectorAll(sel)) {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (el.closest('.site-header') || cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed' || !r.width || !r.height) continue;
+        const inner = [r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight)];
+        let ok;
+        if (cs.justifySelf === 'center') ok = near((r.left + r.right) / 2, lines);
+        else if (cs.justifySelf === 'end') ok = near(r.right, lines) || near(inner[1], lines.map(x => x - p));
+        else ok = near(r.left, lines.flatMap(x => [x, x + p])) || near(inner[0], lines.flatMap(x => [x, x + p]));
+        if (!ok) found.push(`${el.tagName.toLowerCase()}.${[...el.classList].join('.')} at ${r.left.toFixed(1)}–${r.right.toFixed(1)}`);
+      }
+      return found;
+    }, blocks);
+    assert.deepEqual(off, [], `${url} ${width}`);
+    await context.close();
+  }
+});
+
 
 test('section links land each section just under the header, with smooth scrolling and without', async () => {
   for (const reduced of [false, true]) {

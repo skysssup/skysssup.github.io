@@ -134,3 +134,20 @@ test('share images are current: each matches the title, summary, and visual of i
     assert.equal(stamp[card.out], fingerprint(root, card), `assets/og/${card.out} is stale: run npm run og`);
   }
 });
+
+test('every file in a project media folder is used by some page', () => {
+  const all = Object.values(html).join('\n');
+  for (const p of caseStudies) {
+    const dir = path.join(root, path.dirname(p), 'media');
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir)) assert.ok(all.includes(`/${path.dirname(p)}/media/${file}`), `${path.dirname(p)}/media/${file} is not used`);
+  }
+});
+
+test('figures are numbered in order on each page, and every caption says something', () => {
+  for (const [p, doc] of Object.entries(html)) {
+    const numbers = [...doc.matchAll(/<span class="t-label muted">Fig\. (\d+)<\/span>/g)].map(m => Number(m[1]));
+    numbers.forEach((n, i) => assert.equal(n, numbers[0] + i, `${p} figure ${i + 1} is numbered ${n}`));
+    for (const caption of doc.match(/<figcaption>[\s\S]*?<\/figcaption>/g) || []) assert.ok(strip(caption).replace(/Fig\. \d+/, '').trim().length > 10, `${p} caption: ${strip(caption).trim()}`);
+  }
+});

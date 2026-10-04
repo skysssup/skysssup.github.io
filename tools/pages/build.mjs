@@ -140,7 +140,7 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}" data-names="${projects.filter(p => p.themes.includes(t.id)).map(p => p.name.toUpperCase().replace(/ /g, '-')).join(',')}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <p class="fig-note"><span class="t-label muted">Fig. 0</span><span class="t-small">My GitHub avatar as <span data-dot-count>50,000</span> dots, lifted into 3D with a monocular depth map. Move the cursor to push them; click to send a ripple.</span></p>
+      <p class="fig-note"><span class="t-label muted">Fig. 0</span><span class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to push them; click to send a ripple.</span><span class="coarse">Tap it to send a ripple.</span></span></p>
     </div>
   </section>
 
