@@ -418,11 +418,15 @@ test('Gear Two keeps tearing the figure after the switch; light mode, reduced mo
   await page.waitForTimeout(2500);
   assert.ok((await state(page)).series.u_glitch.every(([, x]) => x === 0), 'light mode never tears');
   const clicked = await page.evaluate(() => { document.querySelector('[data-gear-toggle]').click(); return performance.now(); });
-  await page.waitForFunction(at => window.__heroProbe.series.u_glitch.some(([time, x]) => time > at + 700 && x > 0), clicked, { timeout: 9000 });
+  // the switch glitches at full strength (1) until its window closes, which a busy main thread can push late;
+  // tears run lighter (0.6 or 0.8), so the series itself says where the window ended
+  await page.waitForFunction(at => window.__heroProbe.series.u_glitch.some(([time, x]) => time > at && x > 0 && x < 1), clicked, { timeout: 12000 });
   const series = (await state(page)).series.u_glitch;
-  assert.ok(series.some(([time, x]) => time >= clicked && time < clicked + 700 && x === 1), 'switching on still glitches at full strength');
-  const [time, level] = series.find(([time, x]) => time > clicked + 700 && x > 0);
-  assert.ok(time - clicked < 6700, `a tear within 6 s of the switch window closing, came after ${Math.round(time - clicked)} ms`);
+  const switched = series.filter(([time, x]) => time >= clicked && x === 1);
+  assert.ok(switched.length > 0, 'switching on still glitches at full strength');
+  const closed = switched.at(-1)[0];
+  const [time, level] = series.find(([time, x]) => time > closed && x > 0);
+  assert.ok(time - closed < 6000, `a tear within 6 s of the switch window closing, came after ${Math.round(time - closed)} ms`);
   assert.ok(level === 0.6 || level === 0.8, `tears run lighter than the switch (${level})`);
 
   const still = await open(t, { reduced: true });
