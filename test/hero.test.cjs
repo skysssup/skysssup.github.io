@@ -23,6 +23,30 @@ test('Gear Two heartbeat beats twice per 0.9 s and rests in between', () => {
   assert.ok(Math.abs(hero.heartbeat(0.08) - hero.heartbeat(0.98)) < 1e-9);
 });
 
+test('the sheen fires as the assembly finishes, then at each turn of the sway, alternating sides', () => {
+  const triggers = [];
+  for (let c = 0, last = -1; c <= 70; c += 0.005) {
+    const s = hero.sheenPhase(c);
+    if (s.index !== last) { triggers.push(s); last = s.index; }
+  }
+  assert.equal(hero.sheenPhase(1.89).index, -1, 'nothing before the assembly has finished');
+  assert.deepEqual(triggers.map(s => s.index), triggers.map((_, i) => i), 'triggers are numbered in order, none skipped');
+  assert.equal(triggers[0].at, 1.9, 'the first sweep comes as the assembly finishes');
+  const turns = triggers.slice(1);
+  for (let period = 1; period < 5; period++) assert.equal(turns.filter(s => s.at >= period * 14 && s.at < (period + 1) * 14).length, 2, `two turns in period ${period}`);
+  const h = 1e-3;
+  for (const s of turns) {
+    const before = hero.sway(s.at) - hero.sway(s.at - h), after = hero.sway(s.at + h) - hero.sway(s.at);
+    assert.ok(before * after < 0, `the sway's yaw reverses at ${s.at}`);
+    assert.equal(s.dir, Math.sign(before), 'the band travels the way the figure was turning');
+  }
+  triggers.slice(1).forEach((s, i) => assert.equal(s.dir, -triggers[i].dir, 'directions alternate, from the assembly on'));
+  assert.equal(hero.easeInOut(0), 0);
+  assert.equal(hero.easeInOut(0.5), 0.5);
+  assert.equal(hero.easeInOut(1), 1);
+  assert.ok(hero.easeInOut(0.1) < 0.1 && hero.easeInOut(0.9) > 0.9, 'slow at both ends');
+});
+
 test('the spring settles on its target without overshooting, at any frame time', () => {
   for (const dt of [1 / 240, 1 / 60, 1 / 20, 0.05]) {
     const s = { x: 0, v: 0 };

@@ -229,7 +229,7 @@ function colophon() {
     <div class="row colophon">
       <div class="c1 colophon-notes">
         <p class="t-small">Plain HTML, CSS, and JavaScript on GitHub Pages. Every word is in the HTML before any script runs; the scripts add the sculpture, the smooth scrolling, the search, and Gear Two.</p>
-        <p class="t-small">Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns, and the color of the avatar around it: the marble stays ink, the wings and the caduceus keep their gold, and the image's own sparkles twinkle. Gear Two swaps all of it for red, gives the figure a heartbeat, and lasts for the session.</p>
+        <p class="t-small">Fig. 0 stipples my avatar against a blue-noise tile and lifts the dots with a depth map. Each dot carries a surface normal, so the light moves across the figure as it turns, and the color of the avatar around it: the marble stays ink, the wings and the caduceus keep their gold, and the image's own sparkles twinkle. At each turn of its sway a band of light crosses the surface and a burst of dots flares into four-point stars. Gear Two swaps all of it for red, gives the figure a heartbeat, and lasts for the session.</p>
         <ol class="rules t-small" aria-label="Rules this site follows">
           <li>Every element informs, navigates, or shows real work. Otherwise it goes.</li>
           <li>Evidence over adjectives: screenshots, recordings, terminal output, demos.</li>

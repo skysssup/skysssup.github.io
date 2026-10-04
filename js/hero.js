@@ -30,6 +30,27 @@
     return Math.exp(-Math.pow((p - 0.08) / 0.045, 2)) + 0.6 * Math.exp(-Math.pow((p - 0.3) / 0.05, 2));
   }
 
+  // The base sway: ±16° of yaw over 14 s on the sway clock (which runs 1.6× in Gear Two).
+  var SWAY = 14;
+  function sway(clock) { return 0.28 * Math.sin((TAU * clock) / SWAY); }
+
+  // When the light sweeps the figure: once as the assembly finishes, then at every turn of the sway (where its
+  // yaw peaks and the turn reverses, every 7 s on alternating sides). Returns the latest trigger at or before
+  // `clock`: its number (-1 before the first), its time on the sway clock, and the direction the band travels
+  // (+1 left to right, the way the figure was turning). The first turn sweeps left to right, so the assembly's
+  // sweep runs the other way and the directions alternate from the start.
+  var SHEEN_FIRST = 1.9, SHEEN_SWEEP = 1.1, SHEEN_LIFE = 1.3;
+  function sheenPhase(clock) {
+    if (!(clock >= SHEEN_FIRST)) return { index: -1, at: 0, dir: 0 };
+    var turns = Math.floor((clock - SWAY / 4) / (SWAY / 2)) + 1;
+    if (turns < 1) return { index: 0, at: SHEEN_FIRST, dir: -1 };
+    var at = SWAY / 4 + (turns - 1) * (SWAY / 2);
+    return { index: turns, at: at, dir: sway(at) > 0 ? 1 : -1 };
+  }
+
+  // --ease-in-out, cubic-bezier(.65, 0, .35, 1), which is the cubic in-out curve.
+  function easeInOut(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2; }
+
   // Critically damped spring, integrated implicitly so it is stable at any frame time.
   function spring(state, target, dt, omega) {
     var f = 1 + 2 * dt * omega;
@@ -124,6 +145,18 @@
       out[i * 2 + 1] = ny;
     }
     return out;
+  }
+
+  // How many dots face the light (from the upper left, as in the vertex shader) and the viewer: the pool a
+  // sparkle burst draws its stars from, so each burst lights about STARS of them whatever the dot count.
+  var STARS = 40, LIGHT = [-0.45, 0.6, 0.66];
+  function litDots(normals) {
+    var l = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2]), lit = 0;
+    for (var i = 0; i < normals.length; i += 2) {
+      var nx = normals[i], ny = normals[i + 1], nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+      if (nz > 0.3 && (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / l > 0.5) lit++;
+    }
+    return lit;
   }
 
   // The avatar's color under each dot, bilinear from the size x size RGBA color map: [r, g, b, a] bytes
@@ -237,9 +270,13 @@
     "uniform vec3 u_color;",
     "uniform float u_tint;",
     "uniform float u_dark;",
+    "uniform vec3 u_hot;",
+    "uniform vec4 u_sheen;",
+    "uniform vec4 u_span;",
+    "uniform vec3 u_light[3];",
     "out float v_alpha;",
     "out float v_size;",
-    "out float v_hot;",
+    "out float v_star;",
     "out vec3 v_color;",
     "uint h(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }",
     "float r01(uint x) { return float(h(x)) / 4294967296.0; }",
@@ -305,11 +342,28 @@
     "  float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));",
     "  float keep = u_tint * smoothstep(0.05, 0.2, chroma);",
     "  vec3 shown = clamp(mix(0.46, 0.84, u_dark) + (c - cl) * 2.4, 0.0, 1.0);",
-    "  v_color = mix(u_color, shown, keep);",
+    "  vec3 col = mix(u_color, shown, keep);",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853));",
     "  hot = max(hot, tw * 0.9);",
+    "  col = mix(col, u_hot, hot * 0.9);",
+    // at each turn of the sway a band of light crosses the figure, strongest where the surface faces the
+    // viewer, and a burst of dots on the lit side flare into four-point stars, each on its own delay
+    "  float band = 0.0, star = 0.0;",
+    "  if (u_sheen.y != 0.0) {",
+    "    float w = u_span.y - u_span.x;",
+    "    float bx = mix(u_span.x - w * 0.2, u_span.y + w * 0.2, u_sheen.y > 0.0 ? u_sheen.x : 1.0 - u_sheen.x);",
+    "    float e = (px.x - bx + (px.y - u_box.y - u_pivot.y * u_box.z) * 0.25) / u_span.z;",
+    "    band = exp(-e * e) * pow(max(n.z, 0.0), 2.0) * k;",
+    "    if (r01(id * 11u + uint(u_sheen.z)) < u_span.w && n.z > 0.3 && lam > 0.5) {",
+    "      float a = u_sheen.w - r01(id * 13u + 5u) * 0.25;",
+    "      float fall = 0.6 + r01(id * 17u + 9u) * 0.3;",
+    "      star = smoothstep(0.0, 0.12, a) * pow(clamp(1.0 - max(a - 0.12, 0.0) / fall, 0.0, 1.0), 2.0) * k;",
+    "    }",
+    "  }",
+    "  col = mix(col, mix(u_light[0], u_light[1], smoothstep(0.5, 1.0, band)), min(1.0, band * 1.25));",
+    "  v_color = mix(col, u_light[2], star);",
     "  px += u_offset;",
     // blink
     "  float period = 3.2 / u_blink;",
@@ -322,13 +376,15 @@
     "  float dur = 0.08 + r01(key + 2u) * 0.16;",
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
-    "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim) * (1.0 + 0.9 * tw);",
+    "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim) * (1.0 + 0.9 * tw) * (1.0 + 0.35 * band) * (1.0 + 1.2 * star);",
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(1.0, 0.86, lam) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
-    "  if (off) v_alpha = 0.0;",
-    "  v_hot = hot;",
+    "  v_alpha = mix(v_alpha, u_alpha, max(band, star));",
+    "  if (off && star < 0.05) v_alpha = 0.0;",
+    "  v_star = star;",
     "  v_size = size * u_dpr;",
-    "  gl_PointSize = v_size;",
+    // a star's sprite is larger than its disc, to hold the arms of the cross
+    "  gl_PointSize = v_size * (1.0 + 3.0 * star);",
     "  gl_Position = vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);",
     "}"
   ].join("\n");
@@ -338,15 +394,27 @@
     "precision mediump float;",
     "in float v_alpha;",
     "in float v_size;",
-    "in float v_hot;",
+    "in float v_star;",
     "in vec3 v_color;",
-    "uniform vec3 u_hot;",
+    "uniform highp vec3 u_light[3];",
     "out vec4 o;",
     "void main() {",
-    "  float d = length(gl_PointCoord - 0.5) * v_size;",
-    "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0) * v_alpha;",
+    "  float sprite = v_size * (1.0 + 3.0 * v_star);",
+    "  vec2 q = (gl_PointCoord - 0.5) * sprite;",
+    "  float a = clamp(v_size * 0.5 - length(q) + 0.5, 0.0, 1.0);",
+    // a star is a four-point cross over its disc: two thin arms that taper to the sprite's edge
+    "  if (v_star > 0.0) {",
+    "    vec2 m = abs(q);",
+    "    float r = sprite * 0.5;",
+    "    float h = clamp(max(0.45, v_size * 0.16 * (1.0 - m.x / r)) - m.y + 0.5, 0.0, 1.0) * pow(max(0.0, 1.0 - m.x / r), 0.8);",
+    "    float v = clamp(max(0.45, v_size * 0.16 * (1.0 - m.y / r)) - m.x + 0.5, 0.0, 1.0) * pow(max(0.0, 1.0 - m.y / r), 0.8);",
+    "    a = max(a, max(h, v) * v_star);",
+    "  }",
+    "  a *= v_alpha;",
     "  if (a <= 0.0) discard;",
-    "  o = vec4(mix(v_color, u_hot, v_hot * 0.9) * a, a);",
+    // the middle of a star burns in the sheen's core colour
+    "  vec3 c = mix(v_color, u_light[1], v_star * clamp(1.0 - length(q) / (v_size * 0.6), 0.0, 1.0));",
+    "  o = vec4(c * a, a);",
     "}"
   ].join("\n");
 
@@ -356,7 +424,12 @@
     var s = getComputedStyle(document.documentElement);
     var get = function (name) { return s.getPropertyValue(name).trim(); };
     var paper = get("--paper"), p = rgb(paper);
-    return { ink: get("--figure-ink"), accent: get("--accent"), paper: paper, text: get("--ink"), gear: document.documentElement.getAttribute("data-gear") === "two", dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5 };
+    return {
+      ink: get("--figure-ink"), accent: get("--accent"), paper: paper, text: get("--ink"),
+      // the sheen's fringe and core and the stars of its burst, one hue family per mode
+      light: [get("--figure-sheen"), get("--figure-sheen-core"), get("--figure-star")],
+      gear: document.documentElement.getAttribute("data-gear") === "two", dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5
+    };
   }
 
   function rgb(css) {
@@ -436,8 +509,12 @@
     var ripFlat = new Float32Array(16);
     var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
     var ring = null, ringFont = 0, fontReady = false, highlighted = null;
-    var glitchUntil = 0, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
+    var glitchUntil = 0, tear = null, resizeTimer = 0, tiles = [], tileFlat = new Float32Array(12), shiftFlat = new Float32Array(6);
+    var sheenIndex = -1, sheenAt = 0, sheenDir = 0, sheenNumber = 0, starChance = 0, lights = new Float32Array(9);
     var cpuMs = 0, telemetryAt = 0;
+
+    function paintLights() { colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); }); }
+    paintLights();
 
     function releaseTouch(event, cancelled) {
       if (!touch || (event && event.pointerId !== touch.id)) return;
@@ -456,6 +533,7 @@
       pushK.x = pushK.v = yaw.v = pitch.v = 0;
       for (var i = 0; i < ripples.length; i++) ripples[i][3] = 0;
       glitchUntil = 0;
+      tear = null;
       tiles = [];
     }
 
@@ -490,7 +568,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_dark", "u_hot"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_dark", "u_hot", "u_sheen", "u_span", "u_light"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -562,6 +640,7 @@
           if (tints) bytes.set(tints.subarray(i * 4, i * 4 + 4), i * 28 + 24);
         }
         vertices = bytes;
+        starChance = Math.min(1, STARS / Math.max(1, litDots(normals)));
         if (opts.onCount) opts.onCount(count);
       }
       if (!count) throw new Error("hero data is empty");
@@ -700,7 +779,7 @@
       if (live) clock += dt * (gear ? 1.6 : 1);
       var t = live ? now / 1000 : 0;
       var built = live ? (now - startAt) / 1000 : 99;
-      var swayYaw = live ? 0.28 * Math.sin((TAU * clock) / 14) : 0.12;
+      var swayYaw = live ? sway(clock) : 0.12;
       var swayPitch = live ? 0.07 * Math.sin((TAU * clock) / 19 + 1) : 0.02;
       var tilt = pointer.inside || (touch && touch.dragging);
       if (live) {
@@ -726,8 +805,24 @@
         ripFlat[i * 4 + 3] = live ? ripples[i][3] : 0;
       }
       var beat = gear && live ? heartbeat(t) : 0;
-      var glitch = live && now < glitchUntil ? 1 : 0;
-      tiles = glitch ? glitchTiles(Math.floor(t * 24), box, 3, function (x, y) { return maskAt(x, y) > 0.2; }) : [];
+      // a sheen and a burst of stars at each turn of the sway (in Gear Two the burst also tears one frame)
+      if (live) {
+        var turn = sheenPhase(clock);
+        if (turn.index !== sheenIndex) {
+          sheenIndex = turn.index;
+          sheenAt = now;
+          sheenDir = turn.dir;
+          sheenNumber = turn.index + 1;
+          if (gear) tear = { until: now + 1000 / 24, glitch: 0.6, tiles: 1, after: false };
+        }
+      }
+      var sheenAge = (now - sheenAt) / 1000;
+      var sheening = live && sheenDir !== 0 && sheenAge < SHEEN_LIFE;
+      // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
+      var switching = live && now < glitchUntil;
+      var tearing = !switching && live && gear && !(touch && touch.dragging) && tear !== null && now < tear.until;
+      var glitch = switching ? 1 : tearing ? tear.glitch : 0;
+      tiles = glitch ? glitchTiles(Math.floor(t * 24), box, 3, function (x, y) { return maskAt(x, y) > 0.2; }).slice(0, switching ? 3 : tear.tiles) : [];
       tileFlat.fill(0);
       shiftFlat.fill(0);
       for (var j = 0; j < tiles.length; j++) {
@@ -759,9 +854,14 @@
       gl.uniform1f(U.u_dark, colors.dark ? 1 : 0);
       if (colors.dark) gl.uniform3f(U.u_hot, 1.0, 0.95, 0.86);
       else gl.uniform3f(U.u_hot, 0.86, 0.6, 0.16);
+      if (sheening) gl.uniform4f(U.u_sheen, easeInOut(clamp(sheenAge / SHEEN_SWEEP, 0, 1)), sheenDir, sheenNumber, sheenAge);
+      else gl.uniform4f(U.u_sheen, 0, 0, 0, 0);
+      var left = box.x + place.x + meta.bounds[0] * place.scale, right = box.x + place.x + meta.bounds[2] * place.scale;
+      gl.uniform4f(U.u_span, left, right, box.size * 0.035, starChance);
+      gl.uniform3fv(U.u_light, lights);
       gl.bindVertexArray(vao);
       // while glitching, two faint afterimages sit 2 px either side of the figure
-      if (glitch) {
+      if (switching || (tearing && tear.after)) {
         gl.uniform1f(U.u_alpha, 0.3);
         gl.uniform2f(U.u_offset, -2, 0);
         gl.drawArrays(gl.POINTS, 0, count);
@@ -807,6 +907,7 @@
     function onTheme() {
       var was = colors;
       colors = readColors();
+      paintLights();
       var next = rgb(colors.ink), tint = colors.gear ? 0 : 1;
       if (motion.reduced() || !ready) { inkNow = next; tintNow = tintFrom = tintTo = tint; inkAt = 0; }
       else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
@@ -930,6 +1031,9 @@
     smoothstep: smoothstep,
     hash: hash,
     heartbeat: heartbeat,
+    sway: sway,
+    sheenPhase: sheenPhase,
+    easeInOut: easeInOut,
     spring: spring,
     rippleWeight: rippleWeight,
     blinkOff: blinkOff,

@@ -25,7 +25,7 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
   });
   t.after(() => context.close());
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -60,7 +60,9 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
       const original = proto[method];
       proto[method] = function (location, ...values) {
         const result = original.call(this, location, ...values);
-        if (hero(this)) probe.uniforms[locations.get(location)] = method === 'uniform4fv' ? Array.from(values[0]) : values;
+        const name = locations.get(location);
+        if (hero(this)) probe.uniforms[name] = method === 'uniform4fv' ? Array.from(values[0]) : values;
+        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), values[0]]);
         return result;
       };
     }
@@ -247,6 +249,7 @@ test('reduced motion cancels active mouse push and ripples, and never advances t
   const uniforms = (await state(page)).uniforms;
   assert.deepEqual(uniforms.u_rot, [0.12, 0.02]);
   for (const key of ['u_time', 'u_blink', 'u_beat', 'u_glitch']) assert.deepEqual(uniforms[key], [0], key);
+  assert.deepEqual(uniforms.u_sheen, [0, 0, 0, 0], 'no sheen and no sparkle burst under reduced motion');
   assert.equal(uniforms.u_pointer[2], 0);
   assert.deepEqual(uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.6);
@@ -270,6 +273,7 @@ test('a reduced-motion initial load and context restoration stay still', async t
   assert.equal((await state(page)).draws, initialDraws, 'revealing the still must not queue an animation draw');
   const before = await capture(page, () => window.__heroApi.highlight(null));
   assert.ok(before.visible > 500);
+  assert.deepEqual((await state(page)).uniforms.u_sheen, [0, 0, 0, 0]);
   await lose(page);
   await stillDrawing(page);
   await page.evaluate(() => window.__loseHero.restoreContext());
@@ -384,6 +388,18 @@ test('enabling reduced motion during a captured touch cancels the drag and its r
   const after = await capture(page, () => window.__heroApi.highlight(null));
   assert.equal(after.hash, before.hash);
   assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
+});
+
+test('a band of light crosses the figure soon after it assembles, and stars burst with it', async t => {
+  const { page } = await open(t);
+  await live(page);
+  await page.waitForFunction(() => window.__heroProbe.series.u_sheen.some(([, x]) => x >= 0.999), null, { timeout: 12000 });
+  const { series, uniforms } = await state(page);
+  const sweep = series.u_sheen.filter(([, x]) => x > 0);
+  assert.ok(sweep.find(([, x]) => x >= 0.999)[0] < 8000, `the sweep must finish within 8 s of load, finished at ${sweep.find(([, x]) => x >= 0.999)[0]} ms`);
+  assert.ok(sweep.some(([, x]) => x > 0.02 && x < 0.98), 'the band travels across the figure rather than jumping');
+  for (let i = 1; i < sweep.length && sweep[i][1] < 0.999; i++) assert.ok(sweep[i][1] >= sweep[i - 1][1], 'the band never runs backwards within a sweep');
+  assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
 });
 
 test('the public ripple API emits at the center without adding control semantics to the image', async t => {

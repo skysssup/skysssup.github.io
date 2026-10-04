@@ -28,7 +28,9 @@ next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring'
   from the depth map, samples the avatar's color under each dot from `assets/hero/color.webp` (its hue, with
   the brightness set by the paper, so marble stays ink and gold stays gold on light and dark alike; the map's
   alpha carries the image's sparkles, which twinkle), then animates sway, lighting, blinking, cursor push,
-  click ripples, and Gear Two entirely in the vertex shader. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
+  click ripples, and Gear Two entirely in the vertex shader. At each turn of the sway a band of light crosses the
+  figure and a burst of dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in
+  Gear Two. In Gear Two the dots turn red, a heartbeat pulses their size and sets a few of them
   white-hot, the ring breathes, and the glitch tears tiles out of the figure with two faint afterimages. It
   pauses off-screen and draws one still frame under reduced motion. A small, preloaded `assets/hero/preview.webp`
   covers startup; without WebGL2 it shows the full-resolution `assets/hero/still.webp`. Both masks come from the
