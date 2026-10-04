@@ -2,7 +2,7 @@
   "use strict";
 
   var BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-  var WORDS = ["AI", "AGENTS", "SKY", "SHITPOSTING", "ROBOTICS", "ENGINEER"];
+  var WORDS = ["AI", "AGENTS", "RESEARCH", "SYSTEMS", "ROBOTICS", "ENGINEERING"];
   var SCRAMBLE = "#%&@$*+=<>{}[]01/\\";
   var TEARS = "▚▞▖▗▘▝■□▪▫";
   var MONO = 'ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace';
@@ -89,7 +89,6 @@
     var img = new Image();
     var colors = palette();
     var size = 0, dpr = 1, n = 0, cell = 0, count = 0, margin = 0, span = 0;
-    var avoid = options.avoid || null;
     var hx, hy, px, py, vx, vy, lum, thr, phase, freq, delay, blinkUntil;
     var cols = 0, rows = 0, cw = 0, rh = 0, fontPx = 0, glyphLum = null, streams = [];
     var tiles = [];
@@ -185,17 +184,11 @@
       var across = Math.floor(size / tile);
       var offset = (size - across * tile) / 2;
       var now = performance.now();
-      var blocked = null;
-      if (avoid) {
-        var a = avoid.getBoundingClientRect(), b = box.getBoundingClientRect(), k2 = size / b.width;
-        blocked = { x0: (a.left - b.left) * k2, y0: (a.top - b.top) * k2, x1: (a.right - b.left) * k2, y1: (a.bottom - b.top) * k2 };
-      }
       tiles = [];
       for (var ty = 0; ty < across; ty++) {
         for (var tx = 0; tx < across; tx++) {
           var x0 = offset + tx * tile, y0 = offset + ty * tile;
           if (Math.hypot(x0 + tile / 2 - center, y0 + tile / 2 - center) > center * 0.82) continue;
-          if (blocked && x0 < blocked.x1 && x0 + tile > blocked.x0 && y0 < blocked.y1 && y0 + tile > blocked.y0) continue;
           tiles.push({ x: x0, y: y0, w: tile, h: tile, on: false, onAt: 0, showAt: now + 1600 + Math.random() * 11000, hideAt: 0 });
         }
       }

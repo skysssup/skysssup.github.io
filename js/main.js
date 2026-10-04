@@ -425,7 +425,7 @@
   /* figures */
   if (window.Dotfield) {
     var heroFigure = document.getElementById("figure");
-    if (heroFigure) window.Dotfield.mountHero(heroFigure, { src: base + "assets/avatar.jpg", reduced: reduced, avoid: document.getElementById("hero-title") });
+    if (heroFigure) window.Dotfield.mountHero(heroFigure, { src: base + "assets/avatar.jpg", reduced: reduced });
     var dither = document.getElementById("dither");
     if (dither) window.Dotfield.mountDither(dither, { src: base + "assets/avatar.jpg", crop: [20, 0, 360, 300], ink: "highlight", reduced: reduced });
   }
