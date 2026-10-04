@@ -11,7 +11,9 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 - `/work/<slug>/` — one case study per project. See [docs/case-studies.md](docs/case-studies.md) for how to fill one in.
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
 
-The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/design-spec.md).
+The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/design-spec.md). The brief for the
+next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring's line, the palette) is
+[docs/next-2.md](docs/next-2.md); the visual QA helper it uses is `tools/qa/shots.mjs`.
 
 ## How it works
 
