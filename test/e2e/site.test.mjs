@@ -149,12 +149,14 @@ test('Gear Two flashes, glitches, settles, turns the page red, and survives navi
   const { page, context, problems } = await open('/');
   await page.waitForTimeout(1500);
   const gear = page.locator('[data-gear-toggle]');
+  await page.evaluate(() => {
+    const root = document.documentElement;
+    window.phases = [];
+    new MutationObserver(() => window.phases.push([root.getAttribute('data-phase'), root.getAttribute('data-gear')])).observe(root, { attributes: true, attributeFilter: ['data-phase'] });
+  });
   await gear.click();
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-phase')), 'flash');
-  await page.waitForFunction(() => document.documentElement.getAttribute('data-phase') === 'glitch');
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
-  await page.waitForFunction(() => document.documentElement.getAttribute('data-phase') === 'settle');
-  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-phase'));
+  await page.waitForFunction(() => window.phases.length >= 4);
+  assert.deepEqual(await page.evaluate(() => window.phases), [['flash', null], ['glitch', 'two'], ['settle', 'two'], [null, 'two']]);
   assert.equal(await gear.getAttribute('aria-pressed'), 'true');
   const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
   assert.equal(accent.toLowerCase(), '#ff3b30');
