@@ -9,12 +9,12 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 const { serve } = await import(path.join(REPO, 'test/e2e/server.mjs'));
-const site = process.env.ORIGIN ? null : await serve(REPO);
+const site = process.env.ORIGIN ? null : await serve(path.resolve(process.env.ROOT || REPO));
 const ORIGIN = process.env.ORIGIN || site.origin;
 const out = process.argv[2];
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, channel: process.env.CHROME_PATH ? undefined : 'chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-const FPS = 25, W = 1440, H = 900;
+const FPS = +(process.env.FPS || 25), W = +(process.env.W || 1440), H = +(process.env.H || 900);
 let frame = 0;
 async function segment({ theme, intro, seconds, skip = 0, mouse = null, label }) {
   const context = await browser.newContext({ viewport: { width: W, height: H }, colorScheme: theme === 'light' ? 'light' : 'dark', deviceScaleFactor: 1 });
@@ -24,6 +24,8 @@ async function segment({ theme, intro, seconds, skip = 0, mouse = null, label })
         sessionStorage.setItem('qa-seeded', '1');
         if (!intro) sessionStorage.setItem('sky-intro', 'seen');
         localStorage.setItem('sky-theme', theme === 'light' ? 'light' : 'dark');
+        if (theme === 'gear') sessionStorage.setItem('sky-gear', 'two');
+        if (theme === 'blue') sessionStorage.setItem('sky-gear', 'blue');
       }
     } catch (e) {}
     let now = performance.now(), frames = [], timers = [], id = 0;
@@ -56,13 +58,26 @@ async function segment({ theme, intro, seconds, skip = 0, mouse = null, label })
   console.log(label, 'done at frame', frame, 'clip', JSON.stringify(clip));
   await context.close();
 }
-await segment({ theme: 'light', intro: true, seconds: 12.5, label: 'light opening' });
-await segment({ theme: 'dark', intro: false, seconds: 8, skip: 1.2, label: 'dark, a turn and its sheen' });
-await segment({ theme: 'light', intro: false, seconds: 5, skip: 3.5, label: 'the cursor stirs, a quick sweep puffs', mouse: (t, b) => {
-  const cx = b.x + b.width * 0.5, cy = b.y + b.height * 0.55;
-  if (t < 2.5) return [cx + Math.cos(t * 1.6) * b.width * 0.12, cy + Math.sin(t * 1.6) * b.height * 0.08];
-  const q = (t - 2.5) / 1.2;
-  return q < 1 ? [b.x + b.width * (0.2 + 0.55 * q), b.y + b.height * (0.45 + 0.15 * q)] : [b.x + b.width * 0.75, b.y + b.height * 0.6];
-} });
+const SEGMENTS = {
+  'light-opening': { theme: 'light', intro: true, seconds: 12.5, label: 'light opening' },
+  'dark-opening': { theme: 'dark', intro: true, seconds: 12.5, label: 'dark opening' },
+  'dark-turn': { theme: 'dark', intro: false, seconds: 8, skip: 1.2, label: 'dark, a turn and its sheen' },
+  'light-turn': { theme: 'light', intro: false, seconds: 8, skip: 1.2, label: 'light, a turn and its sheen' },
+  'gear-turn': { theme: 'gear', intro: false, seconds: 6, skip: 1.2, label: 'Gear Two, a turn and its sheen' },
+  'blue-turn': { theme: 'blue', intro: false, seconds: 6, skip: 1.2, label: 'blue, a turn and its sheen' },
+  'light-idle': { theme: 'light', intro: false, seconds: 10, skip: 5, label: 'light, idle' },
+  'dark-idle': { theme: 'dark', intro: false, seconds: 10, skip: 5, label: 'dark, idle' },
+  'light-cursor': { theme: 'light', intro: false, seconds: 5, skip: 3.5, label: 'the cursor stirs, a quick sweep puffs', mouse: (t, b) => {
+    const cx = b.x + b.width * 0.5, cy = b.y + b.height * 0.55;
+    if (t < 2.5) return [cx + Math.cos(t * 1.6) * b.width * 0.12, cy + Math.sin(t * 1.6) * b.height * 0.08];
+    const q = (t - 2.5) / 1.2;
+    return q < 1 ? [b.x + b.width * (0.2 + 0.55 * q), b.y + b.height * (0.45 + 0.15 * q)] : [b.x + b.width * 0.75, b.y + b.height * 0.6];
+  } },
+};
+for (const name of (process.env.SEGS || 'light-opening,dark-turn,light-cursor').split(',')) {
+  const seg = { ...SEGMENTS[name] };
+  if (process.env.SECS) seg.seconds = +process.env.SECS;
+  await segment(seg);
+}
 await browser.close();
 site?.server.close();

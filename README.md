@@ -18,7 +18,8 @@ The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/d
 next pass on the hero figure (detail that survives the turn, a clear silhouette, finer wings and caduceus, a deep
 one-sided shine in each mode's colour, a figure that breathes and flows, the cloud bank only in red, the stars back,
 a blue gear reached by hand with a control that reads as a gear shift, and a new cursor in red) is
-[docs/next-4.md](docs/next-4.md); the earlier ones are `docs/next.md`, `next-2.md`, and `next-3.md`. Its QA tools are
+[docs/next-4.md](docs/next-4.md), and what is left of it (the shine, a living figure, Tide's own entrance, the red cursor's
+dots, the docs) is [docs/next-5.md](docs/next-5.md); the earlier ones are `docs/next.md`, `next-2.md`, and `next-3.md`. Its QA tools are
 in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the opening under virtual time), `reel.mjs`,
 `fps.mjs`, `holdframe.mjs`, `margins.mjs`, `shadercheck.mjs`, `counts.mjs`, `slide.mjs` (how unevenly the dots slide as
 the figure turns), and `poses.mjs` with `crops.py` (the figure at rest, mid-turn, and at both extremes, cropped beside the

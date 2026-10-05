@@ -1,7 +1,10 @@
 # Handoff 4: make the hero figure feel real, keep its detail when it turns, and add a blue gear
 
-> **Status.** Not started. Whoever works on this updates this line after every push: which steps of §3 are live on
-> `main`, and where the build departed from this brief, and why.
+> **Status.** Live on `main`: steps 1a (`a1db9e1`), 1b (`25cc650`), 1c (`52d0bcc`), 2 (`b842192`), 3 (`610f1fe`), 4
+> (`3d2f8dc`, strokes along the feathers instead of a finer 1x grid, whose dots would flicker), and the page side of 7
+> (Tide and the gear shift, `47aece4`, `77211e7`) and 8 (the embers, `021c47a`). Step 5's first cut is on the branch
+> `shine-wip`, never looked at in a browser. The rest (5, 6, the engine side of 7 and 8, 9) is briefed in
+> `docs/next-5.md`, which supersedes this document for the remaining work.
 
 You are taking over the hero figure of Aakash Dahal's portfolio, https://skysssup.github.io: his GitHub avatar (a
 winged statue of Hermes holding a caduceus, rising out of clouds into a starry sky) drawn as a turning WebGL
