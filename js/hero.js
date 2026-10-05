@@ -266,6 +266,14 @@
     return out;
   }
 
+  // The stars of the avatar's sky, which build.py writes into the depth map's blue (1 + 254 x a star's strength at its
+  // pixel, 0 elsewhere). Output is [x, y, strength] per star, x and y in figure units, in map order.
+  function skyStars(rgba, size) {
+    var out = [], last = size - 1;
+    for (var i = 0; i < size * size; i++) if (rgba[i * 4 + 2]) out.push((i % size) / last, Math.floor(i / size) / last, (rgba[i * 4 + 2] - 1) / 254);
+    return new Float32Array(out);
+  }
+
   // Grid resolution for a figure drawn `px` CSS pixels wide: a little over one cell per pixel, within limits.
   function resolutionFor(px) { return Math.round(clamp(px * 1.4, 320, 1200)); }
 
@@ -495,6 +503,9 @@
     "uniform ivec2 u_blast;",
     "uniform int u_gusts;",
     "uniform vec3 u_core;",
+    "uniform float u_sky;",
+    "uniform int u_tiles;",
+    "uniform vec2 u_wind;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -614,7 +625,7 @@
     "    uint slice = uint(floor(px.y / 18.0 + 64.0));",
     "    uint frame = uint(floor(u_time * 24.0));",
     "    if (r01(slice * 31u + frame * 977u) < 0.35 * u_glitch) px.x += (r01(slice + frame * 13u) - 0.5) * 48.0 * u_glitch;",
-    "    for (int i = 0; i < 3; i++) {",
+    "    for (int i = 0; i < u_tiles; i++) {",
     "      vec4 tl = u_tile[i];",
     "      if (tl.z > 0.0 && px.x >= tl.x && px.x <= tl.x + tl.z && px.y >= tl.y && px.y <= tl.y + tl.w) { px += u_shift[i]; hot = 0.55; }",
     "    }",
@@ -772,7 +783,7 @@
     "    float dur = 0.9 + 0.6 * r01(key + 2u), f = ((phase - cycle) * period - r01(key + 1u) * (period - dur)) / dur;",
     "    if (r01(key) < 0.1 && f > 0.0 && f < 1.0) {",
     "      vis = f < 0.6 ? 1.0 - smoothstep(0.0, 0.6, f) : smoothstep(0.7, 1.0, f);",
-    "      vec2 way = breeze(u_time) + 0.6 * vec2(sin(a_p.y * 9.0 + u_time * 0.3), cos(a_p.x * 8.0 - u_time * 0.25));",
+    "      vec2 way = u_wind + 0.6 * vec2(sin(a_p.y * 9.0 + u_time * 0.3), cos(a_p.x * 8.0 - u_time * 0.25));",
     "      if (f < 0.7) flow += normalize(way) * (u_span.y - u_span.x) * (0.006 + 0.008 * s2) * smoothstep(0.0, 0.6, f);",
     "    }",
     "  }",
@@ -802,9 +813,10 @@
     // then bright, brighter as the band passes, arriving with the materials' colours, and still in the wind
     "  v_glint = 0.0;",
     "  if (glint) {",
-    "    float twinkle = pow(0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), 3.0);",
-    "    v_glint = clamp((0.15 + 0.35 * twinkle + 0.4 * band) * tint * k, 0.0, 1.0);",
-    "    v_size = u_dot * (2.5 + 5.0 * a_p.w * a_p.w) * (0.7 + 0.3 * twinkle + 0.3 * band) * persp * u_dpr;",
+    "    float wave = 0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), twinkle = wave * wave * wave;",
+    // a star of the sky (a_c.g) is smaller, and shows only where the paper is dark (u_sky), as the avatar's sky is
+    "    v_glint = clamp((0.15 + 0.35 * twinkle + 0.4 * band) * tint * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g);",
+    "    v_size = u_dot * mix(2.5 + 5.0 * a_p.w * a_p.w, 1.6 + 3.5 * a_p.w * a_p.w, a_c.g) * (0.7 + 0.3 * twinkle + 0.3 * band) * persp * u_dpr;",
     "    v_sprite = v_size + 0.5;",
     // (a glint has no dot of its own: before the colours arrive it draws nothing, not a disc of its size)
     "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow : 0.0;",
@@ -971,7 +983,7 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var relief = null, field = null, outline = null, stars = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
+    var relief = null, field = null, outline = null, stars = null, sky = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
     // the dot maps loaded so far (ink for light paper, light for dark; dotMap), the one the figure is drawn from, its
     // dots and the other map's at the current grid, and a swap from one to the other in progress
     var sources = { ink: null, light: null }, loading = {}, failed = {}, set = null, shapes = {}, swap = null;
@@ -1067,7 +1079,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_core"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_core", "u_sky", "u_tiles", "u_wind"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1122,7 +1134,8 @@
       var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
       if (!outline) outline = outlineField(relief.data, relief.width);
       if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS, meta.features) : new Float32Array(0);
-      var g = stars.length / 3, total = n + g;
+      if (!sky) sky = skyStars(relief.data, relief.width);
+      var g = stars.length / 3, k = sky.length / 3, total = n + g + k;
       var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
       for (var i = 0; i < n; i++) {
         floats[i * f] = spots[i * 3];
@@ -1156,6 +1169,18 @@
         floats[at + 3] = stars[j * 3 + 2];
         bytes[(n + j) * VERTEX + 24] = MARBLE;
         bytes[(n + j) * VERTEX + 31] = 255;
+      }
+      // and the stars of the sky, far behind the figure, flagged in the material's weight (a_c.g), which a glint has
+      // no use for
+      for (var q = 0; q < k; q++) {
+        var sk = (n + g + q) * f;
+        floats[sk] = sky[q * 3];
+        floats[sk + 1] = sky[q * 3 + 1];
+        floats[sk + 2] = 0.15;
+        floats[sk + 3] = sky[q * 3 + 2];
+        bytes[(n + g + q) * VERTEX + 24] = MARBLE;
+        bytes[(n + g + q) * VERTEX + 25] = 255;
+        bytes[(n + g + q) * VERTEX + 31] = 255;
       }
       var lit = Math.max(1, litDots(normals));
       return { vertices: bytes, count: total, dots: n, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
@@ -1581,6 +1606,7 @@
       gl.uniform1f(U.u_glitch, glitch);
       gl.uniform4fv(U.u_tile, tileFlat);
       gl.uniform2fv(U.u_shift, shiftFlat);
+      gl.uniform1i(U.u_tiles, tiles.length);
       gl.uniform3f(U.u_color, inkNow[0], inkNow[1], inkNow[2]);
       // the materials' colors (Gear Two keeps only its gold, at 40%); without the material map every dot is ink.
       // Sparkles and hot dots run warm white on dark paper, gold on light.
@@ -1615,6 +1641,11 @@
       gl.uniform3fv(U.u_light, lights);
       gl.uniform3fv(U.u_tone, tones);
       gl.uniform3fv(U.u_glint, glintColors);
+      // the sky's stars come out on dark paper, Gear Two's included
+      gl.uniform1f(U.u_sky, colors.dark ? 1 : 0);
+      // the breeze as it blows now, which a drifting dot follows (the shader's breeze(), worked out once a frame)
+      var wx = Math.sin(t * 0.26) + 0.35 * Math.sin(t * 0.61 + 1.3), wy = 0.25 * Math.sin(t * 0.37 + 0.6), wl = Math.hypot(wx, wy) || 1;
+      gl.uniform2f(U.u_wind, wx / wl, wy / wl);
       // the dots stand for light on dark paper; while the paper's turn swaps them, the new map's appear behind a band
       // of light and the old map's give way ahead of it
       var swapAge = swap ? Math.max(0, now - swap.at) / 1000 : 0;
@@ -1911,6 +1942,7 @@
     withinZones: withinZones,
     outlineField: outlineField,
     glints: glints,
+    skyStars: skyStars,
     reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,

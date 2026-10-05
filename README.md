@@ -48,7 +48,8 @@ opening under virtual time).
   map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the
   avatar does, a warm key where the stone faces the light and a cool fill where it turns away, and the avatar's own
   star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
-  in the hair or on a hand) twinkle over it as small, faint eight-point stars. The cursor stirs the dots like a hand through dust: they
+  in the hair or on a hand) twinkle over it as small, faint eight-point stars; on dark paper and in Gear Two the
+  stars of the avatar's sky come out around it too, far behind (read from the depth map's blue channel). The cursor stirs the dots like a hand through dust: they
   turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
   passes. Sway, lighting, the dots' drift, the cursor's stir, and Gear Two all run in the vertex shader. At each turn
   of the sway a wave of light runs out of the body, from the chest to the figure's farthest reach, in a colour taken

@@ -6,7 +6,8 @@ Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at 
                              in 64 levels (dense where the statue is dark)
   assets/hero/light.webp     896x896, lossless, gray: where the dots go on dark paper, where they stand for light
                              (dense where the statue is lit), in 64 levels
-  assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), G = detail
+  assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), G = detail,
+                             B = the sky's stars (0, or 1 + 254 x a star's strength)
   assets/hero/color.webp     448x448, lossless RGBA: R = material (gold, marble, cloud, lightning, glint) x 51,
                              G = how strongly the pixel belongs to it, A = 128 + its sparkle highlights
   assets/hero/bluenoise.png  64x64 void-and-cluster threshold map, tiled by the engine
@@ -21,7 +22,7 @@ which does not invent texture (both BSD-3-Clause). The depth map comes from Dept
 (CC BY-NC 4.0) run at 1036 px and is cached as 16-bit in tools/hero/depth.png; the surface normals from Marigold
 normals v1.1 (CreativeML Open RAIL++-M) run at 768 px, cached in tools/hero/normals.png. Rebuilding from the
 caches needs only numpy and Pillow; --upscale, --depth, and --normals redo those steps (torch, spandrel,
-transformers, diffusers). --color stops after the material map (color.webp).
+transformers, diffusers). --color stops after the material map (color.webp); --stars only writes the sky's stars into depth.webp.
 
     python3 tools/hero/build.py [--upscale] [--depth] [--normals] [--color]
 """
@@ -452,8 +453,43 @@ def still(levels, bn, dep, detail, meta, suffix):
     return len(sx)
 
 
+def sky_stars(inside):
+    """The stars in the avatar's sky, found at its own 424 px, where each is a point a pixel or two across: the local
+    peaks of its light outside the figure (grown by a few pixels, so the statue's own rim highlights are left out) and
+    above the clouds, at least 0.08 brighter than their surroundings and small (in the 5 x 5 pixels around a peak at
+    most seven are more than 60% as bright). The engine draws them on dark paper and in Gear Two as stars of the sky,
+    behind the figure. Returned as an M x M channel for depth.webp's blue: 0, or 1 + 254 x the star's strength at the
+    nearest pixel."""
+    src = np.asarray(Image.open(os.path.join(ROOT, 'tools', 'hero', 'avatar-424.jpg')).convert('RGB'), np.float32) / 255
+    lum = 0.2126 * src[..., 0] + 0.7152 * src[..., 1] + 0.0722 * src[..., 2]
+    n = lum.shape[0]
+    figure = np.asarray(Image.fromarray(inside.astype(np.uint8) * 255).resize((n, n), Image.NEAREST)) > 0
+    grown = blurf(figure.astype(np.float32), 2.0) > 0.02
+    prominence = lum - blurf(lum, 2.0)
+    out = np.zeros((M, M), np.uint8)
+    for y in range(2, n - 2):
+        if y / (n - 1) > 0.74:
+            break
+        for x in range(2, n - 2):
+            v = lum[y, x]
+            if grown[y, x] or v < 0.22 or prominence[y, x] < 0.08:
+                continue
+            around = lum[y - 2:y + 3, x - 2:x + 3]
+            if v < around.max() or (around > v * 0.6).sum() > 7:
+                continue
+            i, j = round(y / (n - 1) * (M - 1)), round(x / (n - 1) * (M - 1))
+            out[i, j] = max(out[i, j], int(round(1 + 254 * min(1.0, prominence[y, x] / 0.45))))
+    return out
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
+    if '--stars' in sys.argv:   # only the sky's stars, into the blue of the depth map as committed
+        relief = np.asarray(Image.open(os.path.join(OUT, 'depth.webp')).convert('RGB')).copy()
+        relief[..., 2] = sky_stars(relief[..., 0] > 0)
+        lossless(relief, 'depth.webp')
+        print('wrote', int((relief[..., 2] > 0).sum()), 'stars into depth.webp')
+        return
     if '--upscale' in sys.argv:
         upscale()
     dep, ink, light, mask, statue, detail = maps()
@@ -467,7 +503,7 @@ def main():
     lossless(u8(levels), 'ink.webp')
     light_levels = np.round(light * (INK_LEVELS - 1)) / (INK_LEVELS - 1)
     lossless(u8(light_levels), 'light.webp')
-    relief = np.dstack([np.where(inside, np.maximum(u8(half(dep)), 1), 0), np.where(inside, u8(half(detail)), 0), np.zeros((M, M), np.uint8)])
+    relief = np.dstack([np.where(inside, np.maximum(u8(half(dep)), 1), 0), np.where(inside, u8(half(detail)), 0), sky_stars(inside)])
     lossless(relief.astype(np.uint8), 'depth.webp')
     bn_path = os.path.join(OUT, 'bluenoise.png')
     if not os.path.exists(bn_path) or '--bluenoise' in sys.argv:

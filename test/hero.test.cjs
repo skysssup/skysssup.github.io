@@ -407,6 +407,22 @@ test('the avatar\'s star glints are its round sparkles off the marble, strongest
   assert.deepEqual(at.map(([x, y]) => [x, y]), [[20, 10], [30, 20], [15, 25]], 'round glints on gold and just outside, strongest first');
   assert.ok(at[0][2] > 0.95 && at[2][2] < 0.7, 'each with its strength');
   assert.equal(hero.glints(color, relief, size, 1).length, 3, 'at most `limit`');
+  // the head's and the hands' ellipses (figure units) keep their highlights from being taken for stars
+  const kept = hero.glints(color, relief, size, 10, [[20 / 39, 10 / 39, 0.06, 0.06, 0], [15 / 39, 25 / 39, 0.05, 0.08, 0.3]]);
+  assert.deepEqual(Array.from({ length: kept.length / 3 }, (_, i) => [Math.round(kept[i * 3] * 39), Math.round(kept[i * 3 + 1] * 39)]), [[30, 20]], 'none in the hair or on a hand');
+  assert.equal(hero.withinZones([[0.5, 0.5, 0.2, 0.1, Math.PI / 2]], 0.5, 0.68), true, 'a turned ellipse is long across its turn');
+  assert.equal(hero.withinZones([[0.5, 0.5, 0.2, 0.1, Math.PI / 2]], 0.68, 0.5), false);
+  assert.equal(hero.withinZones(undefined, 0.5, 0.5), false);
+});
+
+test('the stars of the sky are read from the depth map\'s blue, each with its strength', () => {
+  const size = 20, rgba = new Uint8ClampedArray(size * size * 4);
+  rgba[(3 * size + 4) * 4 + 2] = 255;     // a strong star at (4, 3)
+  rgba[(12 * size + 17) * 4 + 2] = 128;   // a fainter one at (17, 12)
+  rgba[(9 * size + 9) * 4] = 200;         // depth alone is not a star
+  const found = Array.from(hero.skyStars(rgba, size));
+  assert.deepEqual(found.map(v => Math.round(v * 1000) / 1000), [4 / 19, 3 / 19, 1, 17 / 19, 12 / 19, 127 / 254].map(v => Math.round(v * 1000) / 1000));
+  assert.equal(hero.skyStars(new Uint8ClampedArray(size * size * 4), size).length, 0, 'an empty sky has none');
 });
 
 test('each pixel of the figure knows how far its outline is and which way is out', () => {

@@ -501,6 +501,28 @@ test('the material map names five materials inside the figure', async t => {
   for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
 });
 
+test('the sky\'s stars sit in the sky, and come out on dark paper and in Gear Two but not on white', async t => {
+  const { page } = await open(t);
+  await live(page);
+  const stars = await page.evaluate(async () => {
+    const bitmap = await createImageBitmap(await (await fetch('/assets/hero/depth.webp')).blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+    const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    const depth = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data, out = [];
+    for (let i = 0; i < depth.length; i += 4) if (depth[i + 2]) out.push({ inside: depth[i] > 0, y: Math.floor(i / 4 / bitmap.width) / (bitmap.width - 1) });
+    return out;
+  });
+  assert.ok(stars.length > 80 && stars.length < 200, `${stars.length} stars in the sky`);
+  assert.ok(stars.every(s => !s.inside && s.y < 0.75), 'none on the figure or in the clouds');
+  assert.deepEqual((await state(page)).uniforms.u_sky, [0], 'white paper has no stars of its own');
+  await page.evaluate(() => window.skyTheme.set('dark'));
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_sky[0] === 1);
+  await page.evaluate(() => window.skyGear.setGear(true));
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two');
+  await page.waitForTimeout(200);
+  assert.deepEqual((await state(page)).uniforms.u_sky, [1], 'and Gear Two keeps them');
+});
+
 test('a quick sweep of the cursor across the figure blows dust off it, and a slow one only stirs it', async t => {
   const { page } = await open(t);
   await live(page);
