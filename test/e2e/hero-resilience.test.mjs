@@ -551,6 +551,9 @@ async function stages(page) {
     window.__stages = [[performance.now(), figure.getAttribute('data-intro'), root.getAttribute('data-gear')]];
     new MutationObserver(() => window.__stages.push([performance.now(), figure.getAttribute('data-intro'), root.getAttribute('data-gear')]))
       .observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-intro', 'data-gear'] });
+    // the hold is counted from the moment the drawn figure is on screen
+    new MutationObserver(() => { if (window.__liveAt == null && figure.classList.contains('is-live')) window.__liveAt = performance.now(); })
+      .observe(figure, { attributes: true, attributeFilter: ['class'] });
   });
 }
 
@@ -564,6 +567,9 @@ test('the opening holds the figure still in its ink, shines its colors in, and t
   assert.deepEqual(held.u_rot, [0, 0], 'facing the viewer, as the still that covered the page did');
   assert.deepEqual(held.u_blink, [0], 'and nothing blinks');
   await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'turn', null, { timeout: 15000 });
+  const { stages: changes, liveAt } = await page.evaluate(() => ({ stages: window.__stages, liveAt: window.__liveAt }));
+  const hold = changes.find(([, stage]) => stage === 'shine')[0] - liveAt;
+  assert.ok(hold >= 1900 && hold < 4000, `the drawn figure holds still for 2 s before its shine, held ${Math.round(hold)} ms`);
   const { series } = await state(page);
   assert.ok(series.u_flow.some(([, wake]) => wake === 1), 'the opening shine brings the colors in behind its band');
   assert.ok(series.u_sheen.some(([, x]) => x > 0.02 && x < 0.98), 'and crosses the figure');

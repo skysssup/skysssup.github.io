@@ -45,7 +45,7 @@ opening under virtual time).
   leave the surface as the band passes, stream on behind it as bits, and turn to eight-point crystals where they reach
   the figure's edge, then re-form in place. On light and dark paper the shine is stronger: a wider band with an
   afterglow, more stars, and a glow on the paper behind the figure. Opening the page plays an opening once a tab
-  (again on a reload, never under reduced motion): the figure holds still in its ink for a moment, a slower shine
+  (again on a reload, never under reduced motion): the figure holds still in its ink for two seconds, a slower shine
   crosses it and leaves its colors behind, it turns once and comes back, the page goes to Gear Two with the shockwave
   leaving the figure, a red shine crosses it as it turns once more, and the page comes back; Gear Two is never saved
   for the next page, and any press, key, or scroll ends the opening. In Gear Two the dots turn red, a heartbeat pulses

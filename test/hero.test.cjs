@@ -294,6 +294,7 @@ test('the opening holds still in ink, shines, turns once and returns, goes to Ge
   assert.deepEqual(stages.map(s => s[0]), ['shine', 'turn', 'red', 'redshine', 'redturn', 'back', 'done']);
   assert.deepEqual(acts.map(a => a[0]), ['shine', 'ring', 'red', 'redshine', 'back']);
   const at = name => acts.find(a => a[0] === name);
+  assert.equal(INTRO.hold, 2, 'the still figure holds for two seconds before anything moves');
   assert.ok(Math.abs(at('shine')[1] - INTRO.hold) < 1 / 60 + 1e-9, 'the figure holds still for INTRO.hold');
   assert.ok(Math.abs(at('ring')[1] - at('shine')[1] - INTRO.sweep) < 1 / 60 + 1e-9, 'the ring arrives once the shine has crossed');
   assert.equal(at('red')[2], 7, 'Gear Two comes when the figure has turned once and is back in the middle');

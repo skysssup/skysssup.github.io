@@ -65,12 +65,12 @@
   // --ease-in-out, cubic-bezier(.65, 0, .35, 1), which is the cubic in-out curve.
   function easeInOut(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2; }
 
-  // The opening, when the page is opened (opts.intro), in seconds: the figure holds still in its ink; a slower
-  // shine crosses it and leaves its colors in its wake; the sway runs `rate` times as fast until the figure has
+  // The opening, when the page is opened (opts.intro), in seconds: the figure holds still in its ink for `hold`; a
+  // slower shine crosses it and leaves its colors in its wake; the sway runs `rate` times as fast until the figure has
   // turned once and come back to the middle (half a sway on its clock). From light or dark paper the page then goes
   // to Gear Two; as the switch settles a shine crosses the red figure, the figure turns once more the other way at
   // `redRate`, and the page comes back. `wait` bounds each wait for the page to switch.
-  var INTRO = { hold: 0.9, sweep: 1.4, rate: 2.5, red: 0.55, redRate: 3.2, wait: 2 };
+  var INTRO = { hold: 2, sweep: 1.4, rate: 2.5, red: 0.55, redRate: 3.2, wait: 2 };
   var INTRO_RATE = { hold: 0, shine: 0, turn: INTRO.rate, red: 0, redshine: 0, redturn: INTRO.redRate, back: 0 };
   // One step of the opening at `now` (s) with the sway clock at `clock` and Gear Two on or off. Returns the next
   // state (null once it is over), the clock (held in the middle at each return), and what happens now, if anything:
