@@ -274,9 +274,12 @@ test('the home theme links brighten the ring for a moment, and the figure takes 
     };
   });
   await page.waitForTimeout(600);
-  const hovered = await page.evaluate(() => performance.now());
+  // measured from the moment the link is entered: Playwright's hover waits for the link to hold still over two frames
+  // first, which under software rendering can take most of a second
+  await page.evaluate(() => document.querySelector('[data-theme-link="developer-tools"]').addEventListener('mouseenter', () => { window.__entered = performance.now(); }, { once: true }));
   await page.hover('[data-theme-link="developer-tools"]');
   await page.waitForTimeout(1100);
+  const hovered = await page.evaluate(() => window.__entered);
   const frames = await page.evaluate(() => window.__ring);
   const median = list => list.slice().sort((a, b) => a - b)[list.length >> 1];
   const rest = median(frames.filter(([time]) => time < hovered).map(([, v]) => v));

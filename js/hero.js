@@ -389,6 +389,8 @@
   var BREEZE = 0.55, BREEZE_GEAR = 0.3, BREEZE_FLARE = [0.8, 0.5];
   // GLINTS is how many of the avatar's star glints the figure draws at most, strongest first.
   var GLINTS = 260;
+  // BLAST is how long a strike or a puff of the cursor goes on blasting dots off the figure, in seconds (the shader's 2.6).
+  var BLAST = 2.6;
   function litDots(normals) {
     var l = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2]), lit = 0;
     for (var i = 0; i < normals.length; i += 3) {
@@ -536,6 +538,8 @@
     "uniform vec4 u_stir;",
     "uniform vec4 u_puff[8];",
     "uniform vec2 u_puffv[8];",
+    "uniform ivec2 u_blast;",
+    "uniform int u_gusts;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -634,13 +638,19 @@
     "  float dist = length(d) + 0.001;",
     "  float within = max(0.0, 1.0 - dist / u_pointer.w);",
     "  float push = within * within * u_pointer.z;",
-    "  float eddy = push * (0.45 + 0.15 * sin(u_time * 2.0 - dist * 0.04));",
-    "  px = u_pointer.xy + vec2(d.x * cos(eddy) - d.y * sin(eddy), d.x * sin(eddy) + d.y * cos(eddy)) * (1.0 + 0.12 * push);",
-    "  px += u_stir.xy * 0.05 * push;",
+    // (only the dots it reaches move: turning a dot about a cursor far away by nothing would still round its place)
+    "  if (push > 0.0) {",
+    "    float eddy = push * (0.45 + 0.15 * sin(u_time * 2.0 - dist * 0.04));",
+    "    px = u_pointer.xy + vec2(d.x * cos(eddy) - d.y * sin(eddy), d.x * sin(eddy) + d.y * cos(eddy)) * (1.0 + 0.12 * push);",
+    "    px += u_stir.xy * 0.05 * push;",
+    "  }",
     "  float lift = push;",
-    // a strike of lightning (u_rip: where, when, how strong) sends a ring out through the figure and lights it up
+    // a strike of lightning (u_rip: where, when, how strong) sends a ring out through the figure and lights it up. The
+    // strikes and the cursor's puffs still under way come first in their arrays (u_blast: how many of each), and the
+    // loops run over those alone: a renderer without a GPU runs every line of a shader for every dot, taken or not, and
+    // skips only the turns of a loop that no dot needs
     "  float strike = 0.0;",
-    "  for (int i = 0; i < 4; i++) {",
+    "  for (int i = 0; i < u_blast.x; i++) {",
     "    vec4 r = u_rip[i];",
     "    float age = u_time - r.z;",
     "    if (r.w <= 0.0 || age < 0.0 || age > 1.3) continue;",
@@ -693,11 +703,20 @@
     "    }",
     "  }",
     // the band is a gust of wind (gust()): this sheen's, and the one before it while its dust is still growing back
-    // (u_last: its sweep's length, direction, burst number, and age)
-    "  Gust now = gust(u_sheen, u_flow.y, px, id, s1, s2, s3, k), was = gust(u_last, u_last.x, px, id, s1, s2, s3, k);",
-    "  vec2 flow = now.flow + was.flow, heading = now.blown >= was.blown ? now.heading : was.heading;",
-    "  float blown = max(now.blown, was.blown), carried = max(now.carried, was.carried), flare = max(now.flare, was.flare);",
-    "  float show = min(now.show, was.show), regrow = max(now.regrow, was.regrow), speed = max(now.speed, was.speed);",
+    // (u_last: its sweep's length, direction, burst number, and age); u_gusts counts them, and the loop runs once a gust
+    "  vec2 flow = vec2(0.0), heading = vec2(u_sheen.y, 0.0);",
+    "  float blown = 0.0, carried = 0.0, flare = 0.0, show = 1.0, regrow = 0.0, speed = 0.0;",
+    "  for (int i = 0; i < u_gusts; i++) {",
+    "    Gust g = gust(i == 0 ? u_sheen : u_last, i == 0 ? u_flow.y : u_last.x, px, id, s1, s2, s3, k);",
+    "    flow += g.flow;",
+    "    if (i == 0 || g.blown > blown) heading = g.heading;",
+    "    blown = max(blown, g.blown);",
+    "    carried = max(carried, g.carried);",
+    "    flare = max(flare, g.flare);",
+    "    show = min(show, g.show);",
+    "    regrow = max(regrow, g.regrow);",
+    "    speed = max(speed, g.speed);",
+    "  }",
     // Between gusts the figure is alive (u_breeze: its strength as it starts, the share of dots it takes, how bright
     // they flare, and when it started). Every dot drifts a little on slow swells, and a breeze that slowly turns takes
     // flocks of dots off the outline: the dots near the outline (a_w.w, how far in; a_w.z, which way is out) in a patch
@@ -743,17 +762,21 @@
     // A strike blasts the dots near where it lands outward (most of them close in, fewer further out), and a quick sweep
     // of the cursor across the figure blows off the dots it passes (u_puff: where and when, how hard; u_puffv: which
     // way): each flies off decelerating, flaring as it goes, and grows back in place a second or so later.
-    "  for (int i = 0; i < 12; i++) {",
-    "    vec4 r = i < 4 ? u_rip[i] : u_puff[i - 4];",
-    "    float age = u_time - r.z, R = i < 4 ? 70.0 + 30.0 * r.w : 26.0 + 24.0 * r.w;",
+    "  for (int i = 0; i < u_blast.x + u_blast.y; i++) {",
+    "    bool bolt = i < u_blast.x;",
+    "    vec4 r = bolt ? u_rip[min(i, 3)] : u_puff[clamp(i - u_blast.x, 0, 7)];",
+    "    float age = u_time - r.z, R = bolt ? 70.0 + 30.0 * r.w : 26.0 + 24.0 * r.w;",
     "    if (r.w <= 0.0 || age < 0.0 || age > 2.6) continue;",
     "    vec2 e = px - r.xy;",
     "    float de = length(e) + 0.001;",
     "    if (de > R) continue;",
     "    float struck = 1.0 - de / R;",
-    "    if (r01(id * 43u + uint(i) * 7919u + uint(r.z * 16.0)) > (i < 4 ? 0.12 + 0.38 * struck : 0.06 + 0.24 * struck)) continue;",
-    "    vec2 way = i < 4 ? normalize(e / de + vec2((s1 - 0.5) * 0.6, -0.25 - 0.3 * s2)) : normalize(u_puffv[i < 4 ? 0 : i - 4] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, -0.2));",
-    "    float v = (i < 4 ? 420.0 + 520.0 * r01(id * 47u + 5u) : 260.0 + 360.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
+    // which dots a blast takes is chosen by the blast itself (when it began, and whether it is a strike), never by its
+    // place in the arrays, which shifts as older blasts end
+    "    uint ev = uint(r.z * 64.0) * 2u + (bolt ? 0u : 1u);",
+    "    if (r01(id * 43u + ev * 7919u) > (bolt ? 0.12 + 0.38 * struck : 0.06 + 0.24 * struck)) continue;",
+    "    vec2 way = bolt ? normalize(e / de + vec2((s1 - 0.5) * 0.6, -0.25 - 0.3 * s2)) : normalize(u_puffv[clamp(i - u_blast.x, 0, 7)] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, -0.2));",
+    "    float v = (bolt ? 420.0 + 520.0 * r01(id * 47u + 5u) : 260.0 + 360.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
     "    float reachS = v * 0.3, s = reachS * (1.0 - exp(-age / 0.3)), fly = reachS * (0.5 + 0.4 * s3);",
     "    if (s < fly) {",
     "      float q = s / fly;",
@@ -762,7 +785,7 @@
     "      speed = max(speed, v * exp(-age / 0.3));",
     "      blown = max(blown, k);",
     "      carried = max(carried, 0.2 * k * u_tint);",
-    "      flare = max(flare, smoothstep(0.2, 0.6, q) * (1.0 - smoothstep(0.75, 1.0, q)) * k * step(r01(id * 59u + uint(i)), 0.3));",
+    "      flare = max(flare, smoothstep(0.2, 0.6, q) * (1.0 - smoothstep(0.75, 1.0, q)) * k * step(r01(id * 59u + ev), 0.3));",
     "    } else {",
     "      float grown = smoothstep(0.0, 0.5, age + 0.3 * log(1.0 - fly / reachS) - 0.35 - 0.9 * r01(id * 53u + 3u));",
     "      show = min(show, grown);",
@@ -841,7 +864,8 @@
     "    v_glint = clamp((0.3 + 0.7 * twinkle + 1.2 * band) * tint * k, 0.0, 1.0);",
     "    v_size = u_dot * (4.0 + 14.0 * a_p.w * a_p.w) * (0.6 + 0.5 * twinkle + 0.8 * band) * persp * u_dpr;",
     "    v_sprite = v_size + 0.5;",
-    "    v_alpha = u_alpha * swapShow;",
+    // (a glint has no dot of its own: before the colours arrive it draws nothing, not a disc of its size)
+    "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow : 0.0;",
     "    v_star = v_blown = v_flare = 0.0;",
     "  }",
     "  gl_PointSize = v_sprite;",
@@ -866,36 +890,42 @@
     "uniform highp float u_positive;",
     "uniform highp vec3 u_glint[2];",
     "out vec4 o;",
-    // an arm of a star along x: as thick as `t` at the centre, tapering to nothing at `r`
-    "float arm(vec2 m, float t, float r, float k) { return clamp(max(0.45, t * (1.0 - m.x / r)) - m.y + 0.5, 0.0, 1.0) * pow(max(0.0, 1.0 - m.x / r), k); }",
+    // an arm of a star along x: as thick as `t` at the centre, tapering to nothing at the sprite's edge (`ir`: one over
+    // its half-width)
+    "float arm(vec2 m, float t, float ir) { float f = max(0.0, 1.0 - m.x * ir); return clamp(max(0.45, t * f) - m.y + 0.5, 0.0, 1.0) * f; }",
+    // A renderer without a GPU runs every branch of this shader for every pixel, taken or not, so the shapes share what
+    // they can: the distance from the centre, the arms (a burst's star and a glint both have four long ones), and one
+    // soft halo (a flare's wide one or a glint's tight glow), and none of them calls pow or a second exp.
     "void main() {",
     "  vec2 q = (gl_PointCoord - 0.5) * v_sprite;",
     "  vec2 m = abs(q);",
-    "  float r = v_sprite * 0.5;",
-    "  float a = clamp(v_size * 0.5 - length(q) + 0.5, 0.0, 1.0);",
+    "  float d = length(q), ir = 2.0 / v_sprite;",
+    "  bool glint = v_glint > 0.0;",
+    "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0);",
     "  vec3 c = v_color;",
+    "  float t = v_size * (glint ? 0.09 : 0.16), spikes = max(arm(m, t, ir), arm(m.yx, t, ir));",
+    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.03 : 2.2)));",
     // a star is a four-point cross over its disc: two thin arms that taper to the sprite's edge; its middle burns in
     // the sheen's core colour
     "  if (v_star > 0.0) {",
-    "    a = max(a, max(arm(m, v_size * 0.16, r, 0.8), arm(m.yx, v_size * 0.16, r, 0.8)) * v_star);",
-    "    c = mix(c, u_light[1], v_star * clamp(1.0 - length(q) / (v_size * 0.6), 0.0, 1.0));",
+    "    a = max(a, spikes * v_star);",
+    "    c = mix(c, u_light[1], v_star * clamp(1.0 - d / (v_size * 0.6), 0.0, 1.0));",
     "  }",
     // a blown dot is a bright head with a tail behind it along its heading, fading to the sheen's fringe colour as far
     // as the dot carries the light
     "  if (v_blown > 0.0) {",
     "    float fore = dot(q, v_heading), side = abs(dot(q, vec2(-v_heading.y, v_heading.x)));",
-    "    float back = max(0.0, -fore) / r;",
+    "    float back = max(0.0, -fore) * ir;",
     "    float tail = clamp(v_size * 0.45 * (1.0 - back) - side + 0.5, 0.0, 1.0) * (1.0 - back) * step(0.0, -fore);",
-    "    a = max(a, max(clamp(v_size * 0.6 - length(q) + 0.5, 0.0, 1.0), tail * 0.9) * v_blown);",
+    "    a = max(a, max(clamp(v_size * 0.6 - d + 0.5, 0.0, 1.0), tail * 0.9) * v_blown);",
     "    c = mix(c, u_light[0], clamp(back * 2.0, 0.0, 1.0) * v_carried);",
     "  }",
     // just before it is gone a blown dot flares to a bright point: a white heart in a soft halo of its own colour, so
     // gold dust flares gold and marble flares white; on white paper, where white does not show, marble's halo takes the
     // sheen's colour
     "  if (v_flare > 0.0) {",
-    "    float d = length(q), heart = clamp(v_size * 0.75 - d + 0.5, 0.0, 1.0);",
-    "    float halo = exp(-d * d / (v_size * v_size * 2.2)) * 0.85;",
-    "    a = max(a, max(heart, halo) * v_flare);",
+    "    float heart = clamp(v_size * 0.75 - d + 0.5, 0.0, 1.0);",
+    "    a = max(a, max(heart, halo * 0.85) * v_flare);",
     "    float chroma = max(v_color.r, max(v_color.g, v_color.b)) - min(v_color.r, min(v_color.g, v_color.b));",
     "    vec3 glow = u_positive > 0.5 ? mix(v_color, vec3(1.0), 0.25) : mix(u_light[0], v_color, smoothstep(0.15, 0.4, chroma));",
     "    c = mix(c, mix(glow, vec3(1.0), heart), v_flare);",
@@ -903,12 +933,10 @@
     // a glint is an eight-point star: thin spikes, long on the axes and short on the diagonals, and a soft glow, in its
     // edge colour, around a heart in its heart colour (u_glint): a white star in a warm glow on dark paper, a white
     // spark in a star of the sheen's blue on white paper, where white alone would not show
-    "  if (v_glint > 0.0) {",
+    "  if (glint) {",
     "    vec2 dg = vec2(m.x + m.y, abs(m.x - m.y)) * 0.70710678;",
-    "    float spikes = max(max(arm(m, v_size * 0.09, r, 0.9), arm(m.yx, v_size * 0.09, r, 0.9)), arm(dg, v_size * 0.07, r * 0.55, 1.1) * 0.8);",
-    "    float heart = clamp(v_size * 0.12 - length(q) + 0.5, 0.0, 1.0);",
-    "    float glow = exp(-dot(q, q) / (v_size * v_size * 0.03)) * 0.7;",
-    "    a = max(max(spikes, heart), glow) * v_glint;",
+    "    float heart = clamp(v_size * 0.12 - d + 0.5, 0.0, 1.0);",
+    "    a = max(max(max(spikes, arm(dg, v_size * 0.07, ir * 1.8181818) * 0.8), heart), halo * 0.7) * v_glint;",
     "    c = mix(u_glint[1], u_glint[0], heart);",
     "  }",
     "  a *= v_alpha;",
@@ -1107,7 +1135,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1337,6 +1365,35 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
+    // The paper-coloured outline that keeps the ring's front glyphs legible over the dots, stroked once per glyph into
+    // an atlas at twice the device's resolution and drawn from it, since stroking transformed text anew every frame is
+    // the costliest thing the ring does. Rebuilt when the paper, the size, or the line changes.
+    var halos = null;
+    function haloAtlas(font, advance) {
+      var key = [colors.paper, font, dpr, ring.glyphs.length].join();
+      if (halos && halos.key === key) return halos;
+      var chars = [], cells = {};
+      ring.glyphs.forEach(function (ch) { if (ch !== " " && chars.indexOf(ch) < 0) chars.push(ch); });
+      var scale = 2 * dpr, line = Math.max(3, font * 0.42), w = Math.ceil((advance + line + 4) * scale), h = Math.ceil((font * 1.4 + line + 4) * scale);
+      var atlas = document.createElement("canvas");
+      atlas.width = w * Math.max(1, chars.length);
+      atlas.height = h;
+      var a = atlas.getContext("2d");
+      a.font = "400 " + font + "px \"Fragment Mono\", ui-monospace, monospace";
+      a.textAlign = "center";
+      a.textBaseline = "middle";
+      a.lineJoin = "round";
+      a.lineWidth = line;
+      a.strokeStyle = colors.paper;
+      chars.forEach(function (ch, k) {
+        a.setTransform(scale, 0, 0, scale, k * w + w / 2, h / 2);
+        a.strokeText(ch, 0, 0);
+        cells[ch] = [k * w, 0];
+      });
+      halos = { key: key, canvas: atlas, cells: cells, w: w, h: h, scale: scale };
+      return halos;
+    }
+
     function drawRing(yawNow, pitchNow, fade, beat, glow) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
@@ -1355,11 +1412,9 @@
       var n = ring.glyphs.length;
       var accent = colors.gear ? colors.text : colors.accent;
       var ct = Math.cos(tilt), st = Math.sin(tilt);
+      var halo = haloAtlas(font, advance);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.lineJoin = "round";
-      ctx.lineWidth = Math.max(3, font * 0.42);
-      ctx.strokeStyle = colors.paper;
       for (var i = 0; i < n; i++) {
         var ch = ring.glyphs[i];
         if (ch === " ") continue;
@@ -1391,7 +1446,8 @@
         var tx = tg[0] * k, ty = -tg[1] * k, ux = -up[0] * k, uy = up[1] * k;
         ctx.setTransform(tx * dpr, ty * dpr, ux * dpr, uy * dpr, sx * dpr, sy * dpr);
         ctx.globalAlpha = alpha;
-        if (front) ctx.strokeText(ch, 0, 0);
+        var spot = front && halo.cells[ch];
+        if (spot) ctx.drawImage(halo.canvas, spot[0], spot[1], halo.w, halo.h, -halo.w / halo.scale / 2, -halo.h / halo.scale / 2, halo.w / halo.scale, halo.h / halo.scale);
         ctx.fillStyle = accent;
         ctx.fillText(ch, 0, 0);
       }
@@ -1516,11 +1572,19 @@
         tintNow = tintFrom + (tintTo - tintFrom) * q;
         if (q >= 1) inkAt = 0;
       }
-      for (var i = 0; i < 4; i++) {
-        ripFlat[i * 4] = ripples[i][0];
-        ripFlat[i * 4 + 1] = ripples[i][1];
-        ripFlat[i * 4 + 2] = ripples[i][2];
-        ripFlat[i * 4 + 3] = live ? ripples[i][3] : 0;
+      // the strikes and the cursor's puffs still under way, first in their arrays (the shader loops over those alone)
+      var strikes = 0, puffing = 0;
+      ripFlat.fill(0);
+      puffFlat.fill(0);
+      puffDirFlat.fill(0);
+      for (var i = 0; live && i < ripples.length; i++) {
+        if (ripples[i][3] > 0 && t - ripples[i][2] <= BLAST) ripFlat.set(ripples[i], strikes++ * 4);
+      }
+      for (var pi = 0; live && pi < puffs.length; pi++) {
+        if (!(puffs[pi][3] > 0 && t - puffs[pi][2] <= BLAST)) continue;
+        puffFlat.set(puffs[pi].slice(0, 4), puffing * 4);
+        puffDirFlat.set(puffs[pi].slice(4, 6), puffing * 2);
+        puffing++;
       }
       var beat = gear && live ? heartbeat(t) : 0;
       // a sheen and a burst of stars at each turn of the sway (in Gear Two the burst also tears one frame), and one
@@ -1581,12 +1645,9 @@
       stir.y *= settle;
       var cap = Math.min(1, 600 / (Math.hypot(stir.x, stir.y) || 1));
       gl.uniform4f(U.u_stir, live ? stir.x * cap : 0, live ? stir.y * cap : 0, 0, 0);
-      for (var pi = 0; pi < puffs.length; pi++) {
-        puffFlat.set([puffs[pi][0], puffs[pi][1], puffs[pi][2], live ? puffs[pi][3] : 0], pi * 4);
-        puffDirFlat.set([puffs[pi][4], puffs[pi][5]], pi * 2);
-      }
       gl.uniform4fv(U.u_puff, puffFlat);
       gl.uniform2fv(U.u_puffv, puffDirFlat);
+      gl.uniform2i(U.u_blast, strikes, puffing);
       gl.uniform1f(U.u_blink, live && !still ? (gear ? 2 : 1) : 0);
       gl.uniform1f(U.u_beat, beat);
       gl.uniform1f(U.u_dot, Math.max(1.1, cell * 1.3));
@@ -1614,6 +1675,7 @@
       if (previous && (!live || previousAge >= previous.sweep + SHEEN_AFTER)) previous = null;
       if (previous) gl.uniform4f(U.u_last, previous.sweep, previous.dir, previous.number, previousAge);
       else gl.uniform4f(U.u_last, 0, 0, 0, 0);
+      gl.uniform1i(U.u_gusts, previous ? 2 : sheening ? 1 : 0);
       // the breeze begins once the figure has assembled, or once the opening has let it move, and fades in over 2 s
       var alive = live && !still && built >= SHEEN_FIRST;
       if (!alive) breezeFrom = 0;
