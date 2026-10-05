@@ -1,6 +1,6 @@
 # Handoff 3: the hero figure's next pass
 
-> **Status.** §2.1–§2.5 are live on `main`; §2.6 is not (the cursor's tilt was halved instead, so the relief's back
+> **Status.** Superseded by `docs/next-4.md`, the owner's next pass. §2.1–§2.5 are live on `main`; §2.6 is not (the cursor's tilt was halved instead, so the relief's back
 > stays hidden, and the cloud bank now fades into the paper). Where the build departed from this brief:
 > - §2.2: Gear Two takes the light map too, since red reads as a lit statue that way and as a red negative the other.
 >   Only the lights' switch swaps the maps behind a band; Gear Two's switch swaps them at once, under its flash and

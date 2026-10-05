@@ -15,10 +15,12 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
 
 The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/design-spec.md). The brief for the
-next pass on the hero figure (a 2 s hold in the opening, a positive figure on dark paper, the shine as wind that
-blows dots off the edges, white star sparkles like the avatar's, and head-to-toe detail) is
-[docs/next-3.md](docs/next-3.md); the visual QA helper it uses is `tools/qa/shots.mjs` (its `film` mode plays the
-opening under virtual time).
+next pass on the hero figure (detail that survives the turn, a clear silhouette, finer wings and caduceus, a deep
+one-sided shine in each mode's colour, a figure that breathes and flows, the cloud bank only in red, the stars back,
+a blue gear reached by hand with a control that reads as a gear shift, and a new cursor in red) is
+[docs/next-4.md](docs/next-4.md); the earlier ones are `docs/next.md`, `next-2.md`, and `next-3.md`. Its QA tools are
+in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the opening under virtual time), `reel.mjs`,
+`fps.mjs`, `holdframe.mjs`, `margins.mjs`, `shadercheck.mjs`, and `counts.mjs`.
 
 ## How it works
 
