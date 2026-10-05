@@ -47,8 +47,11 @@ opening under virtual time).
   map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the
   avatar does, a warm key where the stone faces the light and a cool fill where it turns away, and the avatar's own
   star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load) twinkle
-  over it as eight-point stars, brighter as a shine passes. Sway, lighting, blinking, cursor push, click ripples, and
-  Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
+  over it as eight-point stars, brighter as a shine passes. The cursor stirs the dots like a hand through dust: they
+  turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
+  passes. A click or tap (or the caption's button) calls down lightning: a bolt from above lands there, the figure
+  flashes around it, the dots close by burst outward in sparks and grow back, and a ring runs out through the rest.
+  Sway, lighting, blinking, the cursor's stir, the strikes, and Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
   dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in Gear Two. The band is a
   gust of wind: every dot it reaches sways downwind and springs back with its neighbours, and up to a third of the
   dots near the downwind edge are blown off. They slide over the surface, leave along the outline (so the dust streams

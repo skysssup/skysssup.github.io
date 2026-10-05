@@ -533,6 +533,9 @@
     "uniform vec4 u_last;",
     "uniform vec4 u_breeze;",
     "uniform vec3 u_tone[2];",
+    "uniform vec4 u_stir;",
+    "uniform vec4 u_puff[8];",
+    "uniform vec2 u_puffv[8];",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -624,13 +627,19 @@
     "  float fade = mix(mix(1.0, 0.86, lam), mix(0.78, 1.0, lam) * (1.0 - 0.35 * rim), u_positive);",
     "  float persp = 3.2 / (3.2 - p.z);",
     "  vec2 px = u_box.xy + (u_pivot + vec2(p.x, -p.y) * persp) * u_box.z;",
-    // cursor push
+    // the cursor stirs the dots like a hand through dust: within its reach (u_pointer: where it is, how strongly it
+    // stirs as it eases in and out, and its reach) they turn about it in a slow eddy, give way a little, are dragged
+    // along with its motion (u_stir: its velocity in px/s), and lift toward the viewer
     "  vec2 d = px - u_pointer.xy;",
     "  float dist = length(d) + 0.001;",
-    "  float push = pow(max(0.0, 1.0 - dist / u_pointer.w), 2.0) * u_pointer.z;",
-    "  px += d / dist * push * 22.0;",
+    "  float within = max(0.0, 1.0 - dist / u_pointer.w);",
+    "  float push = within * within * u_pointer.z;",
+    "  float eddy = push * (0.45 + 0.15 * sin(u_time * 2.0 - dist * 0.04));",
+    "  px = u_pointer.xy + vec2(d.x * cos(eddy) - d.y * sin(eddy), d.x * sin(eddy) + d.y * cos(eddy)) * (1.0 + 0.12 * push);",
+    "  px += u_stir.xy * 0.05 * push;",
     "  float lift = push;",
-    // click ripples
+    // a strike of lightning (u_rip: where, when, how strong) sends a ring out through the figure and lights it up
+    "  float strike = 0.0;",
     "  for (int i = 0; i < 4; i++) {",
     "    vec4 r = u_rip[i];",
     "    float age = u_time - r.z;",
@@ -641,6 +650,7 @@
     "    float g = exp(-band * band) * (1.0 - age / 1.3) * r.w;",
     "    px += e / de * g * 16.0;",
     "    lift += g * 0.8;",
+    "    strike = max(strike, exp(-age * 12.0) * r.w * max(0.0, 1.0 - de / 170.0));",
     "  }",
     // Gear Two glitch: shift horizontal slices, and tear out tiles that jump sideways and run hot
     "  float hot = 0.0;",
@@ -730,6 +740,35 @@
     "      }",
     "    }",
     "  }",
+    // A strike blasts the dots near where it lands outward (most of them close in, fewer further out), and a quick sweep
+    // of the cursor across the figure blows off the dots it passes (u_puff: where and when, how hard; u_puffv: which
+    // way): each flies off decelerating, flaring as it goes, and grows back in place a second or so later.
+    "  for (int i = 0; i < 12; i++) {",
+    "    vec4 r = i < 4 ? u_rip[i] : u_puff[i - 4];",
+    "    float age = u_time - r.z, R = i < 4 ? 70.0 + 30.0 * r.w : 26.0 + 24.0 * r.w;",
+    "    if (r.w <= 0.0 || age < 0.0 || age > 2.6) continue;",
+    "    vec2 e = px - r.xy;",
+    "    float de = length(e) + 0.001;",
+    "    if (de > R) continue;",
+    "    float struck = 1.0 - de / R;",
+    "    if (r01(id * 43u + uint(i) * 7919u + uint(r.z * 16.0)) > (i < 4 ? 0.12 + 0.38 * struck : 0.06 + 0.24 * struck)) continue;",
+    "    vec2 way = i < 4 ? normalize(e / de + vec2((s1 - 0.5) * 0.6, -0.25 - 0.3 * s2)) : normalize(u_puffv[i < 4 ? 0 : i - 4] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, -0.2));",
+    "    float v = (i < 4 ? 420.0 + 520.0 * r01(id * 47u + 5u) : 260.0 + 360.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
+    "    float reachS = v * 0.3, s = reachS * (1.0 - exp(-age / 0.3)), fly = reachS * (0.5 + 0.4 * s3);",
+    "    if (s < fly) {",
+    "      float q = s / fly;",
+    "      flow += way * s;",
+    "      heading = way;",
+    "      speed = max(speed, v * exp(-age / 0.3));",
+    "      blown = max(blown, k);",
+    "      carried = max(carried, 0.2 * k * u_tint);",
+    "      flare = max(flare, smoothstep(0.2, 0.6, q) * (1.0 - smoothstep(0.75, 1.0, q)) * k * step(r01(id * 59u + uint(i)), 0.3));",
+    "    } else {",
+    "      float grown = smoothstep(0.0, 0.5, age + 0.3 * log(1.0 - fly / reachS) - 0.35 - 0.9 * r01(id * 53u + 3u));",
+    "      show = min(show, grown);",
+    "      regrow = max(regrow, grown * (1.0 - grown) * 4.0 * k);",
+    "    }",
+    "  }",
     // when the paper turns between light and dark, a band of light crosses the figure and the dots of the new map
     // (u_swap.z 1) appear behind it, while those of the old one (-1) give way ahead of it, dimmed
     "  float swapShow = 1.0;",
@@ -755,6 +794,8 @@
     "  float lit = max(band, trail * (0.3 + 0.15 * u_flow.z));",
     "  col = mix(col, mix(u_light[0], u_light[1], smoothstep(0.5, 1.0, band)), min(1.0, lit * 1.25));",
     "  col = mix(col, mix(u_light[0], u_light[1], 0.7), carried);",
+    // a strike lights the figure up around where it lands
+    "  col = mix(col, mix(u_light[1], vec3(1.0), u_positive), strike * 0.45);",
     // a dot growing back twinkles as it arrives
     "  col = mix(col, u_light[1], regrow * 0.4 * min(1.0, u_tint * 2.5));",
     "  v_color = mix(col, u_light[2], star);",
@@ -771,7 +812,7 @@
     "  float dur = 0.08 + r01(key + 2u) * 0.16;",
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
-    "  size *= shade * (1.0 + 0.9 * tw) * (1.0 + (0.35 + 0.3 * u_flow.z) * band) * (1.0 + (1.2 + 0.6 * u_flow.z) * star) * (1.0 + 0.6 * blown) * (1.0 + 0.7 * regrow);",
+    "  size *= shade * (1.0 + 0.9 * tw) * (1.0 + (0.35 + 0.3 * u_flow.z) * band) * (1.0 + (1.2 + 0.6 * u_flow.z) * star) * (1.0 + 0.6 * blown) * (1.0 + 0.7 * regrow) * (1.0 + 0.35 * strike);",
     // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones
     "  size *= mix(1.0, 0.82, a_c.b);",
     // the face and the hands sit on a grid twice as fine: four dots, each 62% the size, where one would be
@@ -980,7 +1021,11 @@
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
     var touch = null;
-    var ripples = [[0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0]], nextRipple = 0;
+    var ripples = [[0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0], [0, 0, -10, 0]], nextRipple = 0, bolts = [];
+    // the cursor's velocity (px/s, smoothed) and the puffs a quick sweep of it leaves: where, when, how hard, which way
+    var stir = { x: 0, y: 0, at: 0, px: 0, py: 0 }, puffs = [], nextPuff = 0, puffAt = 0;
+    for (var pf = 0; pf < 8; pf++) puffs.push([0, 0, -10, 0, 0, 0]);
+    var puffFlat = new Float32Array(32), puffDirFlat = new Float32Array(16);
     var ripFlat = new Float32Array(16);
     var startAt = 0, last = 0, raf = 0, visible = false, ready = false, clock = 0, spin = 0;
     var ring = null, ringFont = 0, fontReady = false, ringLitAt = 0;
@@ -1021,6 +1066,9 @@
       pointer.tx = pointer.ty = 0;
       pushK.x = pushK.v = yaw.v = pitch.v = 0;
       for (var i = 0; i < ripples.length; i++) ripples[i][3] = 0;
+      for (var j = 0; j < puffs.length; j++) puffs[j][3] = 0;
+      stir.x = stir.y = 0;
+      bolts = [];
       glitchUntil = 0;
       tear = null;
       tiles = [];
@@ -1059,7 +1107,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1451,8 +1499,10 @@
         yaw.x = pitch.x = yaw.v = pitch.v = 0;
         spring(pushK, pointer.inside ? 1 : 0, dt, 9);
       } else if (live) {
-        spring(yaw, swayYaw + (tilt ? pointer.tx * 0.5 : 0), dt, 3.2);
-        spring(pitch, swayPitch - (tilt ? pointer.ty * 0.25 : 0), dt, 3.2);
+        // a touch drag turns the figure; the cursor only leans it a little, so the relief never shows its flat back
+        var dragged = touch && touch.dragging;
+        spring(yaw, swayYaw + (tilt ? pointer.tx * (dragged ? 0.5 : 0.3) : 0), dt, 3.2);
+        spring(pitch, swayPitch - (tilt ? pointer.ty * (dragged ? 0.25 : 0.12) : 0), dt, 3.2);
         spring(pushK, pointer.inside ? 1 : 0, dt, 9);
         spin += dt * (gear ? 0.32 : 0.11);
       } else {
@@ -1525,6 +1575,18 @@
       gl.uniform1f(U.u_build, opts.intro ? 99 : built);
       gl.uniform4f(U.u_pointer, pointer.x, pointer.y, pushK.x * (gear ? 1.5 : 1), Math.max(70, box.size * 0.13));
       gl.uniform4fv(U.u_rip, ripFlat);
+      // the cursor's velocity settles when it stops; its puffs
+      var settle = Math.exp(-dt * 5);
+      stir.x *= settle;
+      stir.y *= settle;
+      var cap = Math.min(1, 600 / (Math.hypot(stir.x, stir.y) || 1));
+      gl.uniform4f(U.u_stir, live ? stir.x * cap : 0, live ? stir.y * cap : 0, 0, 0);
+      for (var pi = 0; pi < puffs.length; pi++) {
+        puffFlat.set([puffs[pi][0], puffs[pi][1], puffs[pi][2], live ? puffs[pi][3] : 0], pi * 4);
+        puffDirFlat.set([puffs[pi][4], puffs[pi][5]], pi * 2);
+      }
+      gl.uniform4fv(U.u_puff, puffFlat);
+      gl.uniform2fv(U.u_puffv, puffDirFlat);
       gl.uniform1f(U.u_blink, live && !still ? (gear ? 2 : 1) : 0);
       gl.uniform1f(U.u_beat, beat);
       gl.uniform1f(U.u_dot, Math.max(1.1, cell * 1.3));
@@ -1604,6 +1666,7 @@
       var lit = live && ringLitAt ? (now - ringLitAt) / 400 : 1;
       var brighten = lit < 0.25 ? smoothstep(0, 0.25, lit) : 1 - smoothstep(0.25, 1, lit);
       drawRing(yaw.x, pitch.x, fade, beat, brighten);
+      if (live) drawBolts(now);
       if (!drawChecked) {
         drawChecked = true;
         if (gl.getError() !== gl.NO_ERROR) fallback();
@@ -1654,11 +1717,68 @@
 
     function canInteract() { return ready && visible && !document.hidden && !motion.reduced(); }
 
+    // A strike of lightning where the figure is clicked or tapped (the caption's button strikes its middle): a bolt
+    // from above lands there, the figure flashes around it, the dots close by are blasted out and grow back, and a ring
+    // runs out through the rest.
     function ripple(x, y) {
-      var wave = [x, y, performance.now() / 1000, colors.gear ? 1.4 : 1];
+      var now = performance.now(), wave = [x, y, now / 1000, colors.gear ? 1.4 : 1];
       ripples[nextRipple] = wave;
       nextRipple = (nextRipple + 1) % 4;
+      bolts.push({ at: now, path: boltPath(x, y, Math.floor(now)) });
+      if (bolts.length > 3) bolts.shift();
       return wave;
+    }
+
+    // The bolt: from above the figure down to (x, y), split six times at jittered midpoints, with two short branches.
+    function boltPath(x, y, seed) {
+      var split = function (a, b, levels, s) {
+        var pts = [a, b];
+        for (var level = 0; level < levels; level++) {
+          var next = [pts[0]];
+          for (var i = 1; i < pts.length; i++) {
+            var p = pts[i - 1], q = pts[i], len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+            var off = (hash(s + level * 131 + i * 7) - 0.5) * len * 0.5;
+            next.push([(p[0] + q[0]) / 2 - (q[1] - p[1]) / len * off, (p[1] + q[1]) / 2 + (q[0] - p[0]) / len * off], q);
+          }
+          pts = next;
+        }
+        return pts;
+      };
+      var top = [x + (hash(seed) - 0.5) * box.size * 0.35, Math.max(4, box.y - pad * 0.85)];
+      var main = split(top, [x, y], 6, seed + 11), lines = [main];
+      [0.3, 0.55].forEach(function (f, k) {
+        var from = main[Math.floor(main.length * f)], side = hash(seed + 29 + k) < 0.5 ? -1 : 1, len = Math.hypot(x - top[0], y - top[1]) * (0.18 + 0.12 * hash(seed + 31 + k));
+        lines.push(split(from, [from[0] + side * len * 0.6, from[1] + len * 0.8], 4, seed + 41 + k * 13));
+      });
+      return lines;
+    }
+
+    // A bolt on the overlay flashes twice and is gone in 0.4 s: a bright core in a glow of the sheen's colours.
+    function drawBolts(now) {
+      bolts = bolts.filter(function (b) { return now - b.at < 400; });
+      if (!bolts.length) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineJoin = ctx.lineCap = "round";
+      ctx.globalCompositeOperation = colors.dark ? "lighter" : "source-over";
+      bolts.forEach(function (b) {
+        var t = (now - b.at) / 1000;
+        var flash = t < 0.03 ? t / 0.03 : t < 0.07 ? 1 : t < 0.11 ? 0.35 : t < 0.16 ? 0.95 : Math.max(0, 1 - (t - 0.16) / 0.24);
+        b.path.forEach(function (pts, k) {
+          var weight = k ? 0.6 : 1;
+          [[12, colors.light[0], 0.16], [4, colors.light[0], 0.5], [1.8, colors.dark ? "#ffffff" : colors.light[0], 1]].forEach(function (pass) {
+            ctx.beginPath();
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+            ctx.lineWidth = pass[0] * weight;
+            ctx.strokeStyle = pass[1];
+            ctx.globalAlpha = pass[2] * flash * weight;
+            ctx.stroke();
+          });
+        });
+      });
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     el.addEventListener("pointermove", function (e) {
@@ -1680,6 +1800,22 @@
       if (touch) return;
       pointer.inside = true;
       setPointer(e);
+      // the cursor's velocity, and a puff where a quick sweep of it crosses the figure (not while the opening holds it)
+      var at = performance.now(), gap = (at - stir.at) / 1000;
+      if (stir.at && gap > 0 && gap < 0.2) {
+        var vx = (pointer.x - stir.px) / gap, vy = (pointer.y - stir.py) / gap, k = Math.min(1, gap * 12);
+        stir.x += (vx - stir.x) * k;
+        stir.y += (vy - stir.y) * k;
+      }
+      stir.at = at;
+      stir.px = pointer.x;
+      stir.py = pointer.y;
+      var speed = Math.hypot(stir.x, stir.y), held = intro && (intro.stage === "hold" || intro.stage === "shine");
+      if (speed > 350 && at - puffAt > 140 && !held && maskAt(pointer.x, pointer.y)) {
+        puffAt = at;
+        puffs[nextPuff] = [pointer.x, pointer.y, at / 1000, Math.min(1, speed / 1400), stir.x / speed, stir.y / speed];
+        nextPuff = (nextPuff + 1) % puffs.length;
+      }
     });
     el.addEventListener("pointerleave", function (e) {
       if (e.pointerType === "touch") {

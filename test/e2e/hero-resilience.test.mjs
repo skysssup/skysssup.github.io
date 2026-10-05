@@ -264,6 +264,8 @@ test('reduced motion cancels active mouse push and ripples, and never advances t
   assert.deepEqual(uniforms.u_sheen, [0, 0, 0, 0], 'no sheen and no sparkle burst under reduced motion');
   assert.deepEqual(uniforms.u_last, [0, 0, 0, 0], 'no gust growing back');
   assert.deepEqual(uniforms.u_breeze, [0, 0, 0, 0], 'and no breeze');
+  assert.ok(uniforms.u_puff.filter((_, i) => i % 4 === 3).every(n => n === 0), 'and no puffs from the cursor');
+  assert.deepEqual(uniforms.u_stir.slice(0, 2), [0, 0], 'and no stir');
   assert.equal(uniforms.u_pointer[2], 0);
   assert.deepEqual(uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.6);
@@ -473,6 +475,19 @@ test('the material map names five materials inside the figure', async t => {
   assert.deepEqual(Object.keys(counts).map(Number).sort(), [0, 1, 2, 3, 4], 'gold, marble, cloud, lightning, glint');
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
+});
+
+test('a quick sweep of the cursor across the figure blows dust off it, and a slow one only stirs it', async t => {
+  const { page } = await open(t);
+  await live(page);
+  const box = await page.locator('#figure').boundingBox();
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.55);
+  for (let i = 1; i <= 8; i++) { await page.mouse.move(box.x + box.width * (0.55 + i * 0.005), box.y + box.height * 0.55); await page.waitForTimeout(120); }
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_pointer[2] > 0.5);
+  assert.ok((await state(page)).uniforms.u_puff.filter((_, i) => i % 4 === 3).every(n => n === 0), 'a slow drift leaves no puff');
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.45, { steps: 4 });
+  await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.6, { steps: 4 });
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_puff.some((n, i) => i % 4 === 3 && n > 0));
 });
 
 test('the public ripple API emits at the center without adding control semantics to the image', async t => {
