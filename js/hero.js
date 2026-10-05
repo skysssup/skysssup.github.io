@@ -120,19 +120,18 @@
     return Math.exp(-d * d) * (1 - age / life);
   }
 
-  // Whether dot `id` is blinked off at time t (s). Each dot gets a random cycle offset; in a fraction of
-  // its cycles it switches off for a short random window. Mirrors the vertex shader.
-  var BLINK_PERIOD = 3.2, BLINK_CHANCE = 0.32, BLINK_MIN = 0.08, BLINK_MAX = 0.24;
-  function blinkOff(id, t, rate) {
-    var period = BLINK_PERIOD / rate;
-    var phase = t / period + hash(id * 3 + 7);
-    var cycle = Math.floor(phase);
-    var local = (phase - cycle) * period;
+  // How much of dot `id` shows at time t (s), and how far along its drift it is: now and then a dot drifts away on the
+  // breeze, fading out as it goes, and fades back in at home, instead of blinking off. Each dot gets a random cycle
+  // offset; in a tenth of its cycles (FADE_PERIOD / rate seconds) it drifts over FADE_MIN-FADE_MAX seconds, gone by
+  // six tenths of the way and back over the last three. Mirrors the vertex shader.
+  var FADE_PERIOD = 4, FADE_CHANCE = 0.1, FADE_MIN = 0.9, FADE_MAX = 1.5;
+  function fadeAway(id, t, rate) {
+    if (!(rate > 0)) return { show: 1, drift: 0 };
+    var period = FADE_PERIOD / rate, phase = t / period + hash(id * 3 + 7), cycle = Math.floor(phase);
     var key = (id * 7919 + cycle * 104729) >>> 0;
-    if (hash(key) > BLINK_CHANCE) return false;
-    var start = hash(key + 1) * (period - BLINK_MAX);
-    var dur = BLINK_MIN + hash(key + 2) * (BLINK_MAX - BLINK_MIN);
-    return local >= start && local < start + dur;
+    var dur = FADE_MIN + hash(key + 2) * (FADE_MAX - FADE_MIN), f = ((phase - cycle) * period - hash(key + 1) * (period - dur)) / dur;
+    if (hash(key) >= FADE_CHANCE || !(f > 0 && f < 1)) return { show: 1, drift: 0 };
+    return { show: f < 0.6 ? 1 - smoothstep(0, 0.6, f) : smoothstep(0.7, 1, f), drift: f < 0.7 ? smoothstep(0, 0.6, f) : 0 };
   }
 
   // The face and the hands are stippled on a grid twice as fine, with smaller dots, inside soft ellipses listed in
@@ -182,61 +181,6 @@
     return new Float32Array(out);
   }
 
-  // How far a dot is from the figure's edge along its row, to the right and to the left, in figure units: how far the
-  // wind blowing that way carries it over the surface before it leaves the figure. Counted on the depth map's mask
-  // (red > 0) at the nearest pixel, up to and including the last pixel inside. Output is [right, left] per dot.
-  function edgeDistances(rgba, size, points, stride) {
-    var n = points.length / stride, out = new Float32Array(n * 2), last = size - 1;
-    var right = new Uint16Array(size * size), left = new Uint16Array(size * size), x, y, i, run;
-    for (y = 0; y < size; y++) {
-      for (run = 0, x = last; x >= 0; x--) { i = y * size + x; run = rgba[i * 4] > 0 ? run + 1 : 0; right[i] = run; }
-      for (run = 0, x = 0; x <= last; x++) { i = y * size + x; run = rgba[i * 4] > 0 ? run + 1 : 0; left[i] = run; }
-    }
-    for (var k = 0; k < n; k++) {
-      i = Math.round(clamp(points[k * stride + 1], 0, 1) * last) * size + Math.round(clamp(points[k * stride], 0, 1) * last);
-      out[k * 2] = right[i] / last;
-      out[k * 2 + 1] = left[i] / last;
-    }
-    return out;
-  }
-
-  // Where the wind carries a dot off the figure: for wind toward +x and toward -x, the outward normal of the outline
-  // where the dot's row leaves the figure (the mask as in edgeDistances, smoothed so the outline's normal turns
-  // gently), as a fraction of a turn, y down as in the map. A blown dot leaves along the outline there before the wind
-  // takes it straight on, so the dust streams along the arm, the wing, and the head. Output is [right, left] per dot.
-  function edgeNormals(rgba, size, points, stride) {
-    var n = points.length / stride, out = new Float32Array(n * 2), last = size - 1, x, y, i, j;
-    var inside = new Float32Array(size * size), tmp = new Float32Array(size * size), soft = new Float32Array(size * size);
-    for (i = 0; i < size * size; i++) inside[i] = rgba[i * 4] > 0 ? 1 : 0;
-    var kernel = [0.054, 0.242, 0.399, 0.242, 0.054];
-    for (y = 0; y < size; y++) for (x = 0; x < size; x++) {
-      var a = 0;
-      for (j = -2; j <= 2; j++) a += inside[y * size + clamp(x + j, 0, last)] * kernel[j + 2];
-      tmp[y * size + x] = a;
-    }
-    for (y = 0; y < size; y++) for (x = 0; x < size; x++) {
-      var b = 0;
-      for (j = -2; j <= 2; j++) b += tmp[clamp(y + j, 0, last) * size + x] * kernel[j + 2];
-      soft[y * size + x] = b;
-    }
-    var normal = function (px, py, dir) {
-      var gx = soft[py * size + clamp(px + 2, 0, last)] - soft[py * size + clamp(px - 2, 0, last)];
-      var gy = soft[clamp(py + 2, 0, last) * size + px] - soft[clamp(py - 2, 0, last) * size + px];
-      if (gx * gx + gy * gy < 1e-6) return dir > 0 ? 0 : 0.5;
-      var t = Math.atan2(-gy, -gx) / TAU;
-      return t < 0 ? t + 1 : t;
-    };
-    for (var k = 0; k < n; k++) {
-      var px = Math.round(clamp(points[k * stride], 0, 1) * last), py = Math.round(clamp(points[k * stride + 1], 0, 1) * last);
-      if (!inside[py * size + px]) { out[k * 2] = 0; out[k * 2 + 1] = 0.5; continue; }
-      for (x = px; x < last && inside[py * size + x + 1]; x++);
-      out[k * 2] = normal(x, py, 1);
-      for (x = px; x > 0 && inside[py * size + x - 1]; x--);
-      out[k * 2 + 1] = normal(x, py, -1);
-    }
-    return out;
-  }
-
   // How far each pixel of the figure is from its outline and which way is out: the nearest pixel outside the figure
   // (on the depth map's mask, red 0), carried from neighbour to neighbour in two sweeps over the map. Output is
   // [distance in pixels, outward direction as a fraction of a turn, y down] per pixel; outside pixels are [0, 0].
@@ -279,9 +223,10 @@
   // brighter than everything within two pixels and round, not drawn out along the edge of a highlight (over two pixels
   // each way the weaker curvature is at least a third of the stronger), on the wings, the caduceus, the rubble, the
   // lightning, and the clouds, where the avatar's stars are, and not on its marble, where a highlight is the light on
-  // the skin; or within eight pixels outside the figure, where the sky's are. Output is [x, y, strength] per glint, x
-  // and y in figure units, strongest first, at most `limit`.
-  function glints(rgba, relief, size, limit) {
+  // the skin, nor in the hair or on a hand (inside `zones`, the face's and the hands' ellipses); or within eight pixels
+  // outside the figure, where the sky's are. Output is [x, y, strength] per glint, x and y in figure units, strongest
+  // first, at most `limit`.
+  function glints(rgba, relief, size, limit, zones) {
     var n = size * size, sp = new Float32Array(n), near = new Uint8Array(n), last = size - 1, x, y, i, dx, dy, found = [];
     for (i = 0; i < n; i++) sp[i] = Math.max(0, (rgba[i * 4 + 3] - 128) / 127);
     for (y = 0; y < size; y++) for (x = 0; x < size; x++) {
@@ -294,7 +239,7 @@
     for (y = 2; y < size - 2; y++) for (x = 2; x < size - 2; x++) {
       i = y * size + x;
       var v = sp[i];
-      if (v < 0.3 || !near[i] || (relief[i * 4] > 0 && rgba[i * 4] === MARBLE)) continue;
+      if (v < 0.3 || !near[i] || (relief[i * 4] > 0 && rgba[i * 4] === MARBLE) || fineWeight(zones, x / last, y / last) > 0) continue;
       var peak = true;
       for (dy = -2; dy <= 2 && peak; dy++) for (dx = -2; dx <= 2; dx++) {
         var u = sp[i + dy * size + dx];
@@ -383,10 +328,11 @@
   // sparkle burst draws its stars from, so each burst lights about STARS of them whatever the dot count, and
   // STARS_BRIGHT on light and dark paper, where the shine is stronger. WIND is the share of the dots near the downwind
   // edge that a sheen's gust blows off on light and dark paper (fewer further in), WIND_GEAR the same in Gear Two.
-  var STARS = 40, STARS_BRIGHT = 64, WIND = 0.32, WIND_GEAR = 0.12, LIGHT = [-0.45, 0.6, 0.66];
-  // BREEZE is the share of the dots near the outline that the breeze takes in a flock's turn (BREEZE_GEAR in Gear Two)
-  // and BREEZE_FLARE how brightly they flare as they leave, on dark paper and on light, where a halo is all that shows.
-  var BREEZE = 0.55, BREEZE_GEAR = 0.3, BREEZE_FLARE = [0.8, 0.5];
+  var STARS = 14, STARS_BRIGHT = 20, WIND = 0.14, WIND_GEAR = 0.07, LIGHT = [-0.45, 0.6, 0.66];
+  // BREEZE is the share of the dots near the outline that the breeze takes in a flock's turn (BREEZE_GEAR in Gear Two):
+  // few enough that it is seen only by someone who looks for it. FLARE is how brightly dust flares as it fades, on dark
+  // paper, on light, and in Gear Two.
+  var BREEZE = 0.08, BREEZE_GEAR = 0.05, FLARE = { dark: 0.35, light: 0.15, gear: 0.3 };
   // GLINTS is how many of the avatar's star glints the figure draws at most, strongest first.
   var GLINTS = 260;
   // STRIKE is how long the opening's strike of lightning lights the figure and runs its ring through it, and PUFF how long
@@ -541,6 +487,7 @@
     "uniform vec2 u_puffv[8];",
     "uniform ivec2 u_blast;",
     "uniform int u_gusts;",
+    "uniform vec3 u_core;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -549,57 +496,48 @@
     "flat out float v_flare;",
     "flat out float v_sprite;",
     "flat out vec3 v_color;",
-    "flat out float v_carried;",
     "flat out float v_glint;",
     "uint h(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }",
     "float r01(uint x) { return float(h(x)) / 4294967296.0; }",
-    // the breeze that keeps the figure alive between gusts, at time t: mostly sideways, swinging from one side to the
-    // other over about half a minute, and rising a little
-    "vec2 breeze(float t) { return normalize(vec2(sin(t * 0.26) + 0.35 * sin(t * 0.61 + 1.3), -0.55)); }",
-    // What the gust of a sheen does to a dot: sh is the sheen (sh.y its direction, sh.z its burst's number, sh.w its
-    // age in seconds) and it crosses the figure in `sweep` seconds. The gust reaches the dot as the band passes it (the
-    // band's progress at the dot, back through the sweep's easing to seconds). Every dot it reaches sways downwind and
-    // back, like grass, its neighbours with it, more near the downwind edge; a share of them, most near that edge, is
-    // blown off: it slides downwind over the surface, leaves the figure along its outline (the outline's normal where
-    // its row leaves the figure, a_w.xy), turns into the wind and wavers with its neighbours, flares to a bright point
-    // just before it is gone, and grows back in place, each dot at its own moment over the next two seconds. Most of
-    // the dust is the statue's own, in its own colour; one grain in three carries the light's.
-    "struct Gust { vec2 flow; vec2 heading; float speed; float blown; float carried; float flare; float show; float regrow; };",
-    "Gust gust(vec4 sh, float sweep, vec2 px, uint id, float s1, float s2, float s3, float k) {",
-    "  Gust g = Gust(vec2(0.0), vec2(sh.y, 0.0), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);",
-    "  if (sh.y == 0.0) return g;",
-    "  float w = u_span.y - u_span.x, travel = w * 1.4;",
-    "  float along = px.x + (px.y - u_box.y - u_pivot.y * u_box.z) * 0.25 - u_span.x + w * 0.2;",
-    "  if (sh.y < 0.0) along = travel - along;",
-    "  float c = clamp(along / travel, 0.0, 1.0);",
-    "  float since = sh.w - (c < 0.5 ? pow(c * 0.25, 1.0 / 3.0) : 1.0 - pow(2.0 - 2.0 * c, 1.0 / 3.0) * 0.5) * sweep;",
-    "  if (since <= 0.0) return g;",
-    "  vec2 wind = vec2(sh.y, 0.0);",
-    "  float edge = (sh.y > 0.0 ? a_e.x : a_e.y) * u_box.z, near = 1.0 - smoothstep(0.0, 0.3 * w, edge);",
+    // the breeze that keeps the figure alive between gusts, at time t: sideways, swinging from one side to the other
+    // over about half a minute and wavering a little up and down, never lifting
+    "vec2 breeze(float t) { return normalize(vec2(sin(t * 0.26) + 0.35 * sin(t * 0.61 + 1.3), 0.25 * sin(t * 0.37 + 0.6))); }",
+    // How far out of the body a point lies on the way a sheen's wave travels: 0 at the core (u_core.xy, in the chest),
+    // 1 at the farthest reach of the figure (u_core.z away)
+    "float outward(vec2 px) { return length(px - u_core.xy) / u_core.z; }",
+    // when, as a share of its sweep, a band on the sweep's easing (cubic in and out) reaches the point at `c` of its way
+    "float reached(float c) { float v = pow(clamp(min(c, 1.0 - c), 0.0, 0.5) * 0.25, 1.0 / 3.0); return c < 0.5 ? v : 1.0 - v; }",
+    // What the gust of a sheen does to a dot: sh is the sheen (sh.y nonzero while it runs, sh.z its burst's number) and
+    // `since` how long ago its wave passed the dot on its way out of the body. Every dot the wave passes breathes out
+    // and back with its neighbours, a little more near the outline; a few of the dots near the outline, where it faces
+    // away from the body, lift off as fine dust: each drifts out on the wind, slowing and wavering with its neighbours,
+    // fades into the paper, and grows back in place a second or two later, each at its own moment. The dust is the
+    // statue's own, in its own colours.
+    "struct Gust { vec2 flow; vec2 heading; float speed; float blown; float flare; float show; float regrow; };",
+    "Gust gust(vec4 sh, float since, vec2 px, uint id, float s1, float s2, float s3, float k) {",
+    "  vec2 away = px - u_core.xy, wind = away / (length(away) + 0.001);",
+    "  Gust g = Gust(vec2(0.0), wind, 0.0, 0.0, 0.0, 1.0, 0.0);",
+    "  if (sh.y == 0.0 || since <= 0.0) return g;",
+    "  float w = u_span.y - u_span.x, inside = a_w.w * 0.1 * u_box.z, near = 1.0 - smoothstep(0.0, 0.05 * w, inside);",
     "  float swell = 0.6 + 0.4 * sin(a_p.y * 41.0 + a_p.x * 9.0 + sh.z * 1.7);",
-    "  g.flow = wind * exp(-since * 2.5) * sin(since * 5.7) / 0.55 * w * (0.005 + 0.02 * near) * swell * k;",
-    "  if (r01(id * 19u + uint(sh.z) * 7u + 3u) >= u_flow.x * (0.15 + 0.85 * near)) return g;",
-    "  float fly = (0.04 + 0.16 * s3) * w;",
-    "  g.speed = max(w * (0.4 + 0.4 * r01(id * 23u + 1u)), (edge + fly) / 1.1);",
-    "  float s = g.speed * max(0.0, since - 0.15 * (1.0 - exp(-since / 0.15)));",
-    "  float rise = s * (0.04 + 0.08 * s1), own = r01(id * 37u + 11u) < 0.33 ? 1.0 : 0.25;",
-    "  if (s < edge) {",
-    "    g.blown = smoothstep(0.0, 4.0, s) * k;",
-    "    g.carried = smoothstep(0.0, 0.3 * w, s) * 0.85 * own * k;",
-    "    g.flow = wind * s - vec2(0.0, rise);",
-    "  } else if (s < edge + fly) {",
-    "    float o = s - edge, bend = 0.08 * w, a = (sh.y > 0.0 ? a_w.x : a_w.y) * 6.2831853;",
-    "    vec2 normal = vec2(cos(a), sin(a)), skim = wind - dot(wind, normal) * normal;",
-    "    float turn = exp(-o / bend), phase = o / (0.07 * w) + a_p.y * 90.0 + s2 * 1.5;",
-    "    float waver = sin(phase) * o * 0.18 + (s1 - 0.5) * o * 0.35;",
-    "    g.flow = wind * s + (skim - wind) * bend * (1.0 - turn) + vec2(0.0, waver - rise);",
-    "    g.heading = wind + (skim - wind) * turn + vec2(0.0, sin(phase) * 0.18 + cos(phase) * o * 0.18 / (0.07 * w) + (s1 - 0.5) * 0.35);",
-    "    float q = o / fly;",
-    "    g.blown = k;",
-    "    g.carried = own * k;",
-    "    g.flare = smoothstep(0.45, 0.85, q) * (1.0 - smoothstep(0.88, 1.0, q)) * k * (0.6 + 0.4 * u_flow.z);",
+    "  g.flow = wind * exp(-since * 2.5) * sin(since * 5.7) / 0.55 * w * (0.002 + 0.006 * near) * swell * k;",
+    "  float an = a_w.z * 6.2831853;",
+    "  vec2 normal = vec2(cos(an), sin(an));",
+    "  float lee = clamp(dot(normal, wind) * 0.8 + 0.2, 0.0, 1.0);",
+    "  if (r01(id * 19u + uint(sh.z) * 7u + 3u) >= u_flow.x * near * lee) return g;",
+    "  float life = 1.2 + 0.6 * r01(id * 23u + 1u), reach = (0.02 + 0.05 * s3) * w;",
+    "  if (since < life) {",
+    "    float q = since / life, s = reach * (1.0 - exp(-2.5 * q)), L = 0.005 * w, lift = L * (1.0 - exp(-s / L));",
+    "    float ph = s / (0.03 * w) + a_p.y * 70.0 + s2 * 6.2831853;",
+    "    vec2 side = vec2(-wind.y, wind.x);",
+    "    g.flow += normal * lift + wind * (s - lift) + side * sin(ph) * s * 0.15;",
+    "    g.heading = wind + side * cos(ph) * 0.3;",
+    "    g.speed = reach * 2.5 / life * exp(-2.5 * q);",
+    "    g.blown = smoothstep(0.0, 0.1, q) * k;",
+    "    g.flare = smoothstep(0.15, 0.4, q) * (1.0 - smoothstep(0.45, 0.8, q)) * k * u_flow.z;",
+    "    g.show = 1.0 - smoothstep(0.3, 1.0, q);",
     "  } else {",
-    "    float grown = smoothstep(0.0, 0.45, since - (edge + fly) / g.speed - 0.35 - r01(id * 41u + 7u) * mix(0.6, 1.6, u_flow.z));",
+    "    float grown = smoothstep(0.0, 0.5, since - life - 0.3 - r01(id * 41u + 7u));",
     "    g.show = grown;",
     "    g.regrow = grown * (1.0 - grown) * 4.0 * k;",
     "  }",
@@ -682,53 +620,51 @@
     "  vec3 mat = mix(u_palette[m], u_lit[m], smoothstep(0.15, 0.9, lam));",
     // on light paper the densest dots of a material lean toward the ink, so gold has bronze in its crevices
     "  mat = mix(mat, u_color, u_deep * smoothstep(0.45, 0.95, a_p.w));",
-    // at each turn of the sway a band of light crosses the figure, strongest where the surface faces the viewer, sharp
-    // at its leading edge and softer behind, with an afterglow in its wake, and a burst of dots on the lit side flare
-    // into four-point stars, each on its own delay (u_flow: the share of dots its gust blows off, the sweep's length, 1
-    // on light and dark paper for the stronger shine, and 1 when the materials' colors should appear only behind the
-    // band, as in the opening)
+    // at each turn of the sway a wave of light runs out of the body (u_sheen: its eased progress, whether it runs, its
+    // burst's number, and its age; it reaches the figure's farthest point as its sweep ends): a ring, strongest where the
+    // surface faces the viewer, sharp at its leading edge and softer behind, with a little afterglow in its wake, and a
+    // few dots on the lit side twinkle into small four-point stars as it passes them (u_flow: the share of the dots near
+    // the outline its gust lifts off, the sweep's length, how brightly the dust flares, and 1 when the materials'
+    // colors should appear only behind the band, as in the opening)
+    "  float c = outward(px), passed = reached(c);",
     "  float band = 0.0, trail = 0.0, star = 0.0, wake = 1.0;",
     "  if (u_sheen.y != 0.0) {",
-    "    float w = u_span.y - u_span.x, travel = w * 1.4;",
-    "    float along = px.x + (px.y - u_box.y - u_pivot.y * u_box.z) * 0.25 - u_span.x + w * 0.2;",
-    "    if (u_sheen.y < 0.0) along = travel - along;",
-    "    float e = (u_sheen.x * travel - along) / u_span.z;",
-    "    float face = pow(max(n.z, 0.0), 2.0) * k;",
-    "    band = exp(-e * e * (e < 0.0 ? 3.0 : mix(1.0, 0.6, u_positive))) * face;",
-    "    if (e > 0.0) trail = exp(-e / (1.5 + 1.5 * u_flow.z)) * face * (1.0 - smoothstep(u_flow.y, u_flow.y + 0.5, u_sheen.w));",
+    "    float e = (u_sheen.x - c) * u_core.z / u_span.z, face = max(n.z, 0.0) * max(n.z, 0.0) * k;",
+    "    band = exp(-e * e * (e < 0.0 ? 3.0 : 0.8)) * face;",
+    "    if (e > 0.0) trail = exp(-e / 2.0) * face * (1.0 - smoothstep(u_flow.y, u_flow.y + 0.5, u_sheen.w));",
     "    if (u_flow.w > 0.0) wake = smoothstep(-0.6, 1.6, e);",
     "    if (r01(id * 11u + uint(u_sheen.z)) < u_span.w && n.z > 0.3 && lam > 0.5) {",
-    "      float a = u_sheen.w - r01(id * 13u + 5u) * 0.25;",
-    "      float fall = 0.6 + r01(id * 17u + 9u) * 0.3;",
-    "      star = smoothstep(0.0, 0.12, a) * pow(clamp(1.0 - max(a - 0.12, 0.0) / fall, 0.0, 1.0), 2.0) * k;",
+    "      float a = u_sheen.w - passed * u_flow.y - r01(id * 13u + 5u) * 0.15;",
+    "      float f = clamp(1.0 - max(a - 0.1, 0.0) / (0.5 + r01(id * 17u + 9u) * 0.3), 0.0, 1.0);",
+    "      star = smoothstep(0.0, 0.1, a) * f * f * k;",
     "    }",
     "  }",
     // the band is a gust of wind (gust()): this sheen's, and the one before it while its dust is still growing back
-    // (u_last: its sweep's length, direction, burst number, and age); u_gusts counts them, and the loop runs once a gust
-    "  vec2 flow = vec2(0.0), heading = vec2(u_sheen.y, 0.0);",
-    "  float blown = 0.0, carried = 0.0, flare = 0.0, show = 1.0, regrow = 0.0, speed = 0.0;",
+    // (u_last: its sweep's length, whether it runs, its burst's number, and its age); u_gusts counts them
+    "  vec2 flow = vec2(0.0), heading = vec2(1.0, 0.0);",
+    "  float blown = 0.0, flare = 0.0, show = 1.0, regrow = 0.0, speed = 0.0;",
     "  for (int i = 0; i < u_gusts; i++) {",
-    "    Gust g = gust(i == 0 ? u_sheen : u_last, i == 0 ? u_flow.y : u_last.x, px, id, s1, s2, s3, k);",
+    "    vec4 sh = i == 0 ? u_sheen : u_last;",
+    "    Gust g = gust(sh, sh.w - passed * (i == 0 ? u_flow.y : u_last.x), px, id, s1, s2, s3, k);",
     "    flow += g.flow;",
     "    if (i == 0 || g.blown > blown) heading = g.heading;",
     "    blown = max(blown, g.blown);",
-    "    carried = max(carried, g.carried);",
     "    flare = max(flare, g.flare);",
     "    show = min(show, g.show);",
     "    regrow = max(regrow, g.regrow);",
     "    speed = max(speed, g.speed);",
     "  }",
     // Between gusts the figure is alive (u_breeze: its strength as it starts, the share of dots it takes, how bright
-    // they flare, and when it started). Every dot drifts a little on slow swells, and a breeze that slowly turns takes
-    // flocks of dots off the outline: the dots near the outline (a_w.w, how far in; a_w.z, which way is out) in a patch
-    // of the figure leave together, most where the outline faces downwind; each lifts off the surface, turns into the
-    // breeze as it was when the flock left, wavers with its neighbours, flares near the border, and goes with the wind,
-    // then grows back in place a second or two later. Its light comes with the colours (u_tint): without the color map
-    // the dust is plain ink.
+    // they flare, and when it started). Every dot drifts a little on slow swells, and now and then a breeze that slowly
+    // turns takes a few dots off the outline: the dots near the outline (a_w.w, how far in; a_w.z, which way is out) in
+    // a patch of the figure leave together, most where the outline faces downwind; each eases off the surface, drifts
+    // with the breeze as it was when the flock left, wavers with its neighbours, and fades into the paper a short way
+    // out, then grows back in place a second or two later. Its light comes with the colours (u_tint): without the color
+    // map the dust is plain ink.
     "  if (u_breeze.x > 0.0) {",
     "    float W = u_span.y - u_span.x, inside = a_w.w * 0.1 * u_box.z;",
     "    flow += vec2(sin(u_time * 1.6 + a_p.y * 31.0 + a_p.x * 7.0), cos(u_time * 1.2 + a_p.x * 23.0 - a_p.y * 5.0)) * 0.45 * u_breeze.x * k;",
-    "    float near = 1.0 - smoothstep(0.0, 0.05 * u_box.z, inside);",
+    "    float near = 1.0 - smoothstep(0.0, 0.03 * u_box.z, inside);",
     "    if (near > 0.0 && blown == 0.0 && show >= 1.0) {",
     "      vec2 patchCell = floor(a_p.xy * 24.0);",
     "      uint cid = uint(patchCell.x) + uint(patchCell.y) * 61u + 7u;",
@@ -736,22 +672,21 @@
     "      float clk = u_time + r01(cid * 3u + 2u) * period + s1 * 0.4;",
     "      float cyc = floor(clk / period), tau = clk - cyc * period;",
     "      float an = a_w.z * 6.2831853;",
-    "      vec2 outward = vec2(cos(an), sin(an)), bz = breeze(u_time - tau);",
-    "      float lee = clamp(dot(outward, bz) * 0.7 + 0.3, 0.0, 1.0);",
+    "      vec2 away = vec2(cos(an), sin(an)), bz = breeze(u_time - tau);",
+    "      float lee = clamp(dot(away, bz) * 0.7 + 0.3, 0.0, 1.0);",
     "      if (u_time - tau >= u_breeze.w && r01(cid * 5u + uint(cyc) * 3u) < 0.5 && r01(id * 29u + uint(cyc) * 13u) < u_breeze.y * near * lee) {",
-    "        float fly = (0.03 + 0.07 * s3) * W, v = W * (0.07 + 0.07 * r01(id * 37u + 3u));",
+    "        float fly = (0.012 + 0.025 * s3) * W, v = W * (0.025 + 0.02 * r01(id * 37u + 3u));",
     "        float s = v * max(0.0, tau - 0.4 * (1.0 - exp(-tau / 0.4)));",
     "        if (s < inside + fly) {",
-    "          float L = 0.02 * W, lift = L * (1.0 - exp(-s / L)), ph = s / (0.05 * W) + a_p.y * 70.0 + s2;",
+    "          float L = 0.004 * W, lift = L * (1.0 - exp(-s / L)), ph = s / (0.03 * W) + a_p.y * 70.0 + s2;",
     "          vec2 side = vec2(-bz.y, bz.x);",
-    "          flow += outward * lift + bz * (s - lift) + side * sin(ph) * s * 0.12;",
-    "          heading = outward * exp(-s / L) + bz * (1.0 - exp(-s / L)) + side * (sin(ph) * 0.12 + cos(ph) * s * 0.12 / (0.05 * W));",
+    "          flow += away * lift + bz * (s - lift) + side * sin(ph) * s * 0.12;",
+    "          heading = away * exp(-s / L) + bz * (1.0 - exp(-s / L)) + side * (sin(ph) * 0.12 + cos(ph) * s * 0.12 / (0.03 * W));",
     "          speed = v;",
     "          float q = (s - inside) / fly;",
     "          blown = smoothstep(0.0, 2.0, s) * k;",
-    "          carried = smoothstep(0.0, 0.4, q) * 0.2 * k * u_tint;",
     "          flare = smoothstep(0.05, 0.4, q) * (1.0 - smoothstep(0.5, 1.0, q)) * k * u_breeze.z * min(1.0, u_tint * 2.5);",
-    "          show = 1.0 - smoothstep(0.8, 1.0, q);",
+    "          show = 1.0 - smoothstep(0.2, 1.0, q);",
     "        } else {",
     "          float grown = smoothstep(0.0, 0.5, tau - (inside + fly) / v - 0.4 - (0.6 + 1.4 * r01(id * 41u + 9u)));",
     "          show = grown;",
@@ -760,8 +695,9 @@
     "      }",
     "    }",
     "  }",
-    // A quick sweep of the cursor across the figure blows off the dots it passes (u_puff: where and when, how hard;
-    // u_puffv: which way): each flies off decelerating, flaring as it goes, and grows back in place a second or so later.
+    // A quick sweep of the cursor across the figure blows a little dust off the dots it passes (u_puff: where and when,
+    // how hard; u_puffv: which way): each drifts off decelerating, fading as it goes, and grows back in place a second
+    // or so later.
     "  for (int i = 0; i < u_blast.y; i++) {",
     "    vec4 r = u_puff[i];",
     "    float age = u_time - r.z, R = 26.0 + 24.0 * r.w;",
@@ -773,9 +709,9 @@
     // which dots a puff takes is chosen by the puff itself (when it began), never by its place in the array, which
     // shifts as older puffs end
     "    uint ev = uint(r.z * 64.0);",
-    "    if (r01(id * 43u + ev * 7919u) > 0.06 + 0.24 * struck) continue;",
-    "    vec2 way = normalize(u_puffv[i] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, -0.2));",
-    "    float v = (260.0 + 360.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
+    "    if (r01(id * 43u + ev * 7919u) > 0.03 + 0.12 * struck) continue;",
+    "    vec2 way = normalize(u_puffv[i] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, (s2 - 0.5) * 0.3));",
+    "    float v = (140.0 + 160.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
     "    float reachS = v * 0.3, s = reachS * (1.0 - exp(-age / 0.3)), fly = reachS * (0.5 + 0.4 * s3);",
     "    if (s < fly) {",
     "      float q = s / fly;",
@@ -783,25 +719,22 @@
     "      heading = way;",
     "      speed = max(speed, v * exp(-age / 0.3));",
     "      blown = max(blown, k);",
-    "      carried = max(carried, 0.2 * k * u_tint);",
-    "      flare = max(flare, smoothstep(0.2, 0.6, q) * (1.0 - smoothstep(0.75, 1.0, q)) * k * step(r01(id * 59u + ev), 0.3));",
+    "      flare = max(flare, smoothstep(0.2, 0.6, q) * (1.0 - smoothstep(0.75, 1.0, q)) * k * step(r01(id * 59u + ev), 0.3) * u_flow.z);",
+    "      show = min(show, 1.0 - smoothstep(0.4, 1.0, q));",
     "    } else {",
     "      float grown = smoothstep(0.0, 0.5, age + 0.3 * log(1.0 - fly / reachS) - 0.35 - 0.9 * r01(id * 53u + 3u));",
     "      show = min(show, grown);",
     "      regrow = max(regrow, grown * (1.0 - grown) * 4.0 * k);",
     "    }",
     "  }",
-    // when the paper turns between light and dark, a band of light crosses the figure and the dots of the new map
+    // when the paper turns between light and dark, a wave of light runs out of the body and the dots of the new map
     // (u_swap.z 1) appear behind it, while those of the old one (-1) give way ahead of it, dimmed
     "  float swapShow = 1.0;",
     "  if (u_swap.y != 0.0) {",
-    "    float w = u_span.y - u_span.x, travel = w * 1.4;",
-    "    float along = px.x + (px.y - u_box.y - u_pivot.y * u_box.z) * 0.25 - u_span.x + w * 0.2;",
-    "    if (u_swap.y < 0.0) along = travel - along;",
-    "    float e = (u_swap.x * travel - along) / u_span.z, behind = smoothstep(-0.6, 1.6, e);",
+    "    float e = (u_swap.x - c) * u_core.z / u_span.z, behind = smoothstep(-0.6, 1.6, e);",
     "    swapShow = u_swap.z > 0.0 ? behind : (1.0 - behind) * 0.6;",
     "    show *= swapShow;",
-    "    band = max(band, exp(-e * e) * pow(max(n.z, 0.0), 2.0) * k);",
+    "    band = max(band, exp(-e * e) * max(n.z, 0.0) * max(n.z, 0.0) * k);",
     "  }",
     "  float tint = u_tint * wake;",
     // the ink takes the light as the avatar does once the colours have arrived: a warm key where the surface faces the
@@ -811,30 +744,34 @@
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853)) * min(1.0, tint * 2.5);",
-    "  hot = max(hot, tw * 0.9);",
+    "  hot = max(hot, tw * 0.5);",
     "  col = mix(col, u_hot, hot * 0.9);",
-    "  float lit = max(band, trail * (0.3 + 0.15 * u_flow.z));",
-    "  col = mix(col, mix(u_light[0], u_light[1], smoothstep(0.5, 1.0, band)), min(1.0, lit * 1.25));",
-    "  col = mix(col, mix(u_light[0], u_light[1], 0.7), carried);",
+    "  float lit = max(band, trail * 0.3);",
+    "  col = mix(col, mix(u_light[0], u_light[1], smoothstep(0.5, 1.0, band)), lit * 0.9);",
     // a strike lights the figure up around where it lands
     "  col = mix(col, mix(u_light[1], vec3(1.0), u_positive), strike * 0.45);",
     // a dot growing back twinkles as it arrives
-    "  col = mix(col, u_light[1], regrow * 0.4 * min(1.0, u_tint * 2.5));",
+    "  col = mix(col, u_light[1], regrow * 0.15 * min(1.0, u_tint * 2.5));",
     "  v_color = mix(col, u_light[2], star);",
     "  bool glint = a_e.w > 0.5;",
+    // now and then a resting dot drifts away on the breeze, fading out as it goes, and fades back in at home: in a tenth
+    // of its cycles (4 s, halved in Gear Two; u_blink is the rate, 0 for never), over 0.9-1.5 s, it slides out a few
+    // pixels along the breeze, wavering with its neighbours, and is gone by six tenths of the way; it comes back in place
+    // over the last three. Mirrors fadeAway()
+    "  float vis = 1.0;",
+    "  if (u_blink > 0.0 && blown == 0.0 && star < 0.05) {",
+    "    float period = 4.0 / u_blink, phase = u_time / period + r01(id * 3u + 7u), cycle = floor(phase);",
+    "    uint key = id * 7919u + uint(cycle) * 104729u;",
+    "    float dur = 0.9 + 0.6 * r01(key + 2u), f = ((phase - cycle) * period - r01(key + 1u) * (period - dur)) / dur;",
+    "    if (r01(key) < 0.1 && f > 0.0 && f < 1.0) {",
+    "      vis = f < 0.6 ? 1.0 - smoothstep(0.0, 0.6, f) : smoothstep(0.7, 1.0, f);",
+    "      vec2 way = breeze(u_time) + 0.6 * vec2(sin(a_p.y * 9.0 + u_time * 0.3), cos(a_p.x * 8.0 - u_time * 0.25));",
+    "      if (f < 0.7) flow += normalize(way) * (u_span.y - u_span.x) * (0.006 + 0.008 * s2) * smoothstep(0.0, 0.6, f);",
+    "    }",
+    "  }",
     "  px += (glint ? vec2(0.0) : flow) + u_offset;",
-    // blink
-    "  float period = 3.2 / u_blink;",
-    "  float phase = u_time / period + r01(id * 3u + 7u);",
-    "  float cycle = floor(phase);",
-    "  float local = (phase - cycle) * period;",
-    "  uint key = id * 7919u + uint(cycle) * 104729u;",
-    "  bool off = r01(key) < 0.32;",
-    "  float start = r01(key + 1u) * (period - 0.24);",
-    "  float dur = 0.08 + r01(key + 2u) * 0.16;",
-    "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
-    "  size *= shade * (1.0 + 0.9 * tw) * (1.0 + (0.35 + 0.3 * u_flow.z) * band) * (1.0 + (1.2 + 0.6 * u_flow.z) * star) * (1.0 + 0.6 * blown) * (1.0 + 0.7 * regrow) * (1.0 + 0.35 * strike);",
+    "  size *= shade * (1.0 + 0.4 * tw) * (1.0 + 0.25 * band) * (1.0 + 0.6 * star) * (1.0 - 0.3 * blown) * (1.0 + 0.2 * regrow) * (1.0 + 0.35 * strike);",
     // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones
     "  size *= mix(1.0, 0.82, a_c.b);",
     // the face and the hands sit on a grid twice as fine: four dots, each 62% the size, where one would be
@@ -842,17 +779,16 @@
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * fade * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  v_alpha = mix(v_alpha, u_alpha, max(max(band, star), blown)) * show;",
-    "  if (off && star < 0.05 && blown < 0.05) v_alpha = 0.0;",
+    "  v_alpha *= vis;",
     "  v_star = star;",
     "  v_blown = blown;",
     "  v_heading = normalize(heading);",
     "  v_flare = flare;",
-    "  v_carried = carried;",
     "  v_size = size * u_dpr;",
-    // a star's sprite is larger than its disc, to hold the arms of the cross; a flare's larger still, for its halo
-    "  v_sprite = v_size * (1.0 + 3.0 * star + 6.0 * flare);",
-    // a blown dot is drawn as a streak behind its head, as long as it moves in 25 ms: the sprite holds it both ways
-    "  if (blown > 0.0) v_sprite = max(v_sprite, 2.0 * clamp(speed * 0.025, 5.0, 16.0) * u_dpr * blown);",
+    // a star's sprite is larger than its disc, to hold the arms of the cross; a flare's larger too, for its halo
+    "  v_sprite = v_size * (1.0 + 2.0 * star + 2.5 * flare);",
+    // a grain of dust is drawn with a short tail behind it, as long as it moves in 12 ms: the sprite holds it both ways
+    "  if (blown > 0.0) v_sprite = max(v_sprite, 2.0 * clamp(speed * 0.012, 1.5, 4.0) * u_dpr * blown);",
     // half a device pixel more, so most of the soft edge of a small dot is drawn instead of clipped by its sprite
     "  v_sprite += 0.5;",
     // the avatar's own star glints (a_e.w): stars that twinkle each on its own slow rhythm, mostly faint and now and
@@ -860,8 +796,8 @@
     "  v_glint = 0.0;",
     "  if (glint) {",
     "    float twinkle = pow(0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), 3.0);",
-    "    v_glint = clamp((0.3 + 0.7 * twinkle + 1.2 * band) * tint * k, 0.0, 1.0);",
-    "    v_size = u_dot * (4.0 + 14.0 * a_p.w * a_p.w) * (0.6 + 0.5 * twinkle + 0.8 * band) * persp * u_dpr;",
+    "    v_glint = clamp((0.15 + 0.35 * twinkle + 0.4 * band) * tint * k, 0.0, 1.0);",
+    "    v_size = u_dot * (2.5 + 5.0 * a_p.w * a_p.w) * (0.7 + 0.3 * twinkle + 0.3 * band) * persp * u_dpr;",
     "    v_sprite = v_size + 0.5;",
     // (a glint has no dot of its own: before the colours arrive it draws nothing, not a disc of its size)
     "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow : 0.0;",
@@ -883,7 +819,6 @@
     "flat in float v_flare;",
     "flat in float v_sprite;",
     "flat in vec3 v_color;",
-    "flat in float v_carried;",
     "flat in float v_glint;",
     "uniform highp vec3 u_light[3];",
     "uniform highp float u_positive;",
@@ -903,28 +838,25 @@
     "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0);",
     "  vec3 c = v_color;",
     "  float t = v_size * (glint ? 0.09 : 0.16), spikes = max(arm(m, t, ir), arm(m.yx, t, ir));",
-    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.03 : 2.2)));",
+    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.03 : 1.2)));",
     // a star is a four-point cross over its disc: two thin arms that taper to the sprite's edge; its middle burns in
     // the sheen's core colour
     "  if (v_star > 0.0) {",
     "    a = max(a, spikes * v_star);",
     "    c = mix(c, u_light[1], v_star * clamp(1.0 - d / (v_size * 0.6), 0.0, 1.0));",
     "  }",
-    // a blown dot is a bright head with a tail behind it along its heading, fading to the sheen's fringe colour as far
-    // as the dot carries the light
+    // a grain of dust is its dot with a short, faint tail behind it along its heading
     "  if (v_blown > 0.0) {",
     "    float fore = dot(q, v_heading), side = abs(dot(q, vec2(-v_heading.y, v_heading.x)));",
     "    float back = max(0.0, -fore) * ir;",
-    "    float tail = clamp(v_size * 0.45 * (1.0 - back) - side + 0.5, 0.0, 1.0) * (1.0 - back) * step(0.0, -fore);",
-    "    a = max(a, max(clamp(v_size * 0.6 - d + 0.5, 0.0, 1.0), tail * 0.9) * v_blown);",
-    "    c = mix(c, u_light[0], clamp(back * 2.0, 0.0, 1.0) * v_carried);",
+    "    float tail = clamp(v_size * 0.3 * (1.0 - back) - side + 0.5, 0.0, 1.0) * (1.0 - back) * step(0.0, -fore);",
+    "    a = max(a, tail * 0.5 * v_blown);",
     "  }",
-    // just before it is gone a blown dot flares to a bright point: a white heart in a soft halo of its own colour, so
-    // gold dust flares gold and marble flares white; on white paper, where white does not show, marble's halo takes the
-    // sheen's colour
+    // as it fades a grain of dust glints once, softly: a pale heart in a small halo of its own colour, so gold dust
+    // glints gold and marble white; on white paper, where white does not show, marble's halo takes the sheen's colour
     "  if (v_flare > 0.0) {",
-    "    float heart = clamp(v_size * 0.75 - d + 0.5, 0.0, 1.0);",
-    "    a = max(a, max(heart, halo * 0.85) * v_flare);",
+    "    float heart = clamp(v_size * 0.55 - d + 0.5, 0.0, 1.0);",
+    "    a = max(a, max(heart, halo * 0.5) * v_flare);",
     "    float chroma = max(v_color.r, max(v_color.g, v_color.b)) - min(v_color.r, min(v_color.g, v_color.b));",
     "    vec3 glow = u_positive > 0.5 ? mix(v_color, vec3(1.0), 0.25) : mix(u_light[0], v_color, smoothstep(0.15, 0.4, chroma));",
     "    c = mix(c, mix(glow, vec3(1.0), heart), v_flare);",
@@ -1018,10 +950,6 @@
     overlay.setAttribute("aria-hidden", "true");
     canvas.className = "hero-dots";
     overlay.className = "hero-words";
-    // the light a sheen throws on the paper behind the figure, on light and dark paper
-    var glow = document.createElement("div");
-    glow.className = "hero-glow";
-    glow.setAttribute("aria-hidden", "true");
     var gl = null, ctx = null;
     try {
       gl = canvas.getContext("webgl2", { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: "high-performance" });
@@ -1032,7 +960,6 @@
       el.classList.add("is-fallback");
       return { highlight: function () {}, count: function () { return 0; }, skipIntro: function () {} };
     }
-    el.appendChild(glow);
     el.appendChild(canvas);
     el.appendChild(overlay);
 
@@ -1061,7 +988,7 @@
     // the sheen before the current one, while the dust its gust blew off is still growing back, and when the breeze
     // that keeps the figure alive between gusts began (0 while the figure holds still)
     var previous = null, breezeFrom = 0;
-    var starChance = [0, 0], lights = new Float32Array(9), glowShown = -1, glowSize = [0, 0], pad = 0;
+    var starChance = [0, 0], lights = new Float32Array(9), pad = 0, reach = 0;
     // the opening: still in ink, a shine that leaves the colors behind, a turn, Gear Two and back (see INTRO)
     var intro = opts.intro ? { stage: "hold", at: null, redAt: null } : null, ringAt = 0;
     if (intro) { sheenIndex = 0; el.setAttribute("data-intro", "hold"); }
@@ -1133,7 +1060,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_core"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1141,9 +1068,8 @@
         gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
         // per dot: x, y, z, ink (4 floats), normal (2 floats), material, its weight, detail, and sparkle (4 bytes),
-        // the way to the edge right and left, and the fine flag (4 bytes, one spare), and the outline's normal where
-        // the wind carries the dot off the figure, blowing right and blowing left, which way is out from the dot, and
-        // how far in it lies (4 bytes): 36 bytes
+        // two spare bytes, the fine flag, and the glint flag (4 bytes), and two spare bytes, which way is out of the
+        // figure from the dot, and how far in it lies (4 bytes): 36 bytes
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 4, gl.FLOAT, false, VERTEX, 0);
         gl.enableVertexAttribArray(1);
@@ -1179,17 +1105,16 @@
     }
 
     // The dots of one map at the current grid: stippled against the blue-noise tile, then given their depth, normal,
-    // detail, material, sparkle, and way off the figure from the other maps, packed VERTEX bytes a dot (see initialize).
+    // detail, material, sparkle, and way out of the figure from the other maps, packed VERTEX bytes a dot (see
+    // initialize).
     function shape(source) {
       var spots = stipple(source.data, source.width, noise.data, noise.width, res, meta.density, 0.7, fine);
       var n = spots.length / 3;
       var normals = depthNormals(field, relief.width, spots, 3, RELIEF);
       var details = sampleColors(relief.data, relief.width, spots, 3);
       var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
-      var edges = edgeDistances(relief.data, relief.width, spots, 3);
-      var exits = edgeNormals(relief.data, relief.width, spots, 3);
       if (!outline) outline = outlineField(relief.data, relief.width);
-      if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS) : new Float32Array(0);
+      if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS, meta.fine) : new Float32Array(0);
       var g = stars.length / 3, total = n + g;
       var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
       for (var i = 0; i < n; i++) {
@@ -1205,13 +1130,8 @@
         bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
         bytes[o + 2] = details[i * 4 + 1];
         bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
-        // the way to the figure's edge, right and left, and whether the dot is on the fine grid of a face or hand
-        bytes[o + 4] = Math.round(Math.min(1, edges[i * 2]) * 255);
-        bytes[o + 5] = Math.round(Math.min(1, edges[i * 2 + 1]) * 255);
+        // whether the dot is on the fine grid of a face or hand
         bytes[o + 6] = fineCell(fine, res, Math.floor(spots[i * 3] * res), Math.floor(spots[i * 3 + 1] * res)) ? 255 : 0;
-        // the outline's normal where the wind blowing right, and blowing left, carries the dot off the figure
-        bytes[o + 8] = Math.round(exits[i * 2] * 255);
-        bytes[o + 9] = Math.round(exits[i * 2 + 1] * 255);
         // which way is out of the figure from the dot, and how far in it lies (255 for a tenth of the figure or more)
         var at = (Math.round(clamp(spots[i * 3 + 1], 0, 1) * (relief.width - 1)) * relief.width + Math.round(clamp(spots[i * 3], 0, 1) * (relief.width - 1))) * 2;
         bytes[o + 10] = Math.round(outline[at + 1] * 255);
@@ -1251,11 +1171,12 @@
       });
       var s = Math.min(w, h);
       box = { x: pad + (w - s) / 2, y: pad + (h - s) / 2, size: s };
-      glowSize = [Math.round(s * 0.62), Math.round(s * 1.1)];
-      glow.style.width = glowSize[0] + "px";
-      glow.style.height = glowSize[1] + "px";
-      glowShown = -1;
       place = fit(meta.bounds, s, s * 0.02);
+      // how far a sheen's wave travels out of the body: to the farthest corner of the figure's bounds, and a little more
+      var core = meta.core || meta.center;
+      reach = place.scale * 1.1 * Math.max.apply(null, [0, 2].map(function (i) {
+        return Math.max(Math.hypot(meta.bounds[i] - core[0], meta.bounds[1] - core[1]), Math.hypot(meta.bounds[i] - core[0], meta.bounds[3] - core[1]));
+      }));
       gl.viewport(0, 0, canvas.width, canvas.height);
       var want = resolutionFor(place.scale);
       // the face and the hands get their finer grid where the screen has the pixels to show it: below 1.5 device
@@ -1609,7 +1530,7 @@
       }
       var sheenAge = (now - sheenAt) / 1000;
       var sheening = live && sheenDir !== 0 && sheenAge < sheenSweep + SHEEN_AFTER;
-      // on light and dark paper the shine is stronger: a wider band, a longer afterglow, more stars, and light on the paper
+      // on light and dark paper the band is a little wider, with a few more stars and a little more dust
       var bright = !gear;
       // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
       var switching = live && now < glitchUntil;
@@ -1668,7 +1589,11 @@
       else gl.uniform4f(U.u_sheen, 0, 0, 0, 0);
       var left = box.x + place.x + meta.bounds[0] * place.scale, right = box.x + place.x + meta.bounds[2] * place.scale;
       gl.uniform4f(U.u_span, left, right, box.size * (bright ? 0.05 : 0.035), starChance[bright ? 1 : 0]);
-      gl.uniform4f(U.u_flow, bright ? WIND : WIND_GEAR, sheenSweep, bright ? 1 : 0, sheening && sheenWake ? 1 : 0);
+      // the core of the body, where a sheen's wave starts, as the figure is turned
+      var core = meta.core || meta.center, cp = rotate([core[0] - meta.center[0], meta.center[1] - core[1], 0], yaw.x, pitch.x), ck = FOCAL / (FOCAL - cp[2]);
+      gl.uniform3f(U.u_core, box.x + place.x + (meta.center[0] + cp[0] * ck) * place.scale, box.y + place.y + (meta.center[1] - cp[1] * ck) * place.scale, reach);
+      var flare = FLARE[gear ? "gear" : colors.dark ? "dark" : "light"];
+      gl.uniform4f(U.u_flow, bright ? WIND : WIND_GEAR, sheenSweep, flare, sheening && sheenWake ? 1 : 0);
       var previousAge = live && previous ? (now - previous.at) / 1000 : 0;
       if (previous && (!live || previousAge >= previous.sweep + SHEEN_AFTER)) previous = null;
       if (previous) gl.uniform4f(U.u_last, previous.sweep, previous.dir, previous.number, previousAge);
@@ -1678,16 +1603,8 @@
       var alive = live && !still && built >= SHEEN_FIRST;
       if (!alive) breezeFrom = 0;
       else if (!breezeFrom) breezeFrom = t;
-      if (breezeFrom) gl.uniform4f(U.u_breeze, smoothstep(0, 2, t - breezeFrom), gear ? BREEZE_GEAR : BREEZE, BREEZE_FLARE[colors.dark ? 0 : 1], breezeFrom);
+      if (breezeFrom) gl.uniform4f(U.u_breeze, smoothstep(0, 2, t - breezeFrom), gear ? BREEZE_GEAR : BREEZE, flare, breezeFrom);
       else gl.uniform4f(U.u_breeze, 0, 0, 0, 0);
-      // the paper behind the band takes the light, rising and falling with the sweep
-      var light = sheening && bright ? Math.pow(Math.sin(Math.PI * Math.min(1, sheenAge / sheenSweep * 1.08)), 0.8) * (sheenWake ? 1 : 0.75) : 0;
-      if (light > 0.002 || glowShown !== 0) {
-        var w = right - left, bx = sheenDir > 0 ? left - w * 0.2 + sweep * w * 1.4 : right + w * 0.2 - sweep * w * 1.4;
-        glow.style.transform = "translate(" + Math.round(bx - pad - glowSize[0] / 2) + "px," + Math.round(box.y + place.y + meta.center[1] * place.scale - pad - glowSize[1] / 2) + "px)";
-        glow.style.opacity = light > 0.002 ? light.toFixed(3) : "0";
-        glowShown = light > 0.002 ? light : 0;
-      }
       gl.uniform3fv(U.u_light, lights);
       gl.uniform3fv(U.u_tone, tones);
       gl.uniform3fv(U.u_glint, glintColors);
@@ -1943,6 +1860,7 @@
           data.bounds[2] <= data.bounds[0] || data.bounds[3] <= data.bounds[1] ||
           !Array.isArray(data.center) || data.center.length !== 2 || !data.center.every(normalized) ||
           !normalized(data.density) || data.density <= 0 ||
+          (data.core != null && !(Array.isArray(data.core) && data.core.length === 2 && data.core.every(normalized))) ||
           (data.fine != null && !(Array.isArray(data.fine) && data.fine.every(function (z) {
             return Array.isArray(z) && z.length === 5 && z.every(Number.isFinite) && normalized(z[0]) && normalized(z[1]) && z[2] > 0 && z[3] > 0 && z[2] < 0.5 && z[3] < 0.5;
           })))) throw new Error("hero metadata is invalid");
@@ -1980,12 +1898,10 @@
     easeInOut: easeInOut,
     spring: spring,
     rippleWeight: rippleWeight,
-    blinkOff: blinkOff,
+    fadeAway: fadeAway,
     stipple: stipple,
     fineWeight: fineWeight,
     fineCell: fineCell,
-    edgeDistances: edgeDistances,
-    edgeNormals: edgeNormals,
     outlineField: outlineField,
     glints: glints,
     reliefField: reliefField,

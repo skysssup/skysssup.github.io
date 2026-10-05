@@ -39,6 +39,8 @@ DENSITY = 0.85
 # The face and the hands, as soft ellipses (x, y, rx, ry, turn in radians; figure units, 0..1 across the map):
 # the engine stipples them on a grid twice as fine with dots half the size, and the ink is sharpened inside
 # them so the eye socket, the open mouth, and the fingers stand off the stone. Read by the engine from hero.json.
+# The core of the body, in the chest (figure units): a sheen's wave of light runs out of the body from here.
+CORE = (0.52, 0.63)
 FINE = [(0.497, 0.455, 0.094, 0.09, 0.0),     # the head, its face upturned
         (0.236, 0.284, 0.064, 0.072, 0.0),    # the fist on the caduceus
         (0.852, 0.832, 0.108, 0.062, 0.2)]    # the open hand
@@ -397,6 +399,7 @@ def main():
         'depth': M,
         'bounds': [round(xs.min() / N, 4), round(ys.min() / N, 4), round((xs.max() + 1) / N, 4), round((ys.max() + 1) / N, 4)],
         'center': [round(float((xs * w).sum() / w.sum() / N), 4), round(float((ys * w).sum() / w.sum() / N), 4)],
+        'core': list(CORE),
         'density': DENSITY,
         # The ring circles the torso, tilted towards the viewer (radians).
         'ring': {'x': 0.47, 'y': 0.6, 'r': 0.4, 'tilt': 0.3},

@@ -46,22 +46,19 @@ opening under virtual time).
   in `css/site.css` that moves each material from its base to its lit color as the figure turns (marble stays ink; the
   map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the
   avatar does, a warm key where the stone faces the light and a cool fill where it turns away, and the avatar's own
-  star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load) twinkle
-  over it as eight-point stars, brighter as a shine passes. The cursor stirs the dots like a hand through dust: they
+  star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
+  in the hair or on a hand) twinkle over it as small, faint eight-point stars. The cursor stirs the dots like a hand through dust: they
   turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
-  passes. Sway, lighting, blinking, the cursor's stir, and Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
-  dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in Gear Two. The band is a
-  gust of wind: every dot it reaches sways downwind and springs back with its neighbours, and up to a third of the
-  dots near the downwind edge are blown off. They slide over the surface, leave along the outline (so the dust streams
-  up the raised arm and off the wing tips), turn into the wind wavering together in the light's color, flare to a
-  bright point just before they are gone, and grow back in place, each at its own moment, once the gust has passed;
-  most of that dust is the statue's own, in its own colors. Between gusts the figure is alive: every dot drifts a
-  little, and a breeze that slowly swings from side to side takes flocks of dots off the outline, which flare as they
-  cross it and go with the wind, then grow back a second or two later. On light and dark paper the
-  shine is stronger: a wider band with a sharp leading edge and an afterglow, more stars, more dust, and a glow on the
-  paper behind the figure; Gear Two's gust blows off far fewer dots. Opening the page plays an opening once a tab
+  passes. Sway, lighting, the dots' drift, the cursor's stir, and Gear Two all run in the vertex shader. At each turn
+  of the sway a wave of light runs out of the body, from the chest to the figure's farthest reach, in a colour taken
+  from the paper (warm gold on white, ivory on dark, coral in Gear Two), and a few dots twinkle into small stars as it
+  passes them. The wave is a gust of wind: every dot it reaches breathes out and back with its neighbours, and a few
+  of the dots near the outline lift off as fine dust in their own colours, drift out slowing and wavering together,
+  and fade into the paper, then grow back in place, each at its own moment. Dots never blink: now and then one drifts
+  away on the breeze, fading as it goes, and fades back in at home, and between gusts the breeze takes a few dots off
+  the outline, quietly enough to be seen only by someone who looks. Gear Two's gust lifts half as much dust. Opening the page plays an opening once a tab
   (again on a reload, never under reduced motion): the figure holds still in its ink for two seconds, a slower shine
-  crosses it and leaves its colors behind, it turns once and comes back, the page goes to Gear Two with the shockwave
+  runs out of its body and leaves its colors blooming behind, it turns once and comes back, the page goes to Gear Two with the shockwave
   leaving the figure and one bolt of lightning striking it (the only lightning there is: nothing calls it down by hand),
   a red shine crosses it as it turns once more, and the page comes back; Gear Two is never saved
   for the next page, and any press, key, or scroll ends the opening. In Gear Two the dots turn red, a heartbeat pulses

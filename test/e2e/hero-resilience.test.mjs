@@ -420,7 +420,7 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   assert.ok(sweep.some(([, x]) => x > 0.02 && x < 0.98), 'the band travels across the figure rather than jumping');
   for (let i = 1; i < sweep.length && sweep[i][1] < 0.999; i++) assert.ok(sweep[i][1] >= sweep[i - 1][1], 'the band never runs backwards within a sweep');
   assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
-  assert.equal(uniforms.u_flow[0], 0.32, 'on light paper its gust blows off up to a third of the dots near the downwind edge');
+  assert.equal(uniforms.u_flow[0], 0.14, 'on light paper its gust lifts fine dust off a few of the dots near the outline');
   assert.ok(uniforms.u_breeze[0] > 0 && uniforms.u_breeze[1] > 0, 'and between gusts a breeze keeps taking dots off the outline');
 });
 
@@ -518,7 +518,7 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
   assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0], 'Gear Two switched on by hand calls down no lightning');
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
-  assert.ok((await state(page)).uniforms.u_flow[0] < 0.2, 'Gear Two\'s gust is quieter than the blue one');
+  assert.ok((await state(page)).uniforms.u_flow[0] < 0.14, 'Gear Two\'s gust is quieter than the one on light and dark paper');
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);

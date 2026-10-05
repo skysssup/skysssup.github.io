@@ -86,20 +86,25 @@ test('a ripple is a band that travels outward and fades out', () => {
   assert.ok(at(0, 0.5) < 1e-6);
 });
 
-test('about 1.5% of dots are blinked off at any moment, and blinks are short', () => {
-  let off = 0, total = 0;
-  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) { total++; if (hero.blinkOff(id, k * 0.37, 1)) off++; }
-  const share = off / total;
+test('dots drift away and fade instead of blinking off: about 1.5% of their light is away at any moment, and it goes and comes back smoothly', () => {
+  let away = 0, total = 0;
+  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) { total++; away += 1 - hero.fadeAway(id, k * 0.37, 1).show; }
+  const share = away / total;
   assert.ok(share > 0.008 && share < 0.025, `share ${share}`);
   let doubled = 0;
-  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) if (hero.blinkOff(id, k * 0.37, 2)) doubled++;
-  assert.ok(doubled / total > share * 1.5, 'Gear Two blinks more often');
-  let longest = 0;
+  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) doubled += 1 - hero.fadeAway(id, k * 0.37, 2).show;
+  assert.ok(doubled / total > share * 1.5, 'Gear Two drifts more often');
+  let jump = 0, drifted = 0;
   for (let id = 0; id < 300; id++) {
-    let run = 0;
-    for (let t = 0; t < 30; t += 0.01) { run = hero.blinkOff(id, t, 1) ? run + 0.01 : 0; longest = Math.max(longest, run); }
+    for (let t = 0; t < 30; t += 1 / 60) {
+      const now = hero.fadeAway(id, t, 1), next = hero.fadeAway(id, t + 1 / 60, 1);
+      if (now.drift > 0 && next.drift > 0) jump = Math.max(jump, Math.abs(next.show - now.show));
+      if (now.drift > 0.9) drifted++;
+    }
   }
-  assert.ok(longest <= 0.25 + 0.02, `longest blink ${longest}`);
+  assert.ok(jump < 0.1, `a dot never switches off between two frames at 60 fps (largest step ${jump.toFixed(3)})`);
+  assert.ok(drifted > 0, 'and it moves while it fades');
+  assert.deepEqual(hero.fadeAway(5, 12.3, 0), { show: 1, drift: 0 }, 'nothing drifts when the rate is 0');
 });
 
 test('stippling keeps dots where the ink beats the threshold and nowhere else', () => {
@@ -396,24 +401,3 @@ test('each pixel of the figure knows how far its outline is and which way is out
   }
 });
 
-test('where the wind carries a dot off the figure, it knows the outline\'s normal, both ways', () => {
-  const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
-  for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8
-  const at = (x, y) => [x / (size - 1), y / (size - 1), 1];
-  const out = hero.edgeNormals(rgba, size, new Float32Array([...at(5, 5), ...at(5, 3), ...at(0, 0)]), 3);
-  const turn = t => [Math.cos(t * 2 * Math.PI), Math.sin(t * 2 * Math.PI)];
-  assert.ok(Math.abs(turn(out[0])[0] - 1) < 1e-6 && Math.abs(turn(out[1])[0] + 1) < 1e-6, 'the middle row leaves through the sides, straight out');
-  const [rx, ry] = turn(out[2]), [lx, ly] = turn(out[3]);
-  assert.ok(rx > 0.5 && ry < -0.2, `near the top the right exit faces right and up, y down (${rx}, ${ry})`);
-  assert.ok(lx < -0.5 && ly < -0.2, `and the left exit faces left and up (${lx}, ${ly})`);
-  assert.deepEqual([out[4], out[5]], [0, 0.5], 'a dot outside the figure is blown straight on');
-});
-
-test('each dot knows how far it is from the figure\'s edge along its row, both ways', () => {
-  const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
-  for (let x = 2; x <= 8; x++) rgba[(5 * size + x) * 4] = 200;   // one row inside the figure, from x = 2 to 8
-  const at = x => [x / (size - 1), 5 / (size - 1), 1];
-  const out = hero.edgeDistances(rgba, size, new Float32Array([...at(2), ...at(5), ...at(8), ...at(0)]), 3);
-  const px = Array.from(out, d => Math.round(d * (size - 1)));
-  assert.deepEqual(px, [7, 1, 4, 4, 1, 7, 0, 0], 'right and left, counting the dot\'s own pixel; none outside the figure');
-});
