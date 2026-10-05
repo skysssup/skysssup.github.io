@@ -575,6 +575,10 @@
             var p = at(minute - (KATHMANDU - offset), 214);
             you.style.left = (p[0] + 24) / 448 * 100 + "%";
             you.style.top = (p[1] + 24) / 448 * 100 + "%";
+            // where the dial fills a narrow screen, a label beside its edge slides back over the face instead of off the page
+            var face = you.parentNode.getBoundingClientRect(), r = you.getBoundingClientRect(), room = doc.documentElement.clientWidth;
+            var nudge = r.right > room ? Math.min(0, face.right - r.right) : r.left < 0 ? Math.max(0, face.left - r.left) : 0;
+            if (nudge) you.style.left = "calc(" + you.style.left + " + " + nudge.toFixed(1) + "px)";
             hands.appendChild(dot(mine, 180, 2.5, "you-tip"));
           }
           you.classList.toggle("is-pointing", pointing !== null);
@@ -595,6 +599,7 @@
       }
       render();
       win.setInterval(render, 15000);
+      win.addEventListener("resize", render);
     }
 
     /* plates: a screenshot first appears as a stipple drawing in the figure's own ink, then develops into the image
