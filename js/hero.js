@@ -1124,6 +1124,8 @@
       rendered = true;
       el.classList.remove("is-fallback");
       el.classList.add("is-live");
+      // the opening's clock starts now, as the drawn figure goes on screen, not when the frame that drew it began
+      if (intro && intro.at == null) intro.at = performance.now() / 1000;
     }
 
     // The dots of one map at the current grid: stippled against the blue-noise tile, then given their depth, normal,
@@ -1434,9 +1436,21 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
+    // whether the figure is on screen
+    function onScreen(shown) {
+      visible = shown;
+      // a visitor who opens the page somewhere below the figure, or leaves before it is drawn, never sees the opening
+      if (!visible && intro && intro.at == null) endIntro(false);
+      sync();
+    }
+
     function frame(now) {
       raf = 0;
       if (!ready || !visible || document.hidden) return;
+      // a page scrolled in one go can take the figure off screen before the observer has seen it, and the observer
+      // looks only after this frame: a figure that has gone is not drawn again
+      var at = el.getBoundingClientRect();
+      if (at.bottom < 0 || at.top > global.innerHeight || at.right < 0 || at.left > global.innerWidth) { onScreen(false); return; }
       if (gl.isContextLost()) { fallback(); return; }
       if (motion.reduced()) {
         reveal();
@@ -1502,8 +1516,6 @@
       last = now;
       var gear = colors.gear, rate = gear ? 1.6 : 1;
       if (live && intro) {
-        // the opening's clock starts once the drawn figure is on screen (is-live), not at the first draw
-        if (intro.at == null && rendered) intro.at = now / 1000;
         var step = intro.at == null ? { state: intro, clock: clock, act: null } : introStep(intro, now / 1000, clock, gear);
         clock = step.clock;
         if (step.act === "shine") shine(now, -1, INTRO.sweep, true, ++bursts + 100);
@@ -1886,12 +1898,7 @@
     if (mq && mq.addEventListener) mq.addEventListener("change", onTheme);
     motion.subscribe(sync);
     document.addEventListener("visibilitychange", sync);
-    new IntersectionObserver(function (entries) {
-      visible = entries[0].isIntersecting;
-      // a visitor who opens the page somewhere below the figure, or leaves before it is drawn, never sees the opening
-      if (!visible && intro && intro.at == null) endIntro(false);
-      sync();
-    }).observe(el);
+    new IntersectionObserver(function (records) { onScreen(records[records.length - 1].isIntersecting); }).observe(el);
     new ResizeObserver(function () {
       if (!prog || !meta || gl.isContextLost()) return;
       clearTimeout(resizeTimer);

@@ -1,16 +1,29 @@
 # Handoff 3: the hero figure's next pass
 
-> **Status.** §2.1–§2.3 are live on `main`; §2.4–§2.6 are still to do. Where the build departed from this brief:
+> **Status.** §2.1–§2.5 are live on `main`; §2.6 is not (the cursor's tilt was halved instead, so the relief's back
+> stays hidden, and the cloud bank now fades into the paper). Where the build departed from this brief:
 > - §2.2: Gear Two takes the light map too, since red reads as a lit statue that way and as a red negative the other.
 >   Only the lights' switch swaps the maps behind a band; Gear Two's switch swaps them at once, under its flash and
 >   glitch, and reduced motion swaps them in one still. While the other map is on its way the figure is drawn at 60%,
 >   and the opening fetches the light map once its shine has crossed, because it always visits Gear Two. The still and
 >   the preview have dark versions; the home page's boot script preloads the one for the paper it opens on.
-> - §2.3: the flow around the body is per dot, not a field. A blown dot slides along its row to the figure's edge
->   (`edgeDistances`) and leaves along the outline there, the wind with its component into the outline taken out
->   (`edgeNormals`, two bytes in a 36-byte vertex, `a_w`), then turns into the wind; its turbulence is a waver shared
->   with its row, which keeps the streams coherent, rather than curl noise. No texture or transform feedback: still one
->   program, one buffer, one VAO. The paper glow is as it was; the owner approved the gust as filmed.
+> - §2.3, after the owner saw it live: the wind is no longer a blue band crossing from the side. A sheen is a wave of
+>   light that runs out of the body, from the chest (`core` in `hero.json`) to the figure's farthest reach, in a colour
+>   taken from the paper (warm gold on white, ivory on dark, coral in Gear Two), with no glow on the page. Its gust lifts
+>   fine dust off a few dots near the outline (14%, 7% in Gear Two) in their own colours, which drifts out and fades into
+>   the paper; the breeze between gusts never lifts and is barely to be seen; dots drift and fade instead of blinking.
+>   The row distances and exit normals the old gust needed are gone; the dust reads `outlineField`.
+> - §2.4: the glints (`glints`, from the colour map's sparkle) are small and faint, and none sits in the hair or on a
+>   hand (`features` in `hero.json`); the avatar's sky stars (133, in the depth map's blue) come out on dark paper and in
+>   Gear Two only. Nothing calls lightning down by hand any more: the opening's automatic switch to red strikes one bolt,
+>   and nothing bursts.
+> - §2.5: the whole figure, not only the face and hands, is stippled twice as fine on sharp screens, in the same tone;
+>   the hair is gold inside a polygon that follows the curls; the hollows come from Marigold normals checked against the
+>   avatar; and the cloud bank takes in the avatar's billows with their own light and shadow (the owner asked for the
+>   image's clouds). No engraving lines.
+> - Performance: CI renders with SwiftShader, which runs every branch of a shader whatever is taken, so the shaders loop
+>   only over what is live and share what their shapes can (design spec §7, Budget). 16.3 and 19.8 frames a second at
+>   1280 × 800 (light, dark), with the larger figure the detail pass brings.
 
 You are taking over the hero figure of Aakash Dahal's portfolio: the winged statue (his GitHub avatar) drawn as a
 turning WebGL sculpture of dots at the top of the home page. Repo `skysssup/skysssup.github.io`, live at
