@@ -273,6 +273,50 @@ test('Tide is reached from the gear shift: it surges, turns the page blue, survi
   await still.context.close();
 });
 
+test('in Gear Two embers follow a fine pointer and stop when it rests; never in Tide, on touch, under reduced motion, or in print', async () => {
+  const sweep = async page => { for (let i = 0; i <= 40; i++) await page.mouse.move(200 + i * 22, 420 + Math.sin(i / 5) * 120); };
+  const count = page => page.evaluate(() => {
+    const proto = CanvasRenderingContext2D.prototype, arc = proto.arc;
+    window.__embers = 0;
+    proto.arc = function (...args) { if (this.canvas.classList.contains('fx-embers')) window.__embers++; return arc.apply(this, args); };
+  });
+  const { page, context, problems } = await open('/work/', { mode: 'gear' });
+  await count(page);
+  await sweep(page);
+  await page.waitForTimeout(150);
+  assert.ok(await page.evaluate(() => window.__embers) > 20, 'a sweep sheds embers');
+  assert.equal(await page.locator('.fx-embers').isVisible(), true);
+  assert.equal(await page.locator('.fx-ember').evaluate(el => el.classList.contains('is-on') && el.getAttribute('aria-hidden') === 'true'), true, 'the glow follows the pointer, hidden from assistive technology');
+  assert.equal(await page.locator('.fx-embers').evaluate(el => getComputedStyle(el).pointerEvents), 'none');
+  await page.waitForTimeout(1800);
+  const settled = await page.evaluate(() => window.__embers);
+  await page.waitForTimeout(600);
+  assert.equal(await page.evaluate(() => window.__embers), settled, 'nothing is drawn once the pointer rests and the embers have faded');
+  assert.equal(await page.locator('.fx-embers').evaluate(c => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0)), false, 'and the canvas is clear');
+  await page.emulateMedia({ media: 'print' });
+  assert.equal(await page.locator('.fx-embers').isVisible(), false, 'none in print');
+  assert.equal(await page.locator('.fx-ember').evaluate(el => getComputedStyle(el).display), 'none');
+  await page.emulateMedia({ media: 'screen' });
+  await page.locator('[data-gear-blue]').click();
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'blue');
+  assert.equal(await page.locator('.fx-embers').isVisible(), false, 'gone the moment Gear Two ends');
+  const before = await page.evaluate(() => window.__embers);
+  await sweep(page);
+  await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => window.__embers), before, 'none in Tide');
+  assert.deepEqual(problems, []);
+  await context.close();
+
+  for (const options of [{ mode: 'gear', reduced: true }, { mode: 'gear', width: 390, height: 844, touch: true }]) {
+    const other = await open('/work/', options);
+    await other.page.mouse.move(100, 400);
+    await other.page.mouse.move(300, 420);
+    await other.page.waitForTimeout(150);
+    assert.equal(await other.page.locator('.fx-embers, .fx-ember').count(), 0, `none ${options.reduced ? 'under reduced motion' : 'on touch'}`);
+    await other.context.close();
+  }
+});
+
 test('the light switch flips and saves the theme, and turning the lights on leaves Gear Two', async () => {
   const { page, context } = await open('/work/');
   const lamp = page.locator('[data-lamp]');

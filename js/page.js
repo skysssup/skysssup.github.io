@@ -394,6 +394,128 @@
       });
     }
 
+    /* Gear Two: a soft ember glow follows the pointer across the page, beating with the heart, and sheds a short trail
+       of embers that drift up and fade. The gear's tokens switch it on (--trail: 1) and colour it (--trail-hot,
+       -ember, -cool, -glow), so another gear could take its own. Nothing runs under reduced motion or without a fine
+       pointer that hovers, and nothing is drawn once the pointer rests and the last ember has faded. */
+    var finePointer = win.matchMedia ? win.matchMedia("(hover: hover) and (pointer: fine)") : null;
+    if (finePointer && win.requestAnimationFrame) {
+      var EMBERS = 56, SPACING = 9;
+      var trail = null, embers = [], spark = { x: 0, y: 0, gx: 0, gy: 0, at: 0, carry: 0, shown: false }, sparkRaf = 0, sparkLast = 0, dirty = null;
+      var rgbOf = function (ctx, css) {
+        ctx.fillStyle = "#000";
+        ctx.fillStyle = css;
+        var v = ctx.fillStyle;
+        return v.charAt(0) === "#" ? [1, 3, 5].map(function (i) { return parseInt(v.slice(i, i + 2), 16); }) : (v.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+      };
+      var sizeTrail = function () {
+        var dpr = Math.min(2, win.devicePixelRatio || 1);
+        trail.canvas.width = Math.round(win.innerWidth * dpr);
+        trail.canvas.height = Math.round(win.innerHeight * dpr);
+        trail.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        dirty = null;
+      };
+      var drift = function (now) {
+        sparkRaf = 0;
+        var dt = Math.min(0.1, Math.max(0.001, (now - sparkLast) / 1000));
+        sparkLast = now;
+        var ctx = trail.ctx, c = trail.colors, follow = 1 - Math.exp(-dt * 18), drag = Math.exp(-dt * 1.6), kept = 0, box = null;
+        spark.gx += (spark.x - spark.gx) * follow;
+        spark.gy += (spark.y - spark.gy) * follow;
+        trail.glow.style.transform = "translate3d(" + spark.gx.toFixed(1) + "px, " + spark.gy.toFixed(1) + "px, 0)";
+        if (dirty) ctx.clearRect(dirty[0], dirty[1], dirty[2] - dirty[0], dirty[3] - dirty[1]);
+        ctx.globalCompositeOperation = "lighter";
+        for (var i = 0; i < embers.length; i++) {
+          var e = embers[i];
+          e.age += dt;
+          if (e.age >= e.life) continue;
+          embers[kept++] = e;
+          // embers rise as they cool, swaying, and slow: white-hot, then ember, then the gear's red, then gone
+          e.vx *= drag;
+          e.vy = e.vy * drag - 46 * dt;
+          e.x += (e.vx + Math.sin(e.age * e.sway + e.seed) * 18) * dt;
+          e.y += e.vy * dt;
+          var t = e.age / e.life, hot = t < 0.3, f = hot ? t / 0.3 : (t - 0.3) / 0.7, from = c[hot ? 0 : 1], to = c[hot ? 1 : 2];
+          var rgb = [0, 1, 2].map(function (k) { return Math.round(from[k] + (to[k] - from[k]) * f); }).join(",");
+          var alpha = Math.pow(1 - t, 1.5), r = e.size * (1 - 0.55 * t), reach = r * 3 + 1;
+          ctx.fillStyle = "rgba(" + rgb + "," + (alpha * 0.2).toFixed(3) + ")";
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, r * 3, 0, 6.2832);
+          ctx.fill();
+          ctx.fillStyle = "rgba(" + rgb + "," + alpha.toFixed(3) + ")";
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, r, 0, 6.2832);
+          ctx.fill();
+          box = box ? [Math.min(box[0], e.x - reach), Math.min(box[1], e.y - reach), Math.max(box[2], e.x + reach), Math.max(box[3], e.y + reach)] : [e.x - reach, e.y - reach, e.x + reach, e.y + reach];
+        }
+        embers.length = kept;
+        dirty = box;
+        if (kept || Math.abs(spark.x - spark.gx) + Math.abs(spark.y - spark.gy) > 0.5) sparkRaf = win.requestAnimationFrame(drift);
+      };
+      var syncTrail = function () {
+        var on = !!doc.body && finePointer.matches && !motion.reduced() && win.getComputedStyle(doc.documentElement).getPropertyValue("--trail").trim() === "1";
+        if (!on) {
+          if (!trail || trail.canvas.hidden) return;
+          win.cancelAnimationFrame(sparkRaf);
+          sparkRaf = 0;
+          embers = [];
+          dirty = null;
+          spark.shown = false;
+          trail.ctx.clearRect(0, 0, win.innerWidth, win.innerHeight);
+          trail.glow.classList.remove("is-on");
+          trail.canvas.hidden = trail.glow.hidden = true;
+          return;
+        }
+        if (!trail) {
+          var canvas = doc.createElement("canvas"), glow = doc.createElement("div");
+          canvas.className = "fx-embers";
+          glow.className = "fx-ember";
+          canvas.setAttribute("aria-hidden", "true");
+          glow.setAttribute("aria-hidden", "true");
+          doc.body.appendChild(glow);
+          doc.body.appendChild(canvas);
+          trail = { canvas: canvas, glow: glow, ctx: canvas.getContext("2d") };
+          sizeTrail();
+        }
+        var styles = win.getComputedStyle(doc.documentElement);
+        trail.colors = ["--trail-hot", "--trail-ember", "--trail-cool"].map(function (name) { return rgbOf(trail.ctx, styles.getPropertyValue(name).trim()); });
+        trail.canvas.hidden = trail.glow.hidden = false;
+      };
+      doc.addEventListener("pointermove", function (event) {
+        if (!trail || trail.canvas.hidden || event.pointerType === "touch") return;
+        var now = win.performance.now(), x = event.clientX, y = event.clientY;
+        if (!spark.shown) { spark.x = spark.gx = x; spark.y = spark.gy = y; spark.at = now; spark.carry = 0; spark.shown = true; trail.glow.classList.add("is-on"); }
+        var dx = x - spark.x, dy = y - spark.y, d = Math.sqrt(dx * dx + dy * dy), dt = Math.max(8, now - spark.at) / 1000;
+        // an ember every 5-13 px along the pointer's path, scattered a little and carried a little along with it,
+        // mostly small, a few larger; a jump sheds none
+        var s = SPACING - spark.carry;
+        if (d < 320) {
+          for (; s <= d; s += SPACING * (0.55 + Math.random() * 0.9)) {
+            if (embers.length >= EMBERS) embers.shift();
+            var scatter = (Math.random() - 0.5) * 10;
+            embers.push({
+              x: spark.x + dx * s / d - dy / d * scatter, y: spark.y + dy * s / d + dx / d * scatter,
+              vx: Math.max(-50, Math.min(50, dx / dt * 0.08)) + (Math.random() - 0.5) * 70,
+              vy: Math.max(-50, Math.min(50, dy / dt * 0.08)) - 18 - Math.random() * 42,
+              age: 0, life: 0.45 + Math.random() * 0.6, size: 0.5 + Math.pow(Math.random(), 2.2) * 1.6,
+              sway: 3 + Math.random() * 5, seed: Math.random() * 6.2832
+            });
+          }
+          spark.carry = SPACING - (s - d);
+        }
+        spark.x = x;
+        spark.y = y;
+        spark.at = now;
+        if (!sparkRaf) { sparkLast = now; sparkRaf = win.requestAnimationFrame(drift); }
+      }, { passive: true });
+      doc.addEventListener("pointerout", function (event) { if (trail && !event.relatedTarget) { trail.glow.classList.remove("is-on"); spark.shown = false; } });
+      win.addEventListener("resize", function () { if (trail && !trail.canvas.hidden) sizeTrail(); });
+      new win.MutationObserver(syncTrail).observe(doc.documentElement, { attributes: true, attributeFilter: ["data-gear", "data-motion"] });
+      if (typeof finePointer.addEventListener === "function") finePointer.addEventListener("change", syncTrail);
+      motion.subscribe(syncTrail);
+      syncTrail();
+    }
+
     /* contact: Kathmandu's day on a 24-hour dial, the night stippled in, a hand for now, and a readout that follows
        the pointer round the face */
     var note = doc.querySelector("[data-contact-note]");
