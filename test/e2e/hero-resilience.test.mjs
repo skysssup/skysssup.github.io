@@ -19,15 +19,15 @@ before(async () => {
 after(async () => { await browser?.close(); site?.server.close(); });
 
 // Every test but the opening's own starts from a tab that has already seen the opening (js/page.js).
-async function open(t, { reduced = false, touch = false, setup, intro = false } = {}) {
+async function open(t, { reduced = false, touch = false, setup, intro = false, scheme = 'light' } = {}) {
   const context = await browser.newContext({
     viewport: touch ? { width: 390, height: 844 } : { width: 1280, height: 800 },
-    colorScheme: 'light', reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch,
+    colorScheme: scheme, reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch,
   });
   t.after(() => context.close());
   if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -64,7 +64,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false } 
         const result = original.call(this, location, ...values);
         const name = locations.get(location);
         if (hero(this)) probe.uniforms[name] = method === 'uniform4fv' ? Array.from(values[0]) : values;
-        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[3] : values[0]]);
+        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[3] : name === 'u_swap' ? values.slice() : values[0]]);
         return result;
       };
     }
@@ -493,6 +493,7 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
   await page.evaluate(() => window.skyGear.setGear(true));
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
@@ -500,6 +501,50 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   assert.ok(ink.visible > 500);
   assert.equal(ink.colored, 0, 'without the color map every dot is ink');
   assert.deepEqual((await state(plain.page)).uniforms.u_tint, [0]);
+});
+
+test('on dark paper the dots stand for light, from the light map, and the lights swap the maps behind a band', async t => {
+  const maps = [];
+  const watch = page => page.on('request', request => {
+    const map = request.url().match(/\/assets\/hero\/(ink|light)\.webp$/);
+    if (map) maps.push(map[1]);
+  });
+  const { page } = await open(t, { scheme: 'dark', setup: watch });
+  await live(page);
+  const dark = await state(page);
+  assert.deepEqual(maps, ['light'], 'dark paper loads the light map alone');
+  assert.deepEqual(dark.uniforms.u_positive, [1]);
+  assert.deepEqual(dark.uniforms.u_swap, [0, 0, 1, 0]);
+  await page.evaluate(() => window.skyTheme.set('light'));
+  await page.waitForFunction(() => window.__heroProbe.series.u_swap.some(([, v]) => v[1] !== 0), null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__heroProbe.series.u_swap.at(-1)[1][1] === 0, null, { timeout: 15000 });
+  const light = await state(page);
+  assert.deepEqual(maps, ['light', 'ink'], 'the ink map is fetched when the lights come on');
+  assert.deepEqual(light.uniforms.u_positive, [0]);
+  assert.notEqual(light.count, dark.count, 'the figure is stippled again from the ink map');
+  assert.ok(light.uploads.at(-1).hash !== dark.uploads.at(-1).hash);
+  const swap = light.series.u_swap.filter(([, v]) => v[1] !== 0).map(([, v]) => v);
+  assert.ok(swap.some(([x, , role]) => role === 1 && x > 0.02 && x < 0.98), 'a band crosses the figure to bring in the new dots');
+  assert.ok(swap.some(([, , role]) => role === -1), 'while the old ones are drawn ahead of it');
+  const incoming = swap.filter(([, , role]) => role === 1).map(([x]) => x);
+  for (let i = 1; i < incoming.length; i++) assert.ok(incoming[i] >= incoming[i - 1], 'the band never runs backwards');
+
+  // under reduced motion the maps swap at once, in one still
+  await page.evaluate(() => window.SkyMotion.set('reduced'));
+  const before = (await state(page)).series.u_swap.length;
+  await page.evaluate(() => window.skyTheme.set('dark'));
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1);
+  await stillDrawing(page);
+  assert.ok((await state(page)).series.u_swap.slice(before).every(([, v]) => v[1] === 0), 'no band under reduced motion');
+  assert.deepEqual(maps, ['light', 'ink'], 'a map is fetched once');
+
+  // a map that never arrives leaves the figure on the one it has, at full strength
+  const blocked = await open(t, { setup: page => page.route('**/assets/hero/light.webp', route => route.abort('failed')) });
+  await live(blocked.page);
+  const failed = blocked.page.waitForEvent('requestfailed', request => request.url().endsWith('/assets/hero/light.webp'));
+  await blocked.page.evaluate(() => window.skyTheme.set('dark'));
+  await failed;
+  await blocked.page.waitForFunction(() => window.__heroProbe.uniforms.u_alpha[0] === 1 && window.__heroProbe.uniforms.u_positive[0] === 0);
 });
 
 for (const [name, asset, response] of [

@@ -29,7 +29,7 @@ async function open(url, { width = 1440, height = 900, theme = 'light', reduced 
     hasTouch: touch, isMobile: touch, deviceScaleFactor: Number(process.env.DPR || 1),
     recordVideo: video ? { dir: video, size: { width, height } } : undefined,
   });
-  await context.addInitScript(m => {
+  await context.addInitScript(({ m, intro }) => {
     try {
       if (!sessionStorage.getItem('qa-seeded')) {
         sessionStorage.setItem('qa-seeded', '1');
@@ -38,7 +38,7 @@ async function open(url, { width = 1440, height = 900, theme = 'light', reduced 
         if (m === 'gear') sessionStorage.setItem('sky-gear', 'two');
       }
     } catch (e) {}
-  }, theme);
+  }, { m: theme, intro });
   if (setup) await context.addInitScript(setup);
   const page = await context.newPage();
   const problems = [];

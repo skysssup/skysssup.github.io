@@ -1,5 +1,5 @@
 /* Hero: the GitHub avatar as a stippled sculpture in WebGL2, wrapped in a ring that carries one line in its voice.
-   Data comes from tools/hero/build.py (depth, ink and mask maps plus a blue-noise threshold tile).
+   Data comes from tools/hero/build.py (depth, ink, light, and color maps plus a blue-noise threshold tile).
    Pure helpers are exported for Node tests; the browser gets window.SkyHero. */
 (function (global) {
   "use strict";
@@ -54,6 +54,9 @@
   // A sheen lasts its sweep and SHEEN_AFTER more seconds, while the bits it carried off turn to crystal and the
   // dots they left re-form.
   var SHEEN_FIRST = 1.9, SHEEN_SWEEP = 1.1, SHEEN_AFTER = 2.3;
+  // When the paper turns between light and dark, the band of light that swaps the dots of one map for the other's
+  // takes SWAP seconds to cross the figure.
+  var SWAP = 1.1;
   function sheenPhase(clock) {
     if (!(clock >= SHEEN_FIRST)) return { index: -1, at: 0, dir: 0 };
     var turns = Math.floor((clock - SWAY / 4) / (SWAY / 2)) + 1;
@@ -275,6 +278,12 @@
     return lit;
   }
 
+  // Which map the dots are stippled from. On light paper they are ink, from the ink map, dense where the statue is
+  // dark, as in an engraving. On dark paper (Gear Two's too) the same density in light-colored dots would draw a
+  // negative, so they stand for light instead, from the light map, dense where the statue is lit: a lit statue in a
+  // dark room, as the avatar is.
+  function dotMap(colors) { return colors.dark ? "light" : "ink"; }
+
   // The material under a point of the color map: its red channel at the nearest pixel (index x 51). Never
   // interpolated, since the average of two material indices would name a third.
   var MARBLE = 51;
@@ -396,6 +405,8 @@
     "uniform vec4 u_span;",
     "uniform vec4 u_flow;",
     "uniform vec3 u_light[3];",
+    "uniform float u_positive;",
+    "uniform vec4 u_swap;",
     "out float v_alpha;",
     "out float v_size;",
     "out float v_star;",
@@ -423,9 +434,13 @@
     "  vec3 n = vec3(a_n, sqrt(max(0.0, 1.0 - dot(a_n, a_n))));",
     "  n = vec3(n.x * cy + n.z * sy, n.y, -n.x * sy + n.z * cy);",
     "  n = vec3(n.x, n.y * cp - n.z * sp, n.y * sp + n.z * cp);",
-    // light from the upper left, in front: lit stone gets sparser, smaller dots; grazing edges get heavier ones
+    // light from the upper left, in front. Where the dots are ink, lit stone gets smaller, fainter dots and grazing
+    // edges heavier ones; where they are light (u_positive, on dark paper), lit stone gets larger, brighter dots and
+    // the surface dims as it turns away, so the edges fall into the dark
     "  float lam = max(0.0, dot(n, normalize(vec3(-0.45, 0.6, 0.66))));",
     "  float rim = pow(1.0 - clamp(n.z, 0.0, 1.0), 3.0);",
+    "  float shade = mix(mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim), mix(0.88, 1.12, lam) * (1.0 - 0.3 * rim), u_positive);",
+    "  float fade = mix(mix(1.0, 0.86, lam), mix(0.78, 1.0, lam) * (1.0 - 0.35 * rim), u_positive);",
     "  float persp = 3.2 / (3.2 - p.z);",
     "  vec2 px = u_box.xy + (u_pivot + vec2(p.x, -p.y) * persp) * u_box.z;",
     // cursor push
@@ -509,6 +524,16 @@
     "      }",
     "    }",
     "  }",
+    // when the paper turns between light and dark, a band of light crosses the figure and the dots of the new map
+    // (u_swap.z 1) appear behind it, while those of the old one (-1) give way ahead of it, dimmed
+    "  if (u_swap.y != 0.0) {",
+    "    float w = u_span.y - u_span.x, travel = w * 1.4;",
+    "    float along = px.x + (px.y - u_box.y - u_pivot.y * u_box.z) * 0.25 - u_span.x + w * 0.2;",
+    "    if (u_swap.y < 0.0) along = travel - along;",
+    "    float e = (u_swap.x * travel - along) / u_span.z, behind = smoothstep(-0.6, 1.6, e);",
+    "    show *= u_swap.z > 0.0 ? behind : (1.0 - behind) * 0.6;",
+    "    band = max(band, exp(-e * e) * pow(max(n.z, 0.0), 2.0) * k);",
+    "  }",
     "  float tint = u_tint * wake;",
     "  vec3 col = mix(u_color, mat, a_c.g * tint);",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
@@ -532,13 +557,13 @@
     "  float dur = 0.08 + r01(key + 2u) * 0.16;",
     "  off = off && local >= start && local < start + dur && u_blink > 0.0;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
-    "  size *= mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim) * (1.0 + 0.9 * tw) * (1.0 + (0.35 + 0.3 * u_flow.z) * band) * (1.0 + (1.2 + 0.6 * u_flow.z) * star) * (1.0 + 0.7 * bit);",
+    "  size *= shade * (1.0 + 0.9 * tw) * (1.0 + (0.35 + 0.3 * u_flow.z) * band) * (1.0 + (1.2 + 0.6 * u_flow.z) * star) * (1.0 + 0.7 * bit);",
     // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones
     "  size *= mix(1.0, 0.82, a_c.b);",
     // the face and the hands sit on a grid twice as fine: four dots, each 62% the size, where one would be
     "  size *= mix(1.0, 0.62, a_e.z);",
     "  size = mix(size * 0.7, size, k);",
-    "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * mix(1.0, 0.86, lam) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
+    "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * fade * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  v_alpha = mix(v_alpha, u_alpha, max(max(band, star), bit)) * show;",
     "  if (off && star < 0.05 && bit < 0.05) v_alpha = 0.0;",
     // a crystal is the bit itself, at the edge, until it fades
@@ -695,7 +720,10 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var maps = null, relief = null, field = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
+    var relief = null, field = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
+    // the dot maps loaded so far (ink for light paper, light for dark; dotMap), the one the figure is drawn from, its
+    // dots and the other map's at the current grid, and a swap from one to the other in progress
+    var sources = { ink: null, light: null }, loading = {}, failed = {}, set = null, shapes = {}, swap = null;
     var cssW = 0, cssH = 0, dpr = 1, box = { x: 0, y: 0, size: 0 }, place = null, cell = 1;
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
@@ -746,6 +774,7 @@
 
     function fallback() {
       endIntro(false);
+      swap = null;
       ready = rendered = queryPending = drawChecked = false;
       cancelAnimationFrame(raf);
       clearTimeout(resizeTimer);
@@ -776,7 +805,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -817,6 +846,38 @@
       el.classList.add("is-live");
     }
 
+    // The dots of one map at the current grid: stippled against the blue-noise tile, then given their depth, normal,
+    // detail, material, sparkle, and way to the edge from the other maps, packed 32 bytes a dot (see initialize).
+    function shape(source) {
+      var spots = stipple(source.data, source.width, noise.data, noise.width, res, meta.density, 0.7, fine);
+      var n = spots.length / 3;
+      var normals = depthNormals(field, relief.width, spots, 3, RELIEF);
+      var details = sampleColors(relief.data, relief.width, spots, 3);
+      var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
+      var edges = edgeDistances(relief.data, relief.width, spots, 3);
+      var buffer = new ArrayBuffer(n * 32), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer);
+      for (var i = 0; i < n; i++) {
+        floats[i * 8] = spots[i * 3];
+        floats[i * 8 + 1] = spots[i * 3 + 1];
+        floats[i * 8 + 2] = normals[i * 3 + 2];
+        floats[i * 8 + 3] = spots[i * 3 + 2];
+        floats[i * 8 + 4] = normals[i * 3];
+        floats[i * 8 + 5] = normals[i * 3 + 1];
+        // material (nearest, never blended), how strongly the dot belongs to it, its detail, its sparkle
+        var o = i * 32 + 24;
+        bytes[o] = palette ? materialAt(palette.data, palette.width, spots[i * 3], spots[i * 3 + 1]) : MARBLE;
+        bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
+        bytes[o + 2] = details[i * 4 + 1];
+        bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
+        // the way to the figure's edge, right and left, and whether the dot is on the fine grid of a face or hand
+        bytes[o + 4] = Math.round(Math.min(1, edges[i * 2]) * 255);
+        bytes[o + 5] = Math.round(Math.min(1, edges[i * 2 + 1]) * 255);
+        bytes[o + 6] = fineCell(fine, res, Math.floor(spots[i * 3] * res), Math.floor(spots[i * 3 + 1] * res)) ? 255 : 0;
+      }
+      var lit = Math.max(1, litDots(normals));
+      return { vertices: bytes, count: n, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
+    }
+
     function size() {
       var rect = el.getBoundingClientRect();
       var w = Math.round(rect.width), h = Math.round(rect.height);
@@ -847,34 +908,14 @@
       if (want !== res || zones !== fine) {
         res = want;
         fine = zones;
-        var spots = stipple(maps.data, maps.width, noise.data, noise.width, res, meta.density, 0.7, fine);
-        count = spots.length / 3;
-        var normals = depthNormals(field, relief.width, spots, 3, RELIEF);
-        var details = sampleColors(relief.data, relief.width, spots, 3);
-        var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
-        var edges = edgeDistances(relief.data, relief.width, spots, 3);
-        var buffer = new ArrayBuffer(count * 32), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer);
-        for (var i = 0; i < count; i++) {
-          floats[i * 8] = spots[i * 3];
-          floats[i * 8 + 1] = spots[i * 3 + 1];
-          floats[i * 8 + 2] = normals[i * 3 + 2];
-          floats[i * 8 + 3] = spots[i * 3 + 2];
-          floats[i * 8 + 4] = normals[i * 3];
-          floats[i * 8 + 5] = normals[i * 3 + 1];
-          // material (nearest, never blended), how strongly the dot belongs to it, its detail, its sparkle
-          var o = i * 32 + 24;
-          bytes[o] = palette ? materialAt(palette.data, palette.width, spots[i * 3], spots[i * 3 + 1]) : MARBLE;
-          bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
-          bytes[o + 2] = details[i * 4 + 1];
-          bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
-          // the way to the figure's edge, right and left, and whether the dot is on the fine grid of a face or hand
-          bytes[o + 4] = Math.round(Math.min(1, edges[i * 2]) * 255);
-          bytes[o + 5] = Math.round(Math.min(1, edges[i * 2 + 1]) * 255);
-          bytes[o + 6] = fineCell(fine, res, Math.floor(spots[i * 3] * res), Math.floor(spots[i * 3 + 1] * res)) ? 255 : 0;
-        }
-        vertices = bytes;
-        var lit = Math.max(1, litDots(normals));
-        starChance = [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)];
+        shapes = {};
+        swap = null;
+      }
+      if (!shapes[set]) shapes[set] = shape(sources[set]);
+      if (vertices !== shapes[set].vertices) {
+        vertices = shapes[set].vertices;
+        count = shapes[set].count;
+        starChance = shapes[set].stars;
         if (opts.onCount) opts.onCount(count);
       }
       if (!count) throw new Error("hero data is empty");
@@ -885,6 +926,45 @@
       ringFont = clamp(Math.round(s / 56), 10, 12);
       ring = null;
       return true;
+    }
+
+    // The dots follow the paper (dotMap): when it turns between light and dark, the figure is drawn from the other
+    // map, fetched the first time it is needed. In full motion, with the figure drawn and on screen, a band of light
+    // crosses it and swaps the dots behind it; during Gear Two's switch, whose flash and glitch already break the
+    // figure up, and in every other case, they swap at once. Returns whether the map changed; the caller redraws.
+    function follow() {
+      var want = dotMap(colors);
+      if (!meta || want === set) return false;
+      if (!sources[want]) { fetchMap(want); return false; }
+      var from = set, old = vertices, oldCount = count;
+      set = want;
+      swap = null;
+      if (!prog || !ready || gl.isContextLost()) return true;
+      try { ready = size(); } catch (e) { fallback(); return false; }
+      var now = performance.now();
+      if (ready && old && rendered && canInteract() && now >= glitchUntil) {
+        var both = new Uint8Array(vertices.length + old.length);
+        both.set(vertices);
+        both.set(old, vertices.length);
+        gl.bufferData(gl.ARRAY_BUFFER, both, gl.STATIC_DRAW);
+        swap = { at: now, count: oldCount, positive: from === "light" ? 1 : 0 };
+      }
+      return true;
+    }
+
+    // A map that fails to arrive leaves the figure on the map it has, at full strength; the next change of paper tries
+    // again.
+    function fetchMap(name) {
+      if (sources[name] || loading[name] || !meta) return;
+      loading[name] = true;
+      failed[name] = false;
+      var miss = function () { loading[name] = false; failed[name] = true; sync(); };
+      loadImageData(base + name + ".webp").then(function (img) {
+        if (img.width !== meta.size || img.height !== meta.size) { miss(); return; }
+        loading[name] = false;
+        sources[name] = img;
+        if (follow()) sync();
+      }, miss);
     }
 
     function setPointer(event) {
@@ -1062,7 +1142,11 @@
         clock = step.clock;
         if (step.act === "shine") shine(now, -1, INTRO.sweep, true, ++bursts + 100);
         else if (step.act === "redshine") shine(now, 1, SHEEN_SWEEP, false, ++bursts + 100);
-        else if (step.act === "ring") ringAt = now;
+        else if (step.act === "ring") {
+          ringAt = now;
+          // the opening is about to take the page to Gear Two, whose dark paper draws the dots from the light map
+          fetchMap(dotMap({ dark: true }));
+        }
         else if ((step.act === "red" || step.act === "back") && opts.onIntro) opts.onIntro(step.act);
         if (!step.state) endIntro(true);
         else if (step.state !== intro) {
@@ -1190,6 +1274,13 @@
         glowShown = light > 0.002 ? light : 0;
       }
       gl.uniform3fv(U.u_light, lights);
+      // the dots stand for light on dark paper; while the paper's turn swaps them, the new map's appear behind a band
+      // of light and the old map's give way ahead of it
+      var swapAge = swap ? Math.max(0, now - swap.at) / 1000 : 0;
+      if (swap && (!live || swapAge >= SWAP)) swap = null;
+      var swept = swap ? easeInOut(swapAge / SWAP) : 0;
+      gl.uniform1f(U.u_positive, set === "light" ? 1 : 0);
+      gl.uniform4f(U.u_swap, swept, swap ? -1 : 0, 1, 0);
       gl.bindVertexArray(vao);
       // while the switch glitches, two faint afterimages sit 2 px either side of the figure; a long tear leaves one
       if (switching || (tearing && tear.after)) {
@@ -1201,12 +1292,18 @@
           gl.drawArrays(gl.POINTS, 0, count);
         }
       }
-      gl.uniform1f(U.u_alpha, 1);
+      // while the other map is on its way the figure stays dimmed, as if the light had gone, until its band swaps them
+      gl.uniform1f(U.u_alpha, set === dotMap(colors) || failed[dotMap(colors)] ? 1 : 0.6);
       gl.uniform2f(U.u_offset, 0, 0);
       var measure = !rendered && !queryPending;
       if (measure) gl.beginQuery(gl.ANY_SAMPLES_PASSED, query);
       gl.drawArrays(gl.POINTS, 0, count);
       if (measure) { gl.endQuery(gl.ANY_SAMPLES_PASSED); queryPending = true; }
+      if (swap) {
+        gl.uniform1f(U.u_positive, swap.positive);
+        gl.uniform4f(U.u_swap, swept, -1, -1, 0);
+        gl.drawArrays(gl.POINTS, count, swap.count);
+      }
       var fade = live ? smoothstep(0, 0.7, (now - ringAt) / 1000) : 1;
       // a theme hover brightens the ring for 400 ms: up in the first 100, back down by the end
       var lit = live && ringLitAt ? (now - ringLitAt) / 400 : 1;
@@ -1256,6 +1353,7 @@
       if (was.gear !== colors.gear) ring = null;
       // the palette turning red rolls through the figure as a ripple from its centre
       if (!was.gear && colors.gear && canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2);
+      follow();
       sync();
     }
 
@@ -1337,8 +1435,10 @@
       document.fonts.load("400 11px \"Fragment Mono\"").then(onFont, onFont);
     } else fontReady = true;
 
+    // the dots' map for the paper the page opens on comes first; the other is fetched when the paper changes (follow)
+    var first = dotMap(colors);
     Promise.all([
-      loadImageData(base + "ink.webp"),
+      loadImageData(base + first + ".webp"),
       loadImageData(base + "depth.webp"),
       loadImageData(base + "bluenoise.png"),
       fetch(base + "hero.json").then(function (r) {
@@ -1359,13 +1459,15 @@
           (data.fine != null && !(Array.isArray(data.fine) && data.fine.every(function (z) {
             return Array.isArray(z) && z.length === 5 && z.every(Number.isFinite) && normalized(z[0]) && normalized(z[1]) && z[2] > 0 && z[3] > 0 && z[2] < 0.5 && z[3] < 0.5;
           })))) throw new Error("hero metadata is invalid");
-      maps = all[0];
+      sources[first] = all[0];
+      set = first;
       relief = all[1];
       field = reliefField(relief.data, relief.width, 1.5);
       noise = { width: all[2].width, data: (function () { var d = all[2].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
       meta = data;
       palette = all[4];
       initialize();
+      follow();
     }).catch(fallback);
 
     return {
@@ -1401,6 +1503,7 @@
     depthNormals: depthNormals,
     sampleColors: sampleColors,
     materialAt: materialAt,
+    dotMap: dotMap,
     tintFor: tintFor,
     glitchTiles: glitchTiles,
     resolutionFor: resolutionFor,

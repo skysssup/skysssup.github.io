@@ -37,6 +37,10 @@
   --mat-lightning-lit: #62adee;
   --mat-glint: #2c62ff;
   --mat-glint-lit: #7f9dff;
+  /* the still that stands in for the figure until it is drawn, stippled from the same map as its dots: the ink map
+     on light paper, the light map on dark (docs/design-spec.md §7) */
+  --figure-preview: url("/assets/hero/preview.webp");
+  --figure-still: url("/assets/hero/still.webp");
   --split-a: #ff3b30;
   --split-b: #00c2ff;
 
@@ -74,6 +78,8 @@
   --mat-lightning-lit: #b8f5ff;
   --mat-glint: #8ab4ff;
   --mat-glint-lit: #c4d8ff;
+  --figure-preview: url("/assets/hero/preview-dark.webp");
+  --figure-still: url("/assets/hero/still-dark.webp");
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -98,6 +104,8 @@
     --mat-lightning-lit: #b8f5ff;
     --mat-glint: #8ab4ff;
     --mat-glint-lit: #c4d8ff;
+    --figure-preview: url("/assets/hero/preview-dark.webp");
+    --figure-still: url("/assets/hero/still-dark.webp");
   }
 }
 :root[data-gear="two"] {
@@ -121,6 +129,8 @@
   --mat-lightning-lit: #ff3b30;
   --mat-glint: #ff3b30;
   --mat-glint-lit: #ff3b30;
+  --figure-preview: url("/assets/hero/preview-dark.webp");
+  --figure-still: url("/assets/hero/still-dark.webp");
 }
 
 @media (max-width: 1199px) {
@@ -375,12 +385,12 @@ html:not(.js) .index-open { display: none; }
 }
 .hero-figure .still {
   position: absolute; inset: 0; background: var(--figure-ink);
-  -webkit-mask: url("/assets/hero/preview.webp") center / contain no-repeat;
-  mask: url("/assets/hero/preview.webp") center / contain no-repeat;
+  -webkit-mask: var(--figure-preview) center / contain no-repeat;
+  mask: var(--figure-preview) center / contain no-repeat;
 }
 html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
-  -webkit-mask: url("/assets/hero/still.webp") center / contain no-repeat;
-  mask: url("/assets/hero/still.webp") center / contain no-repeat;
+  -webkit-mask: var(--figure-still) center / contain no-repeat;
+  mask: var(--figure-still) center / contain no-repeat;
 }
 .hero-figure.is-live:not(.is-fallback) .still { display: none; }
 /* in the opening the still and the first drawn frame are the same figure in ink, so one fades into the other */

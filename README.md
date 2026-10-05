@@ -32,10 +32,15 @@ opening under virtual time).
   `switchGear(on, origin, transient)` runs the sequence towards a state; the hero's opening uses it to go to Gear Two
   and back without saving it to the session.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring that carries one line in the statue's
-  voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms). It stipples
-  `assets/hero/ink.webp` (896 px) against a blue-noise tile at load (the face and both hands on a grid twice as fine,
-  with half-size dots, on screens of 1.5 device pixels per CSS pixel or more; the zones are `fine` in
-  `assets/hero/hero.json`), takes each dot's depth, surface normal, distance to the figure's edge, and detail from
+  voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms). It stipples a map of
+  where the dots go against a blue-noise tile at load (the face and both hands on a grid twice as fine, with half-size
+  dots, on screens of 1.5 device pixels per CSS pixel or more; the zones are `fine` in `assets/hero/hero.json`). On
+  light paper that is `assets/hero/ink.webp` (896 px), dense where the statue is dark, so the dots are ink, as in an
+  engraving; on dark paper, Gear Two's included, it is `assets/hero/light.webp`, dense where the statue is lit, so
+  the dots are light and the figure reads as a lit statue in a dark room instead of a negative. A page loads only the
+  map for the paper it opens on; when the lights or Gear Two change the paper, the other map is fetched, the figure
+  dims until it arrives, and a band of light crosses it and swaps the dots behind it (at once under Gear Two's flash
+  and glitch, and under reduced motion). It takes each dot's depth, surface normal, distance to the figure's edge, and detail from
   `assets/hero/depth.webp` (the depth smoothed inside the figure first, so the lighting never bands), and its material
   from `assets/hero/color.webp` (gold, marble, cloud, lightning, or glint), colored from a palette designed per mode
   in `css/site.css` that moves each material from its base to its lit color as the figure turns (marble stays ink; the
@@ -53,8 +58,9 @@ opening under virtual time).
   two faint afterimages; while Gear Two stays on, about a third of the heartbeats tear it again for a few frames, with
   a longer tear about every 6 s. It pauses off-screen and draws one still frame under reduced motion. A small,
   preloaded `assets/hero/preview.webp` covers startup; without WebGL2 it shows the full-resolution
-  `assets/hero/still.webp`. Both masks come from the same stipple render, framed and foreshortened as the engine draws
-  the figure facing the viewer, so in the opening the still fades into the first drawn frame in place. Context
+  `assets/hero/still.webp` (`preview-dark.webp` and `still-dark.webp`, from the light map, on dark paper). Each pair
+  comes from the same stipple render as the dots, framed and foreshortened as the engine draws the figure facing the
+  viewer, so in the opening the still fades into the first drawn frame in place. Context
   restoration rebuilds GPU resources from cached geometry without fetching the assets again. Horizontal touch drags
   turn the figure without blocking vertical scrolling; the caption's ripple button works by keyboard, and a readout
   under the caption shows yaw, pitch, and the engine's JS time per frame.

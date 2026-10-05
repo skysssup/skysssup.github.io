@@ -66,6 +66,11 @@ ${extra}</head>`;
 
 const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
 
+// The home page preloads the still that covers the figure until it is drawn, for the paper the page opens on (the
+// boot script has just set the theme and Gear Two): it is stippled from the ink map on light paper and from the light
+// map on dark, like the figure's dots (css/site.css --figure-preview).
+const PREVIEW = `(function(r,d){var t=r.getAttribute("data-theme"),dark=r.getAttribute("data-gear")==="two"||t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches),u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);`;
+
 const LINES = '<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
 
 function header(active) {
@@ -185,7 +190,7 @@ function home() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
   const featured = site.featured.map(slug => projects.find(p => p.slug === slug));
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
-  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', extra: `<link rel="preload" href="/assets/hero/preview.webp" as="image" fetchpriority="high" crossorigin>\n<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
+  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
 <body class="page-home">
 ${header('home')}
 <main id="main">

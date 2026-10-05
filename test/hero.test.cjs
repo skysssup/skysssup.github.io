@@ -174,10 +174,17 @@ test('the shipped hero data matches what the engine expects', () => {
     return [(bits & 0x3fff) + 1, ((bits >> 14) & 0x3fff) + 1];
   };
   assert.deepEqual(lossless('ink.webp'), [meta.size, meta.size]);
+  assert.deepEqual(lossless('light.webp'), [meta.size, meta.size]);
   assert.deepEqual(lossless('depth.webp'), [meta.depth, meta.depth]);
   assert.ok(meta.size >= 896, `the ink map is ${meta.size} px`);
-  const total = ['ink.webp', 'depth.webp', 'bluenoise.png', 'hero.json', 'color.webp'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
-  assert.ok(total < 200 * 1024, `hero data is ${total} bytes`);
+  // The budget holds per paper: a page loads only the dots' map for the paper it opens on (the ink map on light
+  // paper, the light map on dark; dotMap) and fetches the other only when the paper changes.
+  for (const [paper, map] of [['light', 'ink.webp'], ['dark', 'light.webp']]) {
+    const total = [map, 'depth.webp', 'bluenoise.png', 'hero.json', 'color.webp'].reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0);
+    assert.ok(total < 200 * 1024, `hero data on ${paper} paper is ${total} bytes`);
+  }
+  // each map has its still, which covers the figure until it is drawn, and a 512 px preview of it
+  for (const still of ['still', 'still-dark', 'preview', 'preview-dark']) assert.ok(fs.statSync(path.join(dir, `${still}.webp`)).size > 1000, still);
   const webp = fs.readFileSync(path.join(dir, 'color.webp'));
   assert.equal(webp.toString('ascii', 0, 4), 'RIFF');
   assert.equal(webp.toString('ascii', 8, 12), 'WEBP');
@@ -251,6 +258,12 @@ test('a dot takes the material at the nearest pixel, never a blend of two, and G
   assert.equal(hero.materialAt(rgba, size, -1, 2), 0, 'points off the map clamp to its edge');
   assert.equal(hero.tintFor({ gear: false }), 1);
   assert.equal(hero.tintFor({ gear: true }), 0.4);
+});
+
+test('the dots are ink on light paper and light on dark paper, Gear Two\'s included', () => {
+  assert.equal(hero.dotMap({ dark: false, gear: false }), 'ink');
+  assert.equal(hero.dotMap({ dark: true, gear: false }), 'light');
+  assert.equal(hero.dotMap({ dark: true, gear: true }), 'light');
 });
 
 test('glitch tiles are deterministic per frame, land inside the box on the figure, and jump sideways', () => {

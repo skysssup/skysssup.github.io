@@ -2,13 +2,18 @@
 
 Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at load:
 
-  assets/hero/ink.webp       896x896, lossless, gray: where the dots go, the engraving's ink density in 64 levels
+  assets/hero/ink.webp       896x896, lossless, gray: where the dots go on light paper, the engraving's ink density
+                             in 64 levels (dense where the statue is dark)
+  assets/hero/light.webp     896x896, lossless, gray: where the dots go on dark paper, where they stand for light
+                             (dense where the statue is lit), in 64 levels
   assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), G = detail
   assets/hero/color.webp     448x448, lossless RGBA: R = material (gold, marble, cloud, lightning, glint) x 51,
                              G = how strongly the pixel belongs to it, A = 128 + its sparkle highlights
   assets/hero/bluenoise.png  64x64 void-and-cluster threshold map, tiled by the engine
   assets/hero/hero.json      map sizes, figure bounds and centre of mass, used to frame the figure
-  assets/hero/still.webp     transparent still frame, used before WebGL starts and without WebGL
+  assets/hero/still.webp     transparent still frame, used before WebGL starts and without WebGL; preview.webp is
+                             the same at 512 px, preloaded; still-dark.webp and preview-dark.webp are drawn from the
+                             light map, for dark paper
 
 The source is the 424 px GitHub avatar (tools/hero/avatar-424.jpg) upscaled 4x into assets/avatar.jpg: an
 even blend of Real-ESRGAN x4plus, which sharpens edges, and Real-ESRNet x4plus, its PSNR-trained sibling,
@@ -185,7 +190,23 @@ def maps():
     ink = ink * (1 - zone) + sharp * zone
     detail = blurf(contrast, 3.0)
     detail = np.clip(detail / np.percentile(detail[mask > 0.5], 98), 0, 1)
-    return dep, ink, mask, detail
+
+    # The light map, for dark paper, where the dots are light: a positive engraving, like a lit statue in a dark room
+    # (the avatar is exactly that). Drawn from the ink map, white dots would make a negative: shadows and crevices
+    # bright, lit marble dark, the rim glowing. Here density follows the image's own light (lit marble dense, shadow
+    # sparse, highlights and its bright rims kept); the depth surface lit from the upper left adds the turn of the
+    # form; the image's local contrast, signed, keeps the features (the eye socket, the nostrils, the open mouth, the
+    # grooves between the muscles) as darker gaps between lit forms; steps in depth open thin gaps between forms
+    # (fingers against the palm); a soft shoulder keeps broad lit stone stippled instead of filling in; and where the
+    # statue meets the sky its edge falls away into the dark instead of glowing.
+    tone_l = blurf(lum, 0.6)
+    light = 0.08 + 0.92 * tone_l ** 1.1 + 0.10 * (lambert - 0.5) + 2.6 * (tone_l - blurf(tone_l, 2.0)) \
+        + 0.8 * (tone_l - blurf(tone_l, 6.0)) - 0.2 * step
+    light = 1.15 * (1 - np.exp(-np.clip(light, 0, None) / 1.15))
+    light = light * mask * (0.5 + 0.5 * smoothstep(0.5, 1.0, blurf((figure > 0.5).astype(np.float32), 1.5)))
+    sharp = np.clip(light + 0.8 * (light - blurf(light, 1.5)), 0, 1) * (mask > 0.02)
+    light = light * (1 - zone) + sharp * zone
+    return dep, ink, light, mask, detail
 
 
 # The five materials, in index order. css/site.css gives each a base and a lit color per mode.
@@ -317,11 +338,41 @@ def lossless(a, name):
     Image.fromarray(a).save(os.path.join(OUT, name), 'WEBP', lossless=True, quality=100, method=6, exact=True)
 
 
+def still(levels, bn, dep, detail, meta, suffix):
+    """Still frame: the same threshold stipple at 1000px with round dots, smaller where detail is high, placed the way
+    the engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in js/hero.js) and
+    each dot is foreshortened by its depth around the centre of mass. The still covers the page until the first frame
+    is drawn, so in the opening, where that frame is the figure held still in its ink, one turns into the other in
+    place. One still per dot map: still.webp and preview.webp from the ink map, still-dark.webp and
+    preview-dark.webp from the light map, for dark paper."""
+    res = 860
+    sx, sy, sv = stipple(levels, bn, res)
+    iy, ix = np.minimum((sy + 0.5) / res * N, N - 1).astype(int), np.minimum((sx + 0.5) / res * N, N - 1).astype(int)
+    sd, sz = detail[iy, ix], dep[iy, ix]
+    (x0, y0, x1, y1), (px, py) = meta['bounds'], meta['center']
+    k = 0.96 / max(x1 - x0, y1 - y0)
+    ox, oy = (1 - (x1 - x0) * k) / 2 - x0 * k, (1 - (y1 - y0) * k) / 2 - y0 * k
+    persp = 3.2 / (3.2 - (sz - 0.62) * 0.34)
+    fx, fy = (sx + 0.5) / res, (sy + 0.5) / res
+    S = 1000
+    u, v_ = (ox + (px + (fx - px) * persp) * k) * 2 * S, (oy + (py + (fy - py) * persp) * k) * 2 * S
+    im = Image.new('L', (S * 2, S * 2), 0)
+    dr = ImageDraw.Draw(im)
+    for cx, cy, v, dd, f in zip(u, v_, sv, sd, persp):
+        r = (0.9 + 0.55 * v) * 1.2 * (1 - 0.3 * dd) * k * f
+        dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(160 + 95 * min(1, v * 1.4)))
+    im = im.resize((S, S), Image.LANCZOS)
+    rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])
+    rgba.save(os.path.join(OUT, f'still{suffix}.webp'), 'WEBP', lossless=True, quality=100, method=6)
+    rgba.resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, f'preview{suffix}.webp'), 'WEBP', lossless=True, quality=100, method=6)
+    return len(sx)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     if '--upscale' in sys.argv:
         upscale()
-    dep, ink, mask, detail = maps()
+    dep, ink, light, mask, detail = maps()
     inside = half(mask) > 0.04
     index, weight, sparkle = material_map(inside)
     if '--color' in sys.argv:
@@ -330,6 +381,8 @@ def main():
     # The ink is quantized to 64 levels: the stipple cannot show finer steps, and it halves the file.
     levels = np.round(ink * (INK_LEVELS - 1)) / (INK_LEVELS - 1)
     lossless(u8(levels), 'ink.webp')
+    light_levels = np.round(light * (INK_LEVELS - 1)) / (INK_LEVELS - 1)
+    lossless(u8(light_levels), 'light.webp')
     relief = np.dstack([np.where(inside, np.maximum(u8(half(dep)), 1), 0), np.where(inside, u8(half(detail)), 0), np.zeros((M, M), np.uint8)])
     lossless(relief.astype(np.uint8), 'depth.webp')
     bn_path = os.path.join(OUT, 'bluenoise.png')
@@ -351,32 +404,9 @@ def main():
     }
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
-    # Still frame: the same threshold stipple at 1000px with round dots, smaller where detail is high, placed the
-    # way the engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in
-    # js/hero.js) and each dot is foreshortened by its depth around the centre of mass. The still covers the page
-    # until the first frame is drawn, so in the opening, where that frame is the figure held still in its ink, one
-    # turns into the other in place.
-    res = 860
-    sx, sy, sv = stipple(levels, bn, res)
-    iy, ix = np.minimum((sy + 0.5) / res * N, N - 1).astype(int), np.minimum((sx + 0.5) / res * N, N - 1).astype(int)
-    sd, sz = detail[iy, ix], dep[iy, ix]
-    (x0, y0, x1, y1), (px, py) = meta['bounds'], meta['center']
-    k = 0.96 / max(x1 - x0, y1 - y0)
-    ox, oy = (1 - (x1 - x0) * k) / 2 - x0 * k, (1 - (y1 - y0) * k) / 2 - y0 * k
-    persp = 3.2 / (3.2 - (sz - 0.62) * 0.34)
-    fx, fy = (sx + 0.5) / res, (sy + 0.5) / res
-    S = 1000
-    u, v_ = (ox + (px + (fx - px) * persp) * k) * 2 * S, (oy + (py + (fy - py) * persp) * k) * 2 * S
-    im = Image.new('L', (S * 2, S * 2), 0)
-    dr = ImageDraw.Draw(im)
-    for cx, cy, v, dd, f in zip(u, v_, sv, sd, persp):
-        r = (0.9 + 0.55 * v) * 1.2 * (1 - 0.3 * dd) * k * f
-        dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(160 + 95 * min(1, v * 1.4)))
-    im = im.resize((S, S), Image.LANCZOS)
-    rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])
-    rgba.save(os.path.join(OUT, 'still.webp'), 'WEBP', lossless=True, quality=100, method=6)
-    rgba.resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, 'preview.webp'), 'WEBP', lossless=True, quality=100, method=6)
-    print(json.dumps(meta), len(sx), 'still points')
+    n = still(levels, bn, dep, detail, meta, '')
+    still(light_levels, bn, dep, detail, meta, '-dark')
+    print(json.dumps(meta), n, 'still points')
 
 
 if __name__ == '__main__':
