@@ -53,6 +53,12 @@ CORE = (0.52, 0.63)
 FEATURES = [(0.497, 0.455, 0.094, 0.09, 0.0),     # the head, its face upturned, and its curls
             (0.236, 0.284, 0.064, 0.072, 0.0),    # the fist on the caduceus
             (0.852, 0.832, 0.108, 0.062, 0.2)]    # the open hand
+# The joints the figure lives about (figure units; measured on the avatar over a 0.05 grid), by part (PARTS, and the
+# staff: the caduceus below the fist, whose joint is the staff's foot, where it meets the shoulder): the big wing's root
+# at the shoulder blade, the top of the staff where the caduceus's small wings meet, the raised arm's shoulder, the neck,
+# the chest (the breath's centre, CORE), the outstretched arm's shoulder. Read from hero.json by js/hero.js (life()).
+JOINTS = {'wing': (0.395, 0.56), 'caduceus': (0.235, 0.115), 'arm': (0.4, 0.5), 'head': (0.5, 0.525),
+          'torso': CORE, 'reach': (0.585, 0.585), 'staff': (0.248, 0.57)}
 
 UPSCALERS = [  # (url, sha256)
     ('https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth',
@@ -791,6 +797,7 @@ def main():
         # where the engine draws the nearer part's edge
         'parts': PARTS,
         'over': OVER,
+        'joints': {name: list(j) for name, j in JOINTS.items()},
     }
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 

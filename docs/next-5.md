@@ -1,6 +1,15 @@
 # Handoff 5: finish the hero pass (the shine, a living figure, Tide's own entrance, the red cursor's dots, the docs)
 
-> **Status.** Live on `main`: step 7's engine side, Tide's vortex and tide ("Bring Tide into the figure…"; as briefed),
+> **Status.** Live on `main`: step 6, the living figure ("Let the figure live…": part labels in byte 29, `joints` in
+> `hero.json`, `life()` in JS and the parts' transforms in the shader, the currents of light with the dots riding them,
+> the curls and the snakes, the drifting key light, the drift halved). Where it departs from §3: the caduceus below the
+> fist is a part of its own in the vertex (label 8, the staff: the small wings beat about the staff's top while the
+> snakes sway below, pinned where they cross the staff, which holds still); the currents' displacement is the waves'
+> own longitudinal motion (no extra trig), with one dot in twenty riding 2.5× further; the breath is 0.5% about the
+> chest plus a 0.25% lift, and its cycle (4.5 s) is Tide's, so the chest rises with the tide; the head and the arms
+> only ride the breath (no turn of the head); and the colours of the currents lean the ink to the key by a few percent
+> only. The hold frame is bit-identical (every motion is exactly zero at rest). Before it: step 7's engine side, Tide's
+> vortex and tide ("Bring Tide into the figure…"; as briefed),
 > and step 5, the shine (`e4383f0`), after a commit that finds frames for the pass
 > (`b153719`: the cloud bank's own dots are not drawn while it is away; the ring draws a halo only where it hides
 > something). Where it departs from §3: the sweep's progress is linear (the cubic ease rushed the light across the

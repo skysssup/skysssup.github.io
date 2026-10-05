@@ -87,6 +87,85 @@
     return [-0.08 + 1.16 * easeInOut(clamp(at / 0.75, 0, 1)), 0.35 * smoothstep(0, 0.15, at) * (1 - smoothstep(0.55, 0.75, at))];
   }
 
+  // The figure's life: the small motions that make the statue breathe and stir. Each part of the statue (hero.json
+  // `parts`; the caduceus below the fist is a part of its own, the staff, so the snakes can move while its small wings
+  // beat) moves as a rigid body about a joint (hero.json `joints`, figure units, y down): the torso breathes, scaling
+  // about the chest and lifting, once every LIFE.breath seconds (in for the first 42% of the cycle, out for the rest,
+  // as a breath goes), and the head rides on it; the arms hang from the shoulders and follow at half; the big wing
+  // opens and closes about its root over LIFE.wing seconds, out of step with the breath, and tilts a little in depth
+  // as it does; the caduceus's small wings beat about the staff's top over LIFE.flutter seconds (the shader mirrors
+  // the turn either side of the staff); the outstretched arm turns about its shoulder by a hair over LIFE.reach
+  // seconds; the base, the clouds, holds its place. The key light drifts by a few degrees over LIFE.key seconds, as
+  // if clouds passed the sun. `life()` works it all out once a frame, as the shader's uniforms: `parts`, per label
+  // (0 none, then hero.json's parts, then the staff), the turn about the joint as (cos - 1, sin), then the shift, and
+  // `joints`, the joint and (scale - 1, the tilt in depth per unit of distance), all in the shader's space (the pivot
+  // at the origin, y up); `key`, the light's direction; `breath`, -1 to 1. `ease` (0..1) is how much of the life shows:
+  // at 0 everything is exactly at rest, so the drawn figure is the still one.
+  var PART_NAMES = ["wing", "caduceus", "arm", "head", "torso", "reach", "base", "staff"];
+  var LIFE = { breath: 4.5, wing: 7.3, flutter: 5.2, reach: 9.7, key: 25 };
+  var BREATH = { scale: 0.005, lift: 0.0025 }, WING = { turn: 0.03, tilt: 0.6 }, FLUTTER = 0.0105, REACH_TURN = 0.004, KEY_DRIFT = [0.07, 0.035];
+  // The caduceus below this height (figure units, the top of the fist) is the staff.
+  var STAFF_FROM = 0.29;
+  // The currents of light over the surface (the vertex shader): how much they brighten and shade the stone (a share of
+  // the dots' size and light), how far the dots ride them (in dots), and how far the curls sway (figure units); and
+  // how far the snakes sway about the staff (figure units).
+  var CURRENTS = { glow: 0.1, ride: 0.7, curls: 0.002 }, SNAKES = 0.003;
+  function breathAt(t) {
+    var q = ((t / LIFE.breath) % 1 + 1) % 1;
+    return 2 * (q < 0.42 ? smoothstep(0, 0.42, q) : 1 - smoothstep(0.42, 1, q)) - 1;
+  }
+  function life(t, joints, pivot, ease) {
+    var n = PART_NAMES.length + 1, parts = new Float32Array(n * 4), places = new Float32Array(n * 4), key = keyLight(0, 0);
+    var out = { parts: parts, joints: places, key: key, breath: 0 };
+    if (!(ease > 0) || !joints) return out;
+    var at = function (name) { return joints[name] || pivot; };
+    var breath = breathAt(t) * ease, core = at("torso");
+    out.breath = breath;
+    // the torso's displacement at a point (figure units, y down): its scale about the chest and its lift
+    var scale = BREATH.scale * breath, lift = -BREATH.lift * breath;
+    var carried = function (q, share) { return [(q[0] - core[0]) * scale * share, ((q[1] - core[1]) * scale + lift) * share]; };
+    var wingTurn = WING.turn * Math.sin(TAU * t / LIFE.wing + 1.2) * ease;
+    var motion = {
+      torso: { scale: scale },
+      head: { shift: carried(at("head"), 1) },
+      arm: { shift: carried(at("arm"), 0.5) },
+      caduceus: { shift: carried(at("arm"), 0.5), turn: FLUTTER * Math.sin(TAU * t / LIFE.flutter) * ease },
+      staff: { shift: carried(at("arm"), 0.5) },
+      wing: { shift: carried(at("wing"), 0.5), turn: wingTurn, tilt: WING.tilt * wingTurn },
+      reach: { shift: carried(at("reach"), 0.5), turn: REACH_TURN * Math.sin(TAU * t / LIFE.reach + 2.5) * ease }
+    };
+    PART_NAMES.forEach(function (name, i) {
+      var m = motion[name], j = at(name), o = (i + 1) * 4;
+      if (!m) return;
+      // a turn counter-clockwise on the page (figure units, y down) is clockwise with y up; a shift down is a shift
+      // down the shader's y
+      var turn = m.turn || 0, shift = m.shift || [0, 0];
+      parts[o] = Math.cos(turn) - 1;
+      parts[o + 1] = -Math.sin(turn);
+      parts[o + 2] = shift[0];
+      parts[o + 3] = -shift[1];
+      places[o] = j[0] - pivot[0];
+      places[o + 1] = pivot[1] - j[1];
+      places[o + 2] = m.scale || 0;
+      places[o + 3] = m.tilt || 0;
+    });
+    out.key = keyLight(KEY_DRIFT[0] * Math.sin(TAU * t / LIFE.key) * ease, KEY_DRIFT[1] * Math.sin(TAU * t / (LIFE.key * 1.5) + 1) * ease);
+    return out;
+  }
+  // The key light's direction, turned from its rest (LIGHT, the upper left, in front) by `yaw` and `pitch` (radians).
+  function keyLight(yaw, pitch) {
+    var q = rotate(LIGHT, yaw, pitch), l = Math.hypot(q[0], q[1], q[2]);
+    return [q[0] / l, q[1] / l, q[2] / l];
+  }
+  // The staff's axis (figure units, y down), from the top of the caduceus down to the staff's foot: where it starts and
+  // how far it leans per unit of height, for the shader (u_staff), so the snakes can coil about a staff that holds still
+  // and the caduceus's small wings can beat either side of it.
+  function staffAxis(joints) {
+    if (!joints || !joints.caduceus || !joints.staff) return [0, 0, 0];
+    var top = joints.caduceus, foot = joints.staff;
+    return [top[0], top[1], foot[1] > top[1] ? (foot[0] - top[0]) / (foot[1] - top[1]) : 0];
+  }
+
   // The opening, when the page is opened (opts.intro), in seconds: the figure holds still in its ink for `hold`; a
   // slower shine crosses it and leaves its colors in its wake; the sway runs `rate` times as fast until the figure has
   // turned once and come back to the middle (half a sway on its clock). From light or dark paper the page then goes
@@ -356,10 +435,11 @@
   // pairs of names from hero.json: the raised arm over the wing, the outstretched arm before the clouds), so a part that
   // grows out of its neighbour (an arm out of its shoulder) has no line there. Each stretch of the trace is resampled
   // every `spacing` px of the map. Returns { points: [x, y, out] per point, x and y in figure units and `out` which way
-  // is out of the part as a fraction of a turn, y down; field: the statue's blurred parts at their strongest, per pixel,
-  // whose half level is the outline, for clipping the stipple to it }.
+  // is out of the part as a fraction of a turn, y down; parts: the part each point belongs to (its number in `parts`,
+  // 1-based); field: the statue's blurred parts at their strongest, per pixel, whose half level is the outline, for
+  // clipping the stipple to it }.
   function edges(rgba, size, parts, over, sigma, spacing) {
-    var n = size * size, last = size - 1, label = new Uint8Array(n), solid = new Uint8Array(n), field = new Float32Array(n), out = [];
+    var n = size * size, last = size - 1, label = new Uint8Array(n), solid = new Uint8Array(n), field = new Float32Array(n), out = [], owners = [];
     for (var i = 0; i < n; i++) { label[i] = partOf(rgba, i); solid[i] = label[i] && rgba[i * 4 + 2] % PART_STEP === 0 ? 1 : 0; }
     var front = {}, base = (parts || []).indexOf("base") + 1;
     (over || []).forEach(function (pair) { front[((parts || []).indexOf(pair[0]) + 1) + "," + ((parts || []).indexOf(pair[1]) + 1)] = true; });
@@ -409,11 +489,12 @@
             if (!keep) continue;
             var turn = Math.atan2(oy, ox) / TAU;
             out.push((px + x0) / last, (py + y0) / last, turn < 0 ? turn + 1 : turn);
+            owners.push(p);
           }
         }
       }
     }
-    return { points: new Float32Array(out), field: field };
+    return { points: new Float32Array(out), parts: Uint8Array.from(owners), field: field };
   }
   // where the half level crosses side `e` of the cell at (x, y), whose corners (clockwise from the top left) hold `v`
   function cross(v, x, y, e) {
@@ -692,6 +773,11 @@
     "uniform float u_bank;",
     "uniform float u_vortex;",
     "uniform vec2 u_tide;",
+    "uniform vec4 u_parts[9];",
+    "uniform vec4 u_joints[9];",
+    "uniform vec4 u_staff;",
+    "uniform vec4 u_life;",
+    "uniform vec4 u_key;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -757,6 +843,32 @@
     // the statue's outline (a_w.x): a fine line of points that holds its place in the wind
     "  bool edge = a_w.x > 0.5;",
     "  vec3 p = vec3(a_p.x - u_pivot.x, u_pivot.y - a_p.y, (a_p.z - 0.62) * u_depth);",
+    // the figure's life (life() in JS, once a frame): each part of the statue (a_e.y, its label) moves as a rigid body
+    // about its joint (u_joints: the joint, the breath's scale, the wing's tilt in depth) by a small turn and shift
+    // (u_parts: cos - 1 and sin of the turn, the shift), so the torso breathes, the head rides on it, the arms follow,
+    // the big wing opens and closes, the outstretched arm turns by a hair; at rest every value is exactly zero and the
+    // dot stays where it is. The caduceus's two small wings beat about the staff in opposite turns (the staff's axis,
+    // u_staff: where it starts, how far it leans per unit of height, and the snakes' sway), and below the fist the two
+    // snakes coil about a staff that holds still: they sway sideways with a wave running up the staff, pinned where
+    // they cross it
+    "  int part = int(a_e.y * 255.0 + 0.5);",
+    "  vec4 T = u_parts[part], J = u_joints[part];",
+    "  float off = a_p.x - u_staff.x - (a_p.y - u_staff.y) * u_staff.z;",
+    "  T.y *= part == 2 ? sign(off) : 1.0;",
+    "  vec2 arm = p.xy - J.xy;",
+    "  p.xy += vec2(arm.x * T.x - arm.y * T.y, arm.x * T.y + arm.y * T.x) + arm * J.z + T.zw;",
+    "  p.z += arm.x * J.w;",
+    "  p.x += (part == 8 ? smoothstep(0.004, 0.016, abs(off)) * sin(u_time * 1.3 - a_p.y * 18.0) : 0.0) * u_staff.w;",
+    // slow currents of light drift over the surface (u_life: their strength, how far the dots ride them, how far the
+    // curls sway, all 0 while the figure holds still), like light through water: three waves in the figure's own
+    // coordinates, each moving its own way at its own pace, brighten the surface where they crest and darken it in
+    // their troughs, and the dots ride them a little along the wave, bunching towards the light, a few of them further,
+    // like grains carried by a current; the curls (the head's gold) sway with the breeze (u_wind), rippling as they go
+    "  float c1 = sin(dot(a_p.xy, vec2(11.0, 6.0)) - u_time * 0.5), c2 = sin(dot(a_p.xy, vec2(-7.0, 15.0)) + u_time * 0.37 + 1.7), c3 = sin(dot(a_p.xy, vec2(19.0, -9.0)) - u_time * 0.7 + 4.1);",
+    "  float current = (c1 + 0.8 * c2 + 0.6 * c3) / 2.4;",
+    "  float grain = (edge || a_e.w > 0.5) ? 0.0 : 1.0 + 1.5 * step(s3, 0.05);",
+    "  p.xy += (vec2(0.8779, -0.4789) * c1 + vec2(-0.3383, -0.7250) * c2 + vec2(0.5423, 0.2569) * c3) * u_life.y * grain;",
+    "  p.xy += vec2(u_wind.x, -u_wind.y) * (0.65 + 0.35 * sin(u_time * 0.9 + a_p.y * 40.0 + a_p.x * 25.0)) * u_life.z * float(part == 4 && a_c.r < 0.1);",
     // assemble from a scattered shell, centre first
     "  float reach = length(p.xy);",
     "  float k = clamp((u_build - 0.15 - reach * 0.9 - s3 * 0.35) / 0.9, 0.0, 1.0);",
@@ -783,7 +895,8 @@
     // light from the upper left, in front. Where the dots are ink, lit stone gets smaller, fainter dots and grazing
     // edges heavier ones; where they are light (u_positive, on dark paper), lit stone gets larger, brighter dots and
     // the surface dims as it turns away, so the edges fall into the dark
-    "  float lam = max(0.0, dot(n, normalize(vec3(-0.45, 0.6, 0.66))));",
+    // (the key drifts by a few degrees as the figure lives, u_key, as if clouds passed the sun; at rest it is this one)
+    "  float lam = max(0.0, dot(n, mix(normalize(vec3(-0.45, 0.6, 0.66)), u_key.xyz, u_key.w)));",
     "  float turned = 1.0 - clamp(n.z, 0.0, 1.0), rim = turned * turned * turned;",
     "  float shade = mix(mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim), mix(0.88, 1.12, lam) * (1.0 - 0.3 * rim), u_positive);",
     "  float fade = mix(mix(1.0, 0.86, lam), mix(0.78, 1.0, lam) * (1.0 - 0.35 * rim), u_positive);",
@@ -975,6 +1088,12 @@
     // light and a cool fill where it turns away (u_tone: fill, key)
     "  vec3 tone = mix(u_tone[0], u_tone[1], smoothstep(0.1, 0.85, lam));",
     "  vec3 col = mix(mix(u_color, tone, tint), mat, a_c.g * tint);",
+    // the currents of light (current, u_life.x): at a crest the stone is lit, in a trough shaded; where the dots are ink
+    // that is smaller dots, leaning a little to the key's warmth, and where they are light, larger and brighter ones;
+    // twice as strong while a sheen's wash passes
+    "  float glow = u_life.x * current * (1.0 + wash);",
+    "  shade *= 1.0 + glow * mix(-1.0, 1.25, u_positive);",
+    "  col = mix(col, u_tone[1], max(u_life.x * current, 0.0) * 1.5 * tint * (1.0 - a_c.g));",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853)) * min(1.0, tint * 2.5);",
@@ -1009,7 +1128,7 @@
     "    if (r01(key) < 0.1 && f > 0.0 && f < 1.0) {",
     "      vis = f < 0.6 ? 1.0 - smoothstep(0.0, 0.6, f) : smoothstep(0.7, 1.0, f);",
     "      vec2 way = u_wind + 0.6 * vec2(sin(a_p.y * 9.0 + u_time * 0.3), cos(a_p.x * 8.0 - u_time * 0.25));",
-    "      if (f < 0.7) flow += normalize(way) * (u_span.y - u_span.x) * (0.006 + 0.008 * s2) * smoothstep(0.0, 0.6, f);",
+    "      if (f < 0.7) flow += normalize(way) * (u_span.y - u_span.x) * (0.003 + 0.004 * s2) * smoothstep(0.0, 0.6, f);",
     "    }",
     "  }",
     "  px += (glint || edge ? vec2(0.0) : flow) + u_offset;",
@@ -1024,7 +1143,7 @@
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * fade * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  v_alpha = mix(v_alpha, u_alpha, max(max(max(band, max(fringe * 0.6, wash * 0.5)), star), blown)) * show;",
-    "  v_alpha *= vis * (1.0 - hidden) * (1.0 - 0.5 * wash * (1.0 - lam) * u_positive);",
+    "  v_alpha *= vis * (1.0 - hidden) * (1.0 - 0.5 * wash * (1.0 - lam) * u_positive) * (1.0 + glow * 1.5 * u_positive);",
     "  v_star = star;",
     "  v_blown = blown;",
     "  v_heading = normalize(heading);",
@@ -1262,6 +1381,8 @@
     var cpuMs = 0, telemetryAt = 0;
     // Tide's entrance: when its surge began (0 when none runs), whether its sheen is still to come, and the page's phase
     var vortexAt = 0, vortexShine = false, phaseNow = null;
+    // the staff's axis (staffAxis()), for the snakes and the caduceus's small wings
+    var staff = [0, 0, 0];
 
     function paintLights() {
       colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); });
@@ -1328,7 +1449,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_way", "u_wayk", "u_drift", "u_sky", "u_tiles", "u_wind", "u_bank", "u_vortex", "u_tide"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_way", "u_wayk", "u_drift", "u_sky", "u_tiles", "u_wind", "u_bank", "u_vortex", "u_tide", "u_parts", "u_joints", "u_staff", "u_life", "u_key"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1431,6 +1552,8 @@
         bytes[o + 2] = details[d * 4 + 1];
         bytes[o + 3] = tints ? tints[d * 4 + 3] : 0;
         if (bank[d]) bytes[o + 4] = 255;
+        // the part of the statue the dot belongs to, which moves it as the figure lives (life())
+        bytes[o + 5] = labelAt(spots[d * 3], spots[d * 3 + 1]);
         // how much smaller the dot is drawn on the fine grid
         bytes[o + 6] = Math.round(fineScale(fine, spots[d * 3 + 2]) * 255);
         // which way is out of the figure from the dot, and how far in it lies (255 for a tenth of the figure or more)
@@ -1450,6 +1573,8 @@
         floats[at + 3] = stars[j * 3 + 2];
         bytes[(m + j) * VERTEX + 24] = MARBLE;
         bytes[(m + j) * VERTEX + 28] = bankAt(stars[j * 3], stars[j * 3 + 1]) > 127 ? 255 : 0;
+        // a star on the wing or the caduceus moves with it
+        bytes[(m + j) * VERTEX + 29] = labelAt(stars[j * 3], stars[j * 3 + 1]);
         bytes[(m + j) * VERTEX + 31] = 255;
       }
       // and the stars of the sky, far behind the figure, flagged in the material's weight (a_c.g), which a glint has
@@ -1478,6 +1603,7 @@
         bytes[eo] = palette ? materialAt(palette.data, palette.width, lines[ei * 3], lines[ei * 3 + 1]) : MARBLE;
         bytes[eo + 1] = edgeTints ? edgeTints[ei * 4 + 1] : 0;
         bytes[eo + 3] = 128;
+        bytes[eo + 5] = staffOr(traced.parts[ei], lines[ei * 3 + 1]);
         bytes[eo + 8] = 255;
         bytes[eo + 10] = Math.round(lines[ei * 3 + 2] * 255);
       }
@@ -1539,6 +1665,17 @@
       if (shown < 0 || shown === announced) return;
       announced = shown;
       if (opts.onCount) opts.onCount(shown);
+    }
+
+    // The part of the statue at a point (figure units), as the vertex carries it (a_e.y): its number in hero.json's
+    // parts (partOf), the caduceus below the top of the fist counted as the staff (one more than the last part), and
+    // 0 outside the figure, where nothing moves.
+    function labelAt(fx, fy) {
+      var last = relief.width - 1;
+      return staffOr(partOf(relief.data, Math.round(clamp(fy, 0, 1) * last) * relief.width + Math.round(clamp(fx, 0, 1) * last)), fy);
+    }
+    function staffOr(part, fy) {
+      return meta.parts && part === meta.parts.indexOf("caduceus") + 1 && fy >= STAFF_FROM ? meta.parts.length + 1 : part;
     }
 
     // The cloud bank's share of the figure at a point (figure units): the color map's blue, 0..255.
@@ -1958,7 +2095,8 @@
       gl.uniform2i(U.u_blast, strikes, puffing);
       gl.uniform1f(U.u_blink, live && !still ? (gear ? 2 : 1) : 0);
       gl.uniform1f(U.u_beat, beat);
-      gl.uniform1f(U.u_dot, Math.max(1.1, cell * 1.3));
+      var dotPx = Math.max(1.1, cell * 1.3);
+      gl.uniform1f(U.u_dot, dotPx);
       gl.uniform1f(U.u_dpr, dpr);
       gl.uniform1f(U.u_glitch, glitch);
       gl.uniform4fv(U.u_tile, tileFlat);
@@ -1997,6 +2135,14 @@
       else if (!breezeFrom) breezeFrom = t;
       if (breezeFrom) gl.uniform4f(U.u_breeze, smoothstep(0, 2, t - breezeFrom), gear ? BREEZE_GEAR : BREEZE, flare, breezeFrom);
       else gl.uniform4f(U.u_breeze, 0, 0, 0, 0);
+      // the figure's life (life()): the parts' breathing, beating, and swaying, the currents of light, the key light's
+      // drift, all easing in with the breeze and exactly at rest while the figure holds still or under reduced motion
+      var ease = breezeFrom ? smoothstep(0, 2, t - breezeFrom) : 0, living = life(t, meta.joints, meta.center, ease);
+      gl.uniform4fv(U.u_parts, living.parts);
+      gl.uniform4fv(U.u_joints, living.joints);
+      gl.uniform4f(U.u_staff, staff[0], staff[1], staff[2], SNAKES * ease);
+      gl.uniform4f(U.u_life, CURRENTS.glow * ease, CURRENTS.ride * dotPx / place.scale * ease, CURRENTS.curls * ease, 0);
+      gl.uniform4f(U.u_key, living.key[0], living.key[1], living.key[2], ease > 0 ? 1 : 0);
       gl.uniform3fv(U.u_light, lights);
       gl.uniform3fv(U.u_tone, tones);
       gl.uniform3fv(U.u_glint, glintColors);
@@ -2274,6 +2420,10 @@
           (data.core != null && !(Array.isArray(data.core) && data.core.length === 2 && data.core.every(normalized))) ||
           (data.features != null && !(Array.isArray(data.features) && data.features.every(function (z) {
             return Array.isArray(z) && z.length === 5 && z.every(Number.isFinite) && normalized(z[0]) && normalized(z[1]) && z[2] > 0 && z[3] > 0 && z[2] < 0.5 && z[3] < 0.5;
+          }))) ||
+          (data.joints != null && !(typeof data.joints === "object" && !Array.isArray(data.joints) && Object.keys(data.joints).every(function (name) {
+            var j = data.joints[name];
+            return PART_NAMES.indexOf(name) >= 0 && Array.isArray(j) && j.length === 2 && j.every(normalized);
           })))) throw new Error("hero metadata is invalid");
       sources[first] = all[0];
       set = first;
@@ -2281,6 +2431,7 @@
       field = reliefField(relief.data, relief.width, 1.5);
       noise = { width: all[2].width, data: (function () { var d = all[2].data, o = new Uint8Array(d.length / 4); for (var i = 0; i < o.length; i++) o[i] = d[i * 4]; return o; })() };
       meta = data;
+      staff = staffAxis(meta.joints);
       palette = all[4];
       initialize();
       follow();
@@ -2311,6 +2462,13 @@
     tide: tide,
     VORTEX: VORTEX,
     TIDE: TIDE,
+    life: life,
+    breathAt: breathAt,
+    keyLight: keyLight,
+    staffAxis: staffAxis,
+    LIFE: LIFE,
+    PART_NAMES: PART_NAMES,
+    STAFF_FROM: STAFF_FROM,
     spring: spring,
     rippleWeight: rippleWeight,
     fadeAway: fadeAway,

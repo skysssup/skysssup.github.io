@@ -27,7 +27,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
   t.after(() => context.close());
   if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [], u_life: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -476,6 +476,37 @@ test('Tide comes in with a vortex that settles as a sheen crosses it, then keeps
   assert.ok(quiet.u_tide.every(([, v]) => v[0] === 0 && v[1] === 0), 'and without a tide');
 });
 
+test('the figure lives once it has assembled: it breathes, its wing beats, currents of light cross it, and its key light drifts; under reduced motion it holds entirely still', async t => {
+  const { page } = await open(t);
+  await live(page);
+  await page.waitForFunction(() => window.__heroProbe.series.u_life.some(([, x]) => x > 0.05), null, { timeout: 12000 });
+  const first = (await state(page)).uniforms;
+  await page.waitForTimeout(1300);
+  const then = (await state(page)).uniforms;
+  // u_parts: nine parts of four (cos - 1, sin, shift x, shift y); u_joints: the joint and (scale - 1, tilt). The torso is
+  // part 5, the wing part 1, the caduceus 2 (hero.json's order), the base 7
+  const scale = u => u.u_joints[5 * 4 + 2], wing = u => u.u_parts[1 * 4 + 1], flutter = u => u.u_parts[2 * 4 + 1];
+  assert.ok(first.u_life[0] > 0.05 && first.u_life[1] > 0 && first.u_life[2] > 0, `the currents run and the dots ride them (${first.u_life})`);
+  assert.ok(first.u_life[0] <= 0.1 + 1e-6, 'and brighten the stone by a tenth at most');
+  assert.notEqual(scale(first), scale(then), 'the torso breathes');
+  assert.ok(Math.abs(scale(first)) <= 0.005 + 1e-6 && Math.abs(scale(then)) <= 0.005 + 1e-6, 'by half a percent at most');
+  assert.notEqual(wing(first), wing(then), 'the wing beats');
+  assert.notEqual(flutter(first), flutter(then), 'and the caduceus\'s small wings with it');
+  assert.ok([0, 1, 2, 3].every(i => first.u_parts[7 * 4 + i] === 0 && then.u_parts[7 * 4 + i] === 0), 'the clouds hold their place');
+  assert.equal(first.u_key[3], 1, 'the key light is the drifting one');
+  assert.ok(Math.abs(Math.hypot(first.u_key[0], first.u_key[1], first.u_key[2]) - 1) < 1e-5 && first.u_key[0] < 0 && first.u_key[1] > 0 && first.u_key[2] > 0, `from the upper left, in front (${first.u_key.slice(0, 3)})`);
+  assert.ok(first.u_staff[3] > 0 && first.u_staff[1] < 0.29 && first.u_staff[1] > 0, `the snakes sway about the staff's axis (${first.u_staff})`);
+
+  const still = await open(t, { reduced: true });
+  await live(still.page);
+  await stillDrawing(still.page);
+  const quiet = (await state(still.page)).uniforms;
+  assert.deepEqual(quiet.u_life, [0, 0, 0, 0], 'no currents under reduced motion');
+  assert.ok(quiet.u_parts.every(v => v === 0) && quiet.u_joints.every((v, i) => i % 4 < 2 || v === 0), 'no breath, no beat, no tilt');
+  assert.equal(quiet.u_key[3], 0, 'and the key light holds still');
+  assert.equal(quiet.u_staff[3], 0, 'and so do the snakes');
+});
+
 test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {
   const { page } = await open(t);
   await live(page);
@@ -788,6 +819,8 @@ test('the opening holds the figure still in its ink, shines its colors in, and t
   assert.deepEqual(held.u_rot, [0, 0], 'facing the viewer, as the still that covered the page did');
   assert.deepEqual(held.u_blink, [0], 'and nothing blinks');
   assert.equal(held.u_breeze[0], 0, 'and no breeze takes its dots');
+  assert.deepEqual(held.u_life, [0, 0, 0, 0], 'no currents of light run over it');
+  assert.ok(held.u_parts.every(v => v === 0) && held.u_key[3] === 0, 'it does not breathe, and its light holds still');
   await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'turn', null, { timeout: 15000 });
   const { stages: changes, liveAt } = await page.evaluate(() => ({ stages: window.__stages, liveAt: window.__liveAt }));
   const hold = changes.find(([, stage]) => stage === 'shine')[0] - liveAt;

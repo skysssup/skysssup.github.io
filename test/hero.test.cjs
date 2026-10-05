@@ -207,6 +207,103 @@ test('Tide comes in with a vortex that lifts and settles in about a second, and 
   assert.ok(Math.max(...Array.from({ length: 100 }, (_, i) => at(i / 100)[1])) <= 0.4, 'a soft light, never more than 0.4');
 });
 
+test('the figure lives about its joints: the torso breathes and the head rides on it, the arms follow at half, the wing beats, the key light drifts; at rest nothing moves at all', () => {
+  const { life, breathAt, keyLight, staffAxis, LIFE, PART_NAMES } = hero;
+  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'hero', 'hero.json'), 'utf8'));
+  const slot = name => (PART_NAMES.indexOf(name) + 1) * 4;
+  const restLight = keyLight(0, 0);
+  for (const still of [life(3.7, meta.joints, meta.center, 0), life(3.7, null, meta.center, 1), life(0, meta.joints, meta.center, -1)]) {
+    assert.ok(Array.from(still.parts).every(v => v === 0) && Array.from(still.joints).every(v => v === 0), 'at rest every turn, shift, scale, and tilt is exactly zero');
+    assert.deepEqual(still.key, restLight, 'and the key light is where it always was');
+    assert.equal(still.breath, 0);
+  }
+  assert.ok(Math.abs(Math.hypot(...restLight) - 1) < 1e-12 && restLight[0] < 0 && restLight[1] > 0 && restLight[2] > 0, 'the key light comes from the upper left, in front');
+  // the breath: in for the first 42% of the cycle, out for the rest, between -1 and 1, once every LIFE.breath seconds
+  assert.ok(Math.abs(breathAt(0) + 1) < 1e-9 && Math.abs(breathAt(0.42 * LIFE.breath) - 1) < 1e-9, 'a breath goes from all out to all in');
+  for (let t = 0; t < LIFE.breath; t += 0.01) {
+    const b = breathAt(t), next = breathAt(t + 0.01);
+    assert.ok(b >= -1 - 1e-9 && b <= 1 + 1e-9);
+    if (t + 0.01 < 0.42 * LIFE.breath) assert.ok(next >= b, 'in'); else if (t > 0.42 * LIFE.breath && t + 0.01 < LIFE.breath) assert.ok(next <= b, 'and out, more slowly');
+    assert.ok(Math.abs(breathAt(t + 3 * LIFE.breath) - b) < 1e-9, 'once a period');
+  }
+  const same = life(11.3, meta.joints, meta.center, 1), again = life(11.3, meta.joints, meta.center, 1);
+  assert.deepEqual(same, again, 'deterministic');
+  let torsoMax = 0, wingMax = 0, flutterMax = 0, reachMax = 0, tilts = 0, keyDrift = 0, headHigh = 0, headLow = 0;
+  for (let t = 0; t < 60; t += 0.05) {
+    const m = life(t, meta.joints, meta.center, 1), P = m.parts, J = m.joints;
+    const breath = m.breath, scale = J[slot('torso') + 2], neck = meta.joints.head, core = meta.joints.torso;
+    assert.ok(Math.abs(scale - 0.005 * breath) < 1e-9, 'the torso scales about the chest with the breath');
+    assert.equal(P[slot('torso')], 0, 'and does not turn');
+    torsoMax = Math.max(torsoMax, Math.abs(scale));
+    // the head rides on the torso: its shift is the torso's displacement at the neck (figure units, y down, so a rise is
+    // a positive shift in the shader's y up); the arms, the wing, and the staff follow their shoulders at half
+    const lift = -0.0025 * breath, dx = (neck[0] - core[0]) * scale, dy = (neck[1] - core[1]) * scale + lift;
+    assert.ok(Math.abs(P[slot('head') + 2] - dx) < 1e-9 && Math.abs(P[slot('head') + 3] + dy) < 1e-9, 'the head rides on the chest');
+    if (breath > 0.99) headHigh = P[slot('head') + 3]; if (breath < -0.99) headLow = P[slot('head') + 3];
+    for (const name of ['arm', 'caduceus', 'staff', 'wing', 'reach']) {
+      const j = meta.joints[name === 'caduceus' || name === 'staff' ? 'arm' : name];
+      const ex = (j[0] - core[0]) * scale * 0.5, ey = ((j[1] - core[1]) * scale + lift) * 0.5;
+      assert.ok(Math.abs(P[slot(name) + 2] - ex) < 1e-9 && Math.abs(P[slot(name) + 3] + ey) < 1e-9, `${name} follows its shoulder at half`);
+    }
+    const turnOf = name => Math.atan2(-P[slot(name) + 1], P[slot(name)] + 1);
+    wingMax = Math.max(wingMax, Math.abs(turnOf('wing')));
+    flutterMax = Math.max(flutterMax, Math.abs(turnOf('caduceus')));
+    reachMax = Math.max(reachMax, Math.abs(turnOf('reach')));
+    assert.equal(turnOf('staff'), 0, 'the staff never turns: the snakes move in the shader');
+    assert.equal(turnOf('head'), 0, 'the head never turns');
+    assert.ok(Math.abs(J[slot('wing') + 3] - 0.6 * turnOf('wing')) < 1e-6, 'the wing tilts in depth as it turns');
+    tilts += Math.abs(J[slot('wing') + 3]) > 0 ? 1 : 0;
+    for (let i = 0; i < 4; i++) assert.equal(P[slot('base') + i], 0, 'the clouds hold their place');
+    for (const name of PART_NAMES) {
+      const j = meta.joints[name] || meta.center;
+      assert.ok(Math.abs(J[slot(name)] - (j[0] - meta.center[0])) < 1e-6 && Math.abs(J[slot(name) + 1] - (meta.center[1] - j[1])) < 1e-6, `${name}'s joint, about the pivot, y up`);
+    }
+    assert.ok(Math.abs(Math.hypot(...m.key) - 1) < 1e-6, 'the key light stays a unit vector');
+    keyDrift = Math.max(keyDrift, Math.acos(Math.min(1, m.key[0] * restLight[0] + m.key[1] * restLight[1] + m.key[2] * restLight[2])));
+  }
+  assert.ok(torsoMax > 0.004 && torsoMax <= 0.005 + 1e-9, `the breath scales the torso by up to half a percent (${torsoMax})`);
+  assert.ok(headHigh > 0 && headLow < 0, 'the head rises with a breath in and falls with a breath out');
+  assert.ok(wingMax > 0.025 && wingMax <= 0.03 + 1e-9, `the wing beats by up to 1.7 degrees (${wingMax})`);
+  assert.ok(flutterMax > 0.009 && flutterMax <= 0.0105 + 1e-9, `the caduceus's wings beat by up to 0.6 degrees (${flutterMax})`);
+  assert.ok(reachMax > 0.003 && reachMax <= 0.004 + 1e-9, `the outstretched arm turns by a hair (${reachMax})`);
+  assert.ok(tilts > 0);
+  assert.ok(keyDrift > 0.05 && keyDrift < 0.09, `the key light drifts by a few degrees (${(keyDrift * 180 / Math.PI).toFixed(1)})`);
+  // the ease scales everything down to rest
+  const half = life(11.3, meta.joints, meta.center, 0.5), full = life(11.3, meta.joints, meta.center, 1);
+  assert.ok(Math.abs(half.joints[slot('torso') + 2] - 0.5 * full.joints[slot('torso') + 2]) < 1e-9);
+  // the staff's axis runs from the top of the caduceus down to the staff's foot, leaning a little
+  const axis = staffAxis(meta.joints);
+  assert.deepEqual(axis.slice(0, 2), meta.joints.caduceus);
+  assert.ok(Math.abs(axis[2] - (meta.joints.staff[0] - meta.joints.caduceus[0]) / (meta.joints.staff[1] - meta.joints.caduceus[1])) < 1e-12);
+  assert.deepEqual(staffAxis(null), [0, 0, 0]);
+});
+
+test('the shipped joints sit on the figure, one for every part of the statue, and the parts are in the order the shader knows', () => {
+  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'hero', 'hero.json'), 'utf8'));
+  assert.deepEqual(meta.parts, hero.PART_NAMES.slice(0, -1), 'the shader picks the caduceus, the head, and the staff by their numbers');
+  for (const name of ['wing', 'caduceus', 'arm', 'head', 'torso', 'reach', 'staff']) {
+    const j = meta.joints[name];
+    assert.ok(Array.isArray(j) && j.length === 2, `${name} has a joint`);
+    assert.ok(j[0] > meta.bounds[0] && j[0] < meta.bounds[2] && j[1] > meta.bounds[1] && j[1] < meta.bounds[3], `${name}'s joint lies within the statue's bounds`);
+  }
+  assert.deepEqual(meta.joints.torso, meta.core, 'the breath is centred on the chest');
+  assert.ok(meta.joints.caduceus[1] < hero.STAFF_FROM && meta.joints.staff[1] > hero.STAFF_FROM, 'the caduceus splits into its wings above the fist and the staff below');
+  assert.ok(Object.keys(meta.joints).every(name => hero.PART_NAMES.indexOf(name) >= 0), 'every joint names a part');
+});
+
+test('each point of the outline knows which part it belongs to', () => {
+  const size = 48, rgba = new Uint8ClampedArray(size * size * 4), parts = ['near', 'far', 'base'];
+  const paint = (test, part, depth) => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (test(x, y)) { const i = (y * size + x) * 4; rgba[i] = depth; rgba[i + 2] = part * 32; } };
+  paint((x, y) => x >= 8 && x <= 30 && y >= 8 && y <= 30, 2, 120);
+  paint((x, y) => Math.hypot(x - 30, y - 20) <= 8, 1, 200);
+  const lines = hero.edges(rgba, size, parts, [['near', 'far']], 1.2, 0.5);
+  assert.equal(lines.parts.length, lines.points.length / 3, 'one part per point');
+  for (let i = 0; i < lines.parts.length; i++) {
+    const x = lines.points[i * 3] * (size - 1), y = lines.points[i * 3 + 1] * (size - 1), onDisc = Math.abs(Math.hypot(x - 30, y - 20) - 8) < 0.6;
+    assert.equal(lines.parts[i], onDisc ? 1 : 2, `the point at ${x.toFixed(1)}, ${y.toFixed(1)} belongs to the ${onDisc ? 'disc' : 'square'}`);
+  }
+});
+
 test('the shipped hero data matches what the engine expects', () => {
   const dir = path.join(__dirname, '..', 'assets', 'hero');
   const meta = JSON.parse(fs.readFileSync(path.join(dir, 'hero.json'), 'utf8'));

@@ -3,7 +3,8 @@
 //   CHROME_PATH=/usr/bin/google-chrome-stable node tools/qa/reel.mjs <out-dir>
 //   ffmpeg -framerate 25 -i <out-dir>/f%04d.png -vf "scale=672:-2,format=yuv420p" -c:v libx264 -crf 25 reel.mp4
 // The segments are at the bottom: the light opening, dark paper through a turn and its sheen, the cursor stirring.
-// Edit them to show what changed. ORIGIN uses a running server; otherwise the repository is served.
+// Edit them to show what changed. ORIGIN uses a running server; otherwise the repository is served. FREEZE=1 holds the
+// figure's turn still (u_rot pinned at rest), so that what moves in the frames is the figure's own life alone.
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
@@ -18,7 +19,7 @@ const FPS = +(process.env.FPS || 25), W = +(process.env.W || 1440), H = +(proces
 let frame = 0;
 async function segment({ theme, intro, seconds, skip = 0, mouse = null, label }) {
   const context = await browser.newContext({ viewport: { width: W, height: H }, colorScheme: theme === 'light' ? 'light' : 'dark', deviceScaleFactor: 1 });
-  await context.addInitScript(({ theme, intro }) => {
+  await context.addInitScript(({ theme, intro, freeze }) => {
     try {
       if (!sessionStorage.getItem('qa-seeded')) {
         sessionStorage.setItem('qa-seeded', '1');
@@ -28,6 +29,11 @@ async function segment({ theme, intro, seconds, skip = 0, mouse = null, label })
         if (theme === 'blue') sessionStorage.setItem('sky-gear', 'blue');
       }
     } catch (e) {}
+    if (freeze) {
+      const proto = WebGL2RenderingContext.prototype, names = new WeakMap(), loc = proto.getUniformLocation, u2 = proto.uniform2f;
+      proto.getUniformLocation = function (p, n) { const r = loc.call(this, p, n); if (r) names.set(r, n); return r; };
+      proto.uniform2f = function (l, a, b) { return names.get(l) === 'u_rot' ? u2.call(this, l, 0.12, 0.02) : u2.call(this, l, a, b); };
+    }
     let now = performance.now(), frames = [], timers = [], id = 0;
     performance.now = () => now;
     window.requestAnimationFrame = fn => { frames.push([++id, fn]); return id; };
@@ -42,7 +48,7 @@ async function segment({ theme, intro, seconds, skip = 0, mouse = null, label })
       due.forEach(([, fn]) => fn(now));
       return document.getElementById('figure').classList.contains('is-live');
     };
-  }, { theme, intro });
+  }, { theme, intro, freeze: !!process.env.FREEZE });
   const page = await context.newPage();
   await page.goto(ORIGIN + '/', { waitUntil: 'networkidle' });
   let live = false;
