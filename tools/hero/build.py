@@ -18,11 +18,12 @@ Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at 
 The source is the 424 px GitHub avatar (tools/hero/avatar-424.jpg) upscaled 4x into assets/avatar.jpg: an
 even blend of Real-ESRGAN x4plus, which sharpens edges, and Real-ESRNet x4plus, its PSNR-trained sibling,
 which does not invent texture (both BSD-3-Clause). The depth map comes from Depth Anything V2 Base
-(CC BY-NC 4.0) run at 1036 px and is cached as 16-bit in tools/hero/depth.png. Rebuilding from the caches
-needs only numpy and Pillow; --upscale and --depth redo those steps (torch, spandrel, transformers).
---color stops after the material map (color.webp).
+(CC BY-NC 4.0) run at 1036 px and is cached as 16-bit in tools/hero/depth.png; the surface normals from Marigold
+normals v1.1 (CreativeML Open RAIL++-M) run at 768 px, cached in tools/hero/normals.png. Rebuilding from the
+caches needs only numpy and Pillow; --upscale, --depth, and --normals redo those steps (torch, spandrel,
+transformers, diffusers). --color stops after the material map (color.webp).
 
-    python3 tools/hero/build.py [--upscale] [--depth] [--color]
+    python3 tools/hero/build.py [--upscale] [--depth] [--normals] [--color]
 """
 import hashlib, json, os, sys, urllib.request
 import numpy as np
@@ -34,13 +35,11 @@ AVATAR = os.path.join(ROOT, 'assets', 'avatar.jpg')
 N = 896          # ink map: about one map pixel per stipple cell at the largest figure
 M = 448          # depth, detail, and color maps: smooth fields, half the resolution
 DEPTH_INPUT = 1036
+NORMALS_INPUT = 768
 INK_LEVELS = 64
 DENSITY = 0.85
-# The face and the hands, as soft ellipses (x, y, rx, ry, turn in radians; figure units, 0..1 across the map):
-# the ink is sharpened inside them so the eye socket, the open mouth, and the fingers stand off the stone.
-FINE = [(0.497, 0.455, 0.094, 0.09, 0.0),     # the head, its face upturned
-        (0.236, 0.284, 0.064, 0.072, 0.0),    # the fist on the caduceus
-        (0.852, 0.832, 0.108, 0.062, 0.2)]    # the open hand
+SHARPEN = 0.7                          # the unsharp mask over the whole figure
+CAVITY_INK, CAVITY_LIGHT = 0.35, 0.45  # how much a hollow darkens the ink, and takes from the light
 
 UPSCALERS = [  # (url, sha256)
     ('https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth',
@@ -98,6 +97,52 @@ def depth_map():
     return np.asarray(Image.fromarray(d).resize((N, N), Image.BICUBIC))
 
 
+def normal_map():
+    """Surface normals at N px (x right, y down, z towards the viewer) from Marigold normals v1.1 (CreativeML Open
+    RAIL++-M), run on the upscale at the model's working resolution, 768 px, five predictions ensembled (at each pixel
+    the one nearest their mean), and cached as an ordinary 8-bit normal map in tools/hero/normals.png (x right, y up).
+    The depth map is smooth over the torso and the clouds; the normals keep the grooves between the muscles, the
+    curls, and the billows' turn."""
+    path = os.path.join(ROOT, 'tools', 'hero', 'normals.png')
+    if '--normals' in sys.argv or not os.path.exists(path):
+        import torch
+        from diffusers import MarigoldNormalsPipeline
+        pipe = MarigoldNormalsPipeline.from_pretrained('prs-eth/marigold-normals-v1-1')
+        out = pipe(Image.open(AVATAR).convert('RGB'), num_inference_steps=4, ensemble_size=5, processing_resolution=NORMALS_INPUT,
+                   match_input_resolution=False, output_type='np', generator=torch.Generator().manual_seed(7))
+        Image.fromarray(u8((out.prediction[0] + 1) / 2)).save(path, optimize=True)
+    n = np.asarray(Image.open(path).convert('RGB'), np.float32) / 255 * 2 - 1
+    nx, ny = (np.asarray(Image.fromarray(np.ascontiguousarray(c)).resize((N, N), Image.BICUBIC)) for c in (n[..., 0], -n[..., 1]))
+    return nx, ny, np.sqrt(np.clip(1 - nx ** 2 - ny ** 2, 0, 1))
+
+
+def hollows(dep, figure, normals, lum):
+    """Where the surface is concave, 0..1: the navel, the grooves between the muscles, under the pectorals, between the
+    fingers, the feathers, and the curls, the snakes against the staff. Two estimates, each normalised inside the
+    statue and compressed so a crease reads without a deep occlusion swamping it: the depth's own hollows (how far
+    the depth smoothed around a point, inside the figure only so the sky never pulls it in, lies in front of the
+    point), which see steps between forms (a finger before the palm, a snake before the staff); and the normals'
+    convergence (minus their divergence), which sees the gentle grooves the depth smooths away. The normals come from
+    a generative model, which reads an upturned face or a hand in shadow less well than the avatar shows them, so a
+    hollow they see counts only where the avatar is locally darker too: the model never adds a groove the image does
+    not show."""
+    inside = (figure > 0.5).astype(np.float32)
+    within = lambda a, r: blurf(a * inside, r) / np.maximum(blurf(inside, r), 1e-3)
+    core = blurf(inside, 3.0) > 0.98
+    near = within(dep, 0.8)
+    steps = (within(dep, 2.0) - near) + 0.5 * (within(dep, 5.0) - near)
+    nx, ny, _ = normals
+    bend = -(np.gradient(blurf(nx, 1.2), axis=1) + np.gradient(blurf(ny, 1.2), axis=0))
+    darker = smoothstep(0.0, 0.05, blurf(lum, 3.0) - blurf(lum, 0.8))
+    squash = lambda a: 1 - np.exp(-np.clip(a, 0, None) / np.percentile(a[core], 93))
+    return np.maximum(squash(steps), squash(bend) * darker) * inside
+
+
+def sharpen(a, mask):
+    """An unsharp mask (1.5 px) over the whole figure."""
+    return np.clip(a + SHARPEN * (a - blurf(a, 1.5)), 0, 1) * (mask > 0.02)
+
+
 def blurf(a, r):
     # float-precision blur via separable gaussian
     k = np.arange(-int(3 * r) - 1, int(3 * r) + 2)
@@ -120,17 +165,6 @@ def half(a):
 
 def u8(a):
     return np.clip(np.round(a * 255), 0, 255).astype(np.uint8)
-
-
-def fine_weight(xx, yy):
-    """1 inside a fine zone, falling to 0 over the outer 30% of its radius."""
-    w = np.zeros_like(xx)
-    for cx, cy, rx, ry, turn in FINE:
-        dx, dy = xx - cx, yy - cy
-        u = (dx * np.cos(turn) + dy * np.sin(turn)) / rx
-        v = (dy * np.cos(turn) - dx * np.sin(turn)) / ry
-        w = np.maximum(w, 1 - smoothstep(0.7, 1.0, np.hypot(u, v)))
-    return w
 
 
 def maps():
@@ -160,7 +194,8 @@ def maps():
     # Shade it like an engraving. The image's own light carries the features (eye sockets, nostrils, the open
     # mouth are its local darks), so its tone and local shadows lead; the depth surface, lit from the upper left,
     # adds the turn of the form; contours come from the silhouette and from steps in depth (fingers against the
-    # palm, snakes against the staff); a floor keeps lit stone drawn instead of blank.
+    # palm, snakes against the staff); the hollows (hollows()) are darker; a floor keeps lit stone drawn instead of
+    # blank.
     d = blurf(dep, 2.5) * 140.0
     gy, gx = np.gradient(d)
     nz = 1 / np.sqrt(gx ** 2 + gy ** 2 + 1)
@@ -172,7 +207,9 @@ def maps():
     rim = np.clip(np.hypot(*np.gradient(blurf(mask, 2.8))) * 18, 0, 1)
     step = np.hypot(*np.gradient(blurf(dep, 1.2)))
     step = np.clip(step / np.percentile(step[mask > 0.5], 97), 0, 1)
-    ink = 0.14 + 0.20 * (1 - lambert) + 0.55 * tone + np.clip(-shadow * 7.0, -0.3, 0.55) + 0.30 * rim + 0.40 * step
+    cavity = hollows(dep, figure, normal_map(), lum)
+    ink = 0.14 + 0.20 * (1 - lambert) + 0.55 * tone + np.clip(-shadow * 7.0, -0.3, 0.55) + 0.30 * rim + 0.40 * step \
+        + CAVITY_INK * cavity
     # a contrast curve around 0.62: lit stone lighter, deep shadow darker, so features stand off the skin
     ink = np.clip((np.clip(ink, 0, 1) / 0.62) ** 1.35 * 0.62, 0, 1)
 
@@ -182,11 +219,9 @@ def maps():
     contrast = np.abs(lum - blurf(lum, 3.0))
     contrast = np.clip(contrast / np.percentile(contrast[mask > 0.5], 98), 0, 1)
     ink = ink * np.minimum(1.6, 1 + 0.6 * contrast) * mask / 1.6
-    # Inside the face and the hands the ink is sharper: an unsharp mask (1.5 px, 0.8) on the features, faded in over
-    # the rim of each zone.
-    zone = fine_weight(xx, yy)
-    sharp = np.clip(ink + 0.8 * (ink - blurf(ink, 1.5)), 0, 1) * (mask > 0.02)
-    ink = ink * (1 - zone) + sharp * zone
+    # The whole figure is sharpened (an unsharp mask on the features), so the eye socket, the open mouth, the fingers,
+    # the curls, the feathers, and the snakes stand off the stone.
+    ink = sharpen(ink, mask)
     detail = blurf(contrast, 3.0)
     detail = np.clip(detail / np.percentile(detail[mask > 0.5], 98), 0, 1)
 
@@ -196,15 +231,14 @@ def maps():
     # sparse, highlights and its bright rims kept); the depth surface lit from the upper left adds the turn of the
     # form; the image's local contrast, signed, keeps the features (the eye socket, the nostrils, the open mouth, the
     # grooves between the muscles) as darker gaps between lit forms; steps in depth open thin gaps between forms
-    # (fingers against the palm); a soft shoulder keeps broad lit stone stippled instead of filling in; and where the
-    # statue meets the sky its edge falls away into the dark instead of glowing.
+    # (fingers against the palm) and the hollows take light away; a soft shoulder keeps broad lit stone stippled instead
+    # of filling in; and where the statue meets the sky its edge falls away into the dark instead of glowing.
     tone_l = blurf(lum, 0.6)
     light = 0.08 + 0.92 * tone_l ** 1.1 + 0.10 * (lambert - 0.5) + 2.6 * (tone_l - blurf(tone_l, 2.0)) \
         + 0.8 * (tone_l - blurf(tone_l, 6.0)) - 0.2 * step
-    light = 1.15 * (1 - np.exp(-np.clip(light, 0, None) / 1.15))
+    light = 1.15 * (1 - np.exp(-np.clip(light, 0, None) / 1.15)) * (1 - CAVITY_LIGHT * cavity)
     light = light * mask * (0.5 + 0.5 * smoothstep(0.5, 1.0, blurf((figure > 0.5).astype(np.float32), 1.5)))
-    sharp = np.clip(light + 0.8 * (light - blurf(light, 1.5)), 0, 1) * (mask > 0.02)
-    light = light * (1 - zone) + sharp * zone
+    light = sharpen(light, mask)
     return dep, ink, light, mask, detail
 
 
