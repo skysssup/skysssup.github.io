@@ -44,7 +44,10 @@ opening under virtual time).
   `assets/hero/depth.webp` (the depth smoothed inside the figure first, so the lighting never bands), and its material
   from `assets/hero/color.webp` (gold, marble, cloud, lightning, or glint), colored from a palette designed per mode
   in `css/site.css` that moves each material from its base to its lit color as the figure turns (marble stays ink; the
-  map's alpha carries the image's sparkles, which twinkle). Sway, lighting, blinking, cursor push, click ripples, and
+  map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the
+  avatar does, a warm key where the stone faces the light and a cool fill where it turns away, and the avatar's own
+  star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load) twinkle
+  over it as eight-point stars, brighter as a shine passes. Sway, lighting, blinking, cursor push, click ripples, and
   Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
   dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in Gear Two. The band is a
   gust of wind: every dot it reaches sways downwind and springs back with its neighbours, and up to a third of the

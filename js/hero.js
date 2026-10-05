@@ -275,6 +275,45 @@
     return out;
   }
 
+  // The avatar's own star glints: the points of its sparkle (the color map's alpha above its floor of 128) that are
+  // brighter than everything within two pixels and round, not drawn out along the edge of a highlight (over two pixels
+  // each way the weaker curvature is at least a third of the stronger), on the wings, the caduceus, the rubble, the
+  // lightning, and the clouds, where the avatar's stars are, and not on its marble, where a highlight is the light on
+  // the skin; or within eight pixels outside the figure, where the sky's are. Output is [x, y, strength] per glint, x
+  // and y in figure units, strongest first, at most `limit`.
+  function glints(rgba, relief, size, limit) {
+    var n = size * size, sp = new Float32Array(n), near = new Uint8Array(n), last = size - 1, x, y, i, dx, dy, found = [];
+    for (i = 0; i < n; i++) sp[i] = Math.max(0, (rgba[i * 4 + 3] - 128) / 127);
+    for (y = 0; y < size; y++) for (x = 0; x < size; x++) {
+      if (!(relief[(y * size + x) * 4] > 0)) continue;
+      for (dy = -8; dy <= 8; dy++) for (dx = -8; dx <= 8; dx++) {
+        var nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < size && ny < size && dx * dx + dy * dy <= 64) near[ny * size + nx] = 1;
+      }
+    }
+    for (y = 2; y < size - 2; y++) for (x = 2; x < size - 2; x++) {
+      i = y * size + x;
+      var v = sp[i];
+      if (v < 0.3 || !near[i] || (relief[i * 4] > 0 && rgba[i * 4] === MARBLE)) continue;
+      var peak = true;
+      for (dy = -2; dy <= 2 && peak; dy++) for (dx = -2; dx <= 2; dx++) {
+        var u = sp[i + dy * size + dx];
+        if ((dx || dy) && (u > v || (u === v && (dy < 0 || (dy === 0 && dx < 0))))) { peak = false; break; }
+      }
+      if (!peak) continue;
+      var cxx = sp[i - 2] + sp[i + 2] - 2 * v, cyy = sp[i - 2 * size] + sp[i + 2 * size] - 2 * v;
+      var cxy = (sp[i + 2 * size + 2] - sp[i + 2 * size - 2] - sp[i - 2 * size + 2] + sp[i - 2 * size - 2]) / 4;
+      var half = (cxx + cyy) / 2, spread = Math.sqrt(Math.max(0, half * half - (cxx * cyy - cxy * cxy)));
+      var strong = half - spread, weak = half + spread;
+      if (!(strong < 0) || weak / strong < 1 / 3) continue;
+      found.push([x / last, y / last, v]);
+    }
+    found.sort(function (a, b) { return b[2] - a[2] || a[1] - b[1] || a[0] - b[0]; });
+    var out = new Float32Array(Math.min(limit, found.length) * 3);
+    for (i = 0; i < out.length / 3; i++) out.set(found[i], i * 3);
+    return out;
+  }
+
   // Grid resolution for a figure drawn `px` CSS pixels wide: a little over one cell per pixel, within limits.
   function resolutionFor(px) { return Math.round(clamp(px * 1.4, 320, 1200)); }
 
@@ -348,6 +387,8 @@
   // BREEZE is the share of the dots near the outline that the breeze takes in a flock's turn (BREEZE_GEAR in Gear Two)
   // and BREEZE_FLARE how brightly they flare as they leave, on dark paper and on light, where a halo is all that shows.
   var BREEZE = 0.55, BREEZE_GEAR = 0.3, BREEZE_FLARE = [0.8, 0.5];
+  // GLINTS is how many of the avatar's star glints the figure draws at most, strongest first.
+  var GLINTS = 260;
   function litDots(normals) {
     var l = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2]), lit = 0;
     for (var i = 0; i < normals.length; i += 3) {
@@ -491,6 +532,7 @@
     "uniform vec4 u_swap;",
     "uniform vec4 u_last;",
     "uniform vec4 u_breeze;",
+    "uniform vec3 u_tone[2];",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -500,6 +542,7 @@
     "flat out float v_sprite;",
     "flat out vec3 v_color;",
     "flat out float v_carried;",
+    "flat out float v_glint;",
     "uint h(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }",
     "float r01(uint x) { return float(h(x)) / 4294967296.0; }",
     // the breeze that keeps the figure alive between gusts, at time t: mostly sideways, swinging from one side to the
@@ -689,16 +732,21 @@
     "  }",
     // when the paper turns between light and dark, a band of light crosses the figure and the dots of the new map
     // (u_swap.z 1) appear behind it, while those of the old one (-1) give way ahead of it, dimmed
+    "  float swapShow = 1.0;",
     "  if (u_swap.y != 0.0) {",
     "    float w = u_span.y - u_span.x, travel = w * 1.4;",
     "    float along = px.x + (px.y - u_box.y - u_pivot.y * u_box.z) * 0.25 - u_span.x + w * 0.2;",
     "    if (u_swap.y < 0.0) along = travel - along;",
     "    float e = (u_swap.x * travel - along) / u_span.z, behind = smoothstep(-0.6, 1.6, e);",
-    "    show *= u_swap.z > 0.0 ? behind : (1.0 - behind) * 0.6;",
+    "    swapShow = u_swap.z > 0.0 ? behind : (1.0 - behind) * 0.6;",
+    "    show *= swapShow;",
     "    band = max(band, exp(-e * e) * pow(max(n.z, 0.0), 2.0) * k);",
     "  }",
     "  float tint = u_tint * wake;",
-    "  vec3 col = mix(u_color, mat, a_c.g * tint);",
+    // the ink takes the light as the avatar does once the colours have arrived: a warm key where the surface faces the
+    // light and a cool fill where it turns away (u_tone: fill, key)
+    "  vec3 tone = mix(u_tone[0], u_tone[1], smoothstep(0.1, 0.85, lam));",
+    "  vec3 col = mix(mix(u_color, tone, tint), mat, a_c.g * tint);",
     // the image's sparkles twinkle: they swell and brighten on a slow cycle of their own
     "  float sparkle = clamp(a_c.a * 2.0 - 1.0, 0.0, 1.0);",
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853)) * min(1.0, tint * 2.5);",
@@ -710,7 +758,8 @@
     // a dot growing back twinkles as it arrives
     "  col = mix(col, u_light[1], regrow * 0.4 * min(1.0, u_tint * 2.5));",
     "  v_color = mix(col, u_light[2], star);",
-    "  px += flow + u_offset;",
+    "  bool glint = a_e.w > 0.5;",
+    "  px += (glint ? vec2(0.0) : flow) + u_offset;",
     // blink
     "  float period = 3.2 / u_blink;",
     "  float phase = u_time / period + r01(id * 3u + 7u);",
@@ -743,6 +792,17 @@
     "  if (blown > 0.0) v_sprite = max(v_sprite, 2.0 * clamp(speed * 0.025, 5.0, 16.0) * u_dpr * blown);",
     // half a device pixel more, so most of the soft edge of a small dot is drawn instead of clipped by its sprite
     "  v_sprite += 0.5;",
+    // the avatar's own star glints (a_e.w): stars that twinkle each on its own slow rhythm, mostly faint and now and
+    // then bright, brighter as the band passes, arriving with the materials' colours, and still in the wind
+    "  v_glint = 0.0;",
+    "  if (glint) {",
+    "    float twinkle = pow(0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), 3.0);",
+    "    v_glint = clamp((0.3 + 0.7 * twinkle + 1.2 * band) * tint * k, 0.0, 1.0);",
+    "    v_size = u_dot * (4.0 + 14.0 * a_p.w * a_p.w) * (0.6 + 0.5 * twinkle + 0.8 * band) * persp * u_dpr;",
+    "    v_sprite = v_size + 0.5;",
+    "    v_alpha = u_alpha * swapShow;",
+    "    v_star = v_blown = v_flare = 0.0;",
+    "  }",
     "  gl_PointSize = v_sprite;",
     "  gl_Position = vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);",
     "}"
@@ -760,8 +820,10 @@
     "flat in float v_sprite;",
     "flat in vec3 v_color;",
     "flat in float v_carried;",
+    "flat in float v_glint;",
     "uniform highp vec3 u_light[3];",
     "uniform highp float u_positive;",
+    "uniform highp vec3 u_glint[2];",
     "out vec4 o;",
     // an arm of a star along x: as thick as `t` at the centre, tapering to nothing at `r`
     "float arm(vec2 m, float t, float r, float k) { return clamp(max(0.45, t * (1.0 - m.x / r)) - m.y + 0.5, 0.0, 1.0) * pow(max(0.0, 1.0 - m.x / r), k); }",
@@ -797,6 +859,17 @@
     "    vec3 glow = u_positive > 0.5 ? mix(v_color, vec3(1.0), 0.25) : mix(u_light[0], v_color, smoothstep(0.15, 0.4, chroma));",
     "    c = mix(c, mix(glow, vec3(1.0), heart), v_flare);",
     "  }",
+    // a glint is an eight-point star: thin spikes, long on the axes and short on the diagonals, and a soft glow, in its
+    // edge colour, around a heart in its heart colour (u_glint): a white star in a warm glow on dark paper, a white
+    // spark in a star of the sheen's blue on white paper, where white alone would not show
+    "  if (v_glint > 0.0) {",
+    "    vec2 dg = vec2(m.x + m.y, abs(m.x - m.y)) * 0.70710678;",
+    "    float spikes = max(max(arm(m, v_size * 0.09, r, 0.9), arm(m.yx, v_size * 0.09, r, 0.9)), arm(dg, v_size * 0.07, r * 0.55, 1.1) * 0.8);",
+    "    float heart = clamp(v_size * 0.12 - length(q) + 0.5, 0.0, 1.0);",
+    "    float glow = exp(-dot(q, q) / (v_size * v_size * 0.03)) * 0.7;",
+    "    a = max(max(spikes, heart), glow) * v_glint;",
+    "    c = mix(u_glint[1], u_glint[0], heart);",
+    "  }",
     "  a *= v_alpha;",
     "  if (a <= 0.0) discard;",
     "  o = vec4(c * a, a);",
@@ -817,6 +890,8 @@
       ink: get("--figure-ink"), accent: get("--accent"), paper: paper, text: get("--ink"),
       // the sheen's fringe and core and the stars of its burst, one hue family per mode
       light: [get("--figure-sheen"), get("--figure-sheen-core"), get("--figure-star")],
+      // the ink's cool fill and warm key once the colours have arrived, and the glints' heart and edge
+      tone: [get("--figure-fill"), get("--figure-key")], glint: [get("--figure-glint"), get("--figure-glint-edge")],
       // each material's base and lit color, in index order; marble is the figure's ink
       palette: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m); }),
       lit: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m + "-lit"); }),
@@ -894,7 +969,7 @@
     el.appendChild(overlay);
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
-    var relief = null, field = null, outline = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
+    var relief = null, field = null, outline = null, stars = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
     // the dot maps loaded so far (ink for light paper, light for dark; dotMap), the one the figure is drawn from, its
     // dots and the other map's at the current grid, and a swap from one to the other in progress
     var sources = { ink: null, light: null }, loading = {}, failed = {}, set = null, shapes = {}, swap = null;
@@ -918,11 +993,13 @@
     // the opening: still in ink, a shine that leaves the colors behind, a turn, Gear Two and back (see INTRO)
     var intro = opts.intro ? { stage: "hold", at: null, redAt: null } : null, ringAt = 0;
     if (intro) { sheenIndex = 0; el.setAttribute("data-intro", "hold"); }
-    var materials = new Float32Array(15), materialsLit = new Float32Array(15);
+    var materials = new Float32Array(15), materialsLit = new Float32Array(15), tones = new Float32Array(6), glintColors = new Float32Array(6);
     var cpuMs = 0, telemetryAt = 0;
 
     function paintLights() {
       colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); });
+      colors.tone.forEach(function (css, i) { tones.set(rgb(css), i * 3); });
+      colors.glint.forEach(function (css, i) { glintColors.set(rgb(css), i * 3); });
       colors.palette.forEach(function (css, i) { materials.set(rgb(css), i * 3); });
       colors.lit.forEach(function (css, i) { materialsLit.set(rgb(css), i * 3); });
     }
@@ -982,7 +1059,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1038,7 +1115,9 @@
       var edges = edgeDistances(relief.data, relief.width, spots, 3);
       var exits = edgeNormals(relief.data, relief.width, spots, 3);
       if (!outline) outline = outlineField(relief.data, relief.width);
-      var buffer = new ArrayBuffer(n * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
+      if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS) : new Float32Array(0);
+      var g = stars.length / 3, total = n + g;
+      var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
       for (var i = 0; i < n; i++) {
         floats[i * f] = spots[i * 3];
         floats[i * f + 1] = spots[i * 3 + 1];
@@ -1064,8 +1143,21 @@
         bytes[o + 10] = Math.round(outline[at + 1] * 255);
         bytes[o + 11] = Math.round(Math.min(1, outline[at] / (relief.width - 1) / 0.1) * 255);
       }
+      // then the avatar's star glints, flagged in the spare byte of a_e (see the shader), at the relief's depth inside
+      // the figure and a little behind it in the sky
+      var deep = depthNormals(field, relief.width, stars, 3, RELIEF);
+      for (var j = 0; j < g; j++) {
+        var at = (n + j) * f, rw = relief.width - 1;
+        var inside = relief.data[(Math.round(stars[j * 3 + 1] * rw) * relief.width + Math.round(stars[j * 3] * rw)) * 4] > 0;
+        floats[at] = stars[j * 3];
+        floats[at + 1] = stars[j * 3 + 1];
+        floats[at + 2] = inside ? deep[j * 3 + 2] : 0.45;
+        floats[at + 3] = stars[j * 3 + 2];
+        bytes[(n + j) * VERTEX + 24] = MARBLE;
+        bytes[(n + j) * VERTEX + 31] = 255;
+      }
       var lit = Math.max(1, litDots(normals));
-      return { vertices: bytes, count: n, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
+      return { vertices: bytes, count: total, dots: n, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
     }
 
     function size() {
@@ -1106,7 +1198,7 @@
         vertices = shapes[set].vertices;
         count = shapes[set].count;
         starChance = shapes[set].stars;
-        if (opts.onCount) opts.onCount(count);
+        if (opts.onCount) opts.onCount(shapes[set].dots);
       }
       if (!count) throw new Error("hero data is empty");
       gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
@@ -1475,6 +1567,8 @@
         glowShown = light > 0.002 ? light : 0;
       }
       gl.uniform3fv(U.u_light, lights);
+      gl.uniform3fv(U.u_tone, tones);
+      gl.uniform3fv(U.u_glint, glintColors);
       // the dots stand for light on dark paper; while the paper's turn swaps them, the new map's appear behind a band
       // of light and the old map's give way ahead of it
       var swapAge = swap ? Math.max(0, now - swap.at) / 1000 : 0;
@@ -1702,6 +1796,7 @@
     edgeDistances: edgeDistances,
     edgeNormals: edgeNormals,
     outlineField: outlineField,
+    glints: glints,
     reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,

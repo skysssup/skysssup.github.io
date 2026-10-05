@@ -28,6 +28,12 @@
   --figure-sheen-core: #9db8ff;
   --figure-star: #2c62ff;
   --figure-glow: rgba(44, 98, 255, .2);
+  /* once the colours arrive the ink takes the light: a cool fill where the stone turns away, a warm key where it faces
+     the light; and the avatar's star glints, a heart and the edge that shows it on this paper */
+  --figure-fill: #0b1a33;
+  --figure-key: #3a2a1c;
+  --figure-glint: #ffffff;
+  --figure-glint-edge: #2c62ff;
   /* the figure's materials, base and lit (marble is --figure-ink); see docs/design-spec.md §5 */
   --mat-gold: #b8860b;
   --mat-gold-lit: #d4a017;
@@ -70,6 +76,10 @@
   --figure-sheen-core: #bff4ff;
   --figure-star: #8ae8ff;
   --figure-glow: rgba(56, 217, 255, .2);
+  --figure-fill: #93a9dd;
+  --figure-key: #fff2dc;
+  --figure-glint: #ffffff;
+  --figure-glint-edge: #ffd98a;
   --mat-gold: #f2c14e;
   --mat-gold-lit: #ffe08a;
   --mat-cloud: #f0a8b8;
@@ -96,6 +106,10 @@
     --figure-sheen-core: #bff4ff;
     --figure-star: #8ae8ff;
     --figure-glow: rgba(56, 217, 255, .2);
+    --figure-fill: #93a9dd;
+    --figure-key: #fff2dc;
+    --figure-glint: #ffffff;
+    --figure-glint-edge: #ffd98a;
     --mat-gold: #f2c14e;
     --mat-gold-lit: #ffe08a;
     --mat-cloud: #f0a8b8;
@@ -121,6 +135,10 @@
   --figure-sheen: #ff8a7a;
   --figure-sheen-core: #ffe9e0;
   --figure-star: #ff8a7a;
+  --figure-fill: #b3122a;
+  --figure-key: #ffb36b;
+  --figure-glint: #fff1e6;
+  --figure-glint-edge: #ff8a7a;
   --mat-gold: #ff9e80;
   --mat-gold-lit: #ffc9b8;
   --mat-cloud: #ff3b30;

@@ -353,6 +353,33 @@ test('the face and the hands are stippled on a grid twice as fine, fading in ove
   assert.deepEqual(Array.from(fine), Array.from(hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones)), 'deterministic');
 });
 
+test('the avatar\'s star glints are its round sparkles off the marble, strongest first', () => {
+  const size = 40, color = new Uint8ClampedArray(size * size * 4), relief = new Uint8ClampedArray(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const i = (y * size + x) * 4;
+    relief[i] = x < 25 ? 200 : 0;                     // the figure covers x < 25
+    color[i] = x < 10 ? 51 : 0;                       // marble on the left, gold beyond
+    color[i + 3] = 128;                               // no sparkle
+  }
+  const spot = (cx, cy, v, sx = 1.2, sy = 1.2) => {
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4, s = v * Math.exp(-((x - cx) ** 2) / (2 * sx * sx) - ((y - cy) ** 2) / (2 * sy * sy));
+      color[i + 3] = Math.max(color[i + 3], 128 + Math.round(s * 127));
+    }
+  };
+  spot(20, 10, 1);                 // a round glint on gold
+  spot(15, 25, 0.6);               // a fainter one
+  spot(5, 20, 1);                  // a glint on marble: a highlight on the skin, not a star
+  spot(17, 33, 1, 6, 0.8);         // a long highlight along an edge, not a star
+  spot(30, 20, 0.8);               // just outside the figure, in the sky
+  spot(37, 3, 0.8);                // too far from the figure
+  const found = hero.glints(color, relief, size, 10);
+  const at = Array.from({ length: found.length / 3 }, (_, i) => [Math.round(found[i * 3] * 39), Math.round(found[i * 3 + 1] * 39), found[i * 3 + 2]]);
+  assert.deepEqual(at.map(([x, y]) => [x, y]), [[20, 10], [30, 20], [15, 25]], 'round glints on gold and just outside, strongest first');
+  assert.ok(at[0][2] > 0.95 && at[2][2] < 0.7, 'each with its strength');
+  assert.equal(hero.glints(color, relief, size, 1).length, 3, 'at most `limit`');
+});
+
 test('each pixel of the figure knows how far its outline is and which way is out', () => {
   const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8
