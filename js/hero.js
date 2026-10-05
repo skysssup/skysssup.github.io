@@ -269,12 +269,93 @@
     return out;
   }
 
-  // The stars of the avatar's sky, which build.py writes into the depth map's blue (1 + 254 x a star's strength at its
-  // pixel, 0 elsewhere). Output is [x, y, strength] per star, x and y in figure units, in map order.
+  // The stars of the avatar's sky, which build.py writes into the depth map's blue outside the figure (1 + 254 x a
+  // star's strength at its pixel, 0 elsewhere; inside the figure the blue names the parts). Output is [x, y, strength]
+  // per star, x and y in figure units, in map order.
   function skyStars(rgba, size) {
     var out = [], last = size - 1;
-    for (var i = 0; i < size * size; i++) if (rgba[i * 4 + 2]) out.push((i % size) / last, Math.floor(i / size) / last, (rgba[i * 4 + 2] - 1) / 254);
+    for (var i = 0; i < size * size; i++) if (rgba[i * 4 + 2] && !rgba[i * 4]) out.push((i % size) / last, Math.floor(i / size) / last, (rgba[i * 4 + 2] - 1) / 254);
     return new Float32Array(out);
+  }
+
+  // The part under each pixel of the depth map: inside the figure its blue is the part's number (in hero.json's
+  // `parts`) times PART_STEP, less half a step where the figure is only its soft fringe, outside the statue's edge.
+  var PART_STEP = 32;
+  function partOf(rgba, i) { return rgba[i * 4] ? Math.round(rgba[i * 4 + 2] / PART_STEP) : 0; }
+
+  // Marching squares: for each pattern of a cell's corners inside (1 top left, 2 top right, 4 bottom right, 8 bottom
+  // left), the cell's sides that the level line joins, in pairs (0 top, 1 right, 2 bottom, 3 left).
+  var MARCH = [[], [3, 0], [0, 1], [3, 1], [1, 2], [3, 0, 1, 2], [0, 2], [3, 2], [2, 3], [0, 2], [0, 1, 2, 3], [1, 2], [3, 1], [0, 1], [3, 0], []];
+  // The statue's edges, so it has a clear outline instead of ending wherever its stipple thins out. Each part of the
+  // statue (all the parts in `parts` but the base, the clouds, which keep their soft fade) is the solid pixels it
+  // holds, blurred by a Gaussian of `sigma` px and traced at its half level (marching squares). A point of the trace is
+  // kept where what lies just beyond it, up to four pixels out, is the sky, or a part this one is in front of (`over`,
+  // pairs of names from hero.json: the raised arm over the wing, the outstretched arm before the clouds), so a part that
+  // grows out of its neighbour (an arm out of its shoulder) has no line there. Each stretch of the trace is resampled
+  // every `spacing` px of the map. Returns { points: [x, y, out] per point, x and y in figure units and `out` which way
+  // is out of the part as a fraction of a turn, y down; field: the statue's blurred parts at their strongest, per pixel,
+  // whose half level is the outline, for clipping the stipple to it }.
+  function edges(rgba, size, parts, over, sigma, spacing) {
+    var n = size * size, last = size - 1, label = new Uint8Array(n), solid = new Uint8Array(n), field = new Float32Array(n), out = [];
+    for (var i = 0; i < n; i++) { label[i] = partOf(rgba, i); solid[i] = label[i] && rgba[i * 4 + 2] % PART_STEP === 0 ? 1 : 0; }
+    var front = {}, base = (parts || []).indexOf("base") + 1;
+    (over || []).forEach(function (pair) { front[((parts || []).indexOf(pair[0]) + 1) + "," + ((parts || []).indexOf(pair[1]) + 1)] = true; });
+    var r = Math.ceil(sigma * 3), kernel = [], sum = 0, j;
+    for (j = -r; j <= r; j++) { kernel.push(Math.exp(-j * j / (2 * sigma * sigma))); sum += kernel[j + r]; }
+    for (var p = 1; p <= Math.max(1, (parts || []).length); p++) {
+      if (p === base) continue;
+      var x0 = size, y0 = size, x1 = -1, y1 = -1, x, y;
+      for (y = 0; y < size; y++) for (x = 0; x < size; x++) if (solid[y * size + x] && label[y * size + x] === p) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 < 0) continue;
+      x0 = Math.max(0, x0 - r - 2); y0 = Math.max(0, y0 - r - 2); x1 = Math.min(last, x1 + r + 2); y1 = Math.min(last, y1 + r + 2);
+      var w = x1 - x0 + 1, h = y1 - y0 + 1, tmp = new Float32Array(w * h), soft = new Float32Array(w * h);
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+        var acc = 0;
+        for (j = Math.max(-r, -x); j <= r && x + j < w; j++) { var k = (y + y0) * size + x + j + x0; if (solid[k] && label[k] === p) acc += kernel[j + r]; }
+        tmp[y * w + x] = acc / sum;
+      }
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+        var acc2 = 0;
+        for (j = Math.max(-r, -y); j <= r && y + j < h; j++) acc2 += tmp[(y + j) * w + x] * kernel[j + r];
+        soft[y * w + x] = acc2 / sum;
+        var g = (y + y0) * size + x + x0;
+        if (acc2 / sum > field[g]) field[g] = acc2 / sum;
+      }
+      var at = function (x, y) { return soft[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)]; };
+      for (y = 0; y < h - 1; y++) for (x = 0; x < w - 1; x++) {
+        var v = [at(x, y), at(x + 1, y), at(x + 1, y + 1), at(x, y + 1)];
+        var cell = MARCH[(v[0] >= 0.5 ? 1 : 0) | (v[1] >= 0.5 ? 2 : 0) | (v[2] >= 0.5 ? 4 : 0) | (v[3] >= 0.5 ? 8 : 0)];
+        for (var c = 0; c < cell.length; c += 2) {
+          var a = cross(v, x, y, cell[c]), b = cross(v, x, y, cell[c + 1]);
+          var steps = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / spacing));
+          for (var s = 0; s < steps; s++) {
+            var t = (s + 0.5) / steps, px = a[0] + (b[0] - a[0]) * t, py = a[1] + (b[1] - a[1]) * t, fx = Math.floor(px), fy = Math.floor(py);
+            // which way is out: down the blurred part's slope
+            var gx = at(fx + 1, fy) - at(fx - 1, fy) + at(fx + 1, fy + 1) - at(fx - 1, fy + 1);
+            var gy = at(fx, fy + 1) - at(fx, fy - 1) + at(fx + 1, fy + 1) - at(fx + 1, fy - 1), gl = Math.hypot(gx, gy) || 1;
+            var ox = -gx / gl, oy = -gy / gl, keep = true;
+            for (var d = 1; d <= 4; d++) {
+              var sx = Math.round(px + x0 + ox * d), sy = Math.round(py + y0 + oy * d);
+              if (sx < 0 || sy < 0 || sx > last || sy > last) break;
+              var q = label[sy * size + sx];
+              if (!q) break;
+              if (q === p) continue;
+              keep = !!front[p + "," + q];
+              break;
+            }
+            if (!keep) continue;
+            var turn = Math.atan2(oy, ox) / TAU;
+            out.push((px + x0) / last, (py + y0) / last, turn < 0 ? turn + 1 : turn);
+          }
+        }
+      }
+    }
+    return { points: new Float32Array(out), field: field };
+  }
+  // where the half level crosses side `e` of the cell at (x, y), whose corners (clockwise from the top left) hold `v`
+  function cross(v, x, y, e) {
+    var t = (0.5 - v[e]) / (v[(e + 1) % 4] - v[e]);
+    return e === 0 ? [x + t, y] : e === 1 ? [x + 1, y + t] : e === 2 ? [x + 1 - t, y + 1] : [x, y + 1 - t];
   }
 
   // Grid resolution for a figure drawn `px` CSS pixels wide: a little over one cell per pixel, within limits.
@@ -353,6 +434,9 @@
   var BREEZE = 0.08, BREEZE_GEAR = 0.05, FLARE = { dark: 0.35, light: 0.15, gear: 0.3 };
   // GLINTS is how many of the avatar's star glints the figure draws at most, strongest first.
   var GLINTS = 260;
+  // The statue's outline (edges()): its parts blurred by EDGE_BLUR px of the depth map and traced, a point every
+  // EDGE_SPACING CSS px of the drawn figure.
+  var EDGE_BLUR = 1.2, EDGE_SPACING = 0.75;
   // STRIKE is how long the opening's strike of lightning lights the figure and runs its ring through it, and PUFF how long
   // a puff of the cursor goes on blowing dots off it, in seconds (the shader's 1.3 and 2.6).
   var STRIKE = 1.3, PUFF = 2.6;
@@ -539,7 +623,7 @@
     "Gust gust(vec4 sh, float since, vec2 px, uint id, float s1, float s2, float s3, float k) {",
     "  vec2 away = px - u_core.xy, wind = away / (length(away) + 0.001);",
     "  Gust g = Gust(vec2(0.0), wind, 0.0, 0.0, 0.0, 1.0, 0.0);",
-    "  if (sh.y == 0.0 || since <= 0.0) return g;",
+    "  if (sh.y == 0.0 || since <= 0.0 || a_w.x > 0.5) return g;",
     "  float w = u_span.y - u_span.x, inside = a_w.w * 0.1 * u_box.z, near = 1.0 - smoothstep(0.0, 0.05 * w, inside);",
     "  float swell = 0.6 + 0.4 * sin(a_p.y * 41.0 + a_p.x * 9.0 + sh.z * 1.7);",
     "  g.flow = wind * exp(-since * 2.5) * sin(since * 5.7) / 0.55 * w * (0.002 + 0.006 * near) * swell * k;",
@@ -570,13 +654,17 @@
     "  float s1 = r01(id * 3u + 1u), s2 = r01(id * 3u + 2u), s3 = r01(id * 3u + 3u);",
     // the dots that only the cloud bank holds (a_e.x) are drawn in Gear Two alone (u_bank, eased over the switch)
     "  float hidden = a_e.x * (1.0 - u_bank);",
+    // the statue's outline (a_w.x): a fine line of points that holds its place in the wind
+    "  bool edge = a_w.x > 0.5;",
     "  vec3 p = vec3(a_p.x - u_pivot.x, u_pivot.y - a_p.y, (a_p.z - 0.62) * u_depth);",
     // assemble from a scattered shell, centre first
     "  float reach = length(p.xy);",
     "  float k = clamp((u_build - 0.15 - reach * 0.9 - s3 * 0.35) / 0.9, 0.0, 1.0);",
-    "  k = 1.0 - pow(1.0 - k, 4.0);",
-    "  float th = s1 * 6.2831853, ph = acos(2.0 * s2 - 1.0);",
-    "  vec3 shell = vec3(sin(ph) * cos(th), cos(ph), sin(ph) * sin(th)) * (0.9 + s3 * 0.6);",
+    "  float rest = (1.0 - k) * (1.0 - k);",
+    "  k = 1.0 - rest * rest;",
+    // (a point on the sphere from its height, cz, and the turn around it: no acos per dot)
+    "  float th = s1 * 6.2831853, cz = 2.0 * s2 - 1.0, sz = sqrt(1.0 - cz * cz);",
+    "  vec3 shell = vec3(sz * cos(th), cz, sz * sin(th)) * (0.9 + s3 * 0.6);",
     "  p = mix(shell, p, k);",
     // yaw then pitch, for the point and for its surface normal
     "  float cy = cos(u_rot.x), sy = sin(u_rot.x), cp = cos(u_rot.y), sp = sin(u_rot.y);",
@@ -589,7 +677,7 @@
     // edges heavier ones; where they are light (u_positive, on dark paper), lit stone gets larger, brighter dots and
     // the surface dims as it turns away, so the edges fall into the dark
     "  float lam = max(0.0, dot(n, normalize(vec3(-0.45, 0.6, 0.66))));",
-    "  float rim = pow(1.0 - clamp(n.z, 0.0, 1.0), 3.0);",
+    "  float turned = 1.0 - clamp(n.z, 0.0, 1.0), rim = turned * turned * turned;",
     "  float shade = mix(mix(1.12, 0.84, lam) * (1.0 + 0.18 * rim), mix(0.88, 1.12, lam) * (1.0 - 0.3 * rim), u_positive);",
     "  float fade = mix(mix(1.0, 0.86, lam), mix(0.78, 1.0, lam) * (1.0 - 0.35 * rim), u_positive);",
     "  float persp = 3.2 / (3.2 - p.z);",
@@ -657,7 +745,7 @@
     "    band = exp(-e * e * (e < 0.0 ? 3.0 : 0.8)) * face;",
     "    if (e > 0.0) trail = exp(-e / 2.0) * face * (1.0 - smoothstep(u_flow.y, u_flow.y + 0.5, u_sheen.w));",
     "    if (u_flow.w > 0.0) wake = smoothstep(-0.6, 1.6, e);",
-    "    if (r01(id * 11u + uint(u_sheen.z)) < u_span.w && n.z > 0.3 && lam > 0.5) {",
+    "    if (!edge && r01(id * 11u + uint(u_sheen.z)) < u_span.w && n.z > 0.3 && lam > 0.5) {",
     "      float a = u_sheen.w - passed * u_flow.y - r01(id * 13u + 5u) * 0.15;",
     "      float f = clamp(1.0 - max(a - 0.1, 0.0) / (0.5 + r01(id * 17u + 9u) * 0.3), 0.0, 1.0);",
     "      star = smoothstep(0.0, 0.1, a) * f * f * k;",
@@ -689,7 +777,7 @@
     "    float W = u_span.y - u_span.x, inside = a_w.w * 0.1 * u_box.z;",
     "    flow += vec2(sin(u_time * 1.6 + a_p.y * 31.0 + a_p.x * 7.0), cos(u_time * 1.2 + a_p.x * 23.0 - a_p.y * 5.0)) * 0.45 * u_breeze.x * k;",
     "    float near = 1.0 - smoothstep(0.0, 0.03 * u_box.z, inside);",
-    "    if (near > 0.0 && blown == 0.0 && show >= 1.0) {",
+    "    if (!edge && near > 0.0 && blown == 0.0 && show >= 1.0) {",
     "      vec2 patchCell = floor(a_p.xy * 24.0);",
     "      uint cid = uint(patchCell.x) + uint(patchCell.y) * 61u + 7u;",
     "      float period = 6.0 + 5.0 * r01(cid * 3u + 1u);",
@@ -728,7 +816,7 @@
     "    if (r.w <= 0.0 || age < 0.0 || age > 2.6) continue;",
     "    vec2 e = px - r.xy;",
     "    float de = length(e) + 0.001;",
-    "    if (de > R) continue;",
+    "    if (de > R || edge) continue;",
     "    float struck = 1.0 - de / R;",
     // which dots a puff takes is chosen by the puff itself (when it began), never by its place in the array, which
     // shifts as older puffs end
@@ -783,7 +871,7 @@
     // pixels along the breeze, wavering with its neighbours, and is gone by six tenths of the way; it comes back in place
     // over the last three. Mirrors fadeAway()
     "  float vis = 1.0;",
-    "  if (u_blink > 0.0 && blown == 0.0 && star < 0.05) {",
+    "  if (u_blink > 0.0 && blown == 0.0 && star < 0.05 && !edge) {",
     "    float period = 4.0 / u_blink, phase = u_time / period + r01(id * 3u + 7u), cycle = floor(phase);",
     "    uint key = id * 7919u + uint(cycle) * 104729u;",
     "    float dur = 0.9 + 0.6 * r01(key + 2u), f = ((phase - cycle) * period - r01(key + 1u) * (period - dur)) / dur;",
@@ -793,7 +881,7 @@
     "      if (f < 0.7) flow += normalize(way) * (u_span.y - u_span.x) * (0.006 + 0.008 * s2) * smoothstep(0.0, 0.6, f);",
     "    }",
     "  }",
-    "  px += (glint ? vec2(0.0) : flow) + u_offset;",
+    "  px += (glint || edge ? vec2(0.0) : flow) + u_offset;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
     "  size *= shade * (1.0 + 0.4 * tw) * (1.0 + 0.25 * band) * (1.0 + 0.6 * star) * (1.0 - 0.3 * blown) * (1.0 + 0.2 * regrow) * (1.0 + 0.35 * strike);",
     // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones, on screens with the pixels
@@ -817,6 +905,14 @@
     "  if (blown > 0.0) v_sprite = max(v_sprite, 2.0 * clamp(speed * 0.012, 1.5, 4.0) * u_dpr * blown);",
     // half a device pixel more, so most of the soft edge of a small dot is drawn instead of clipped by its sprite
     "  v_sprite += 0.5;",
+    // the outline is drawn as a fine continuous line: on white paper in the ink at full strength, a little finer than
+    // a dot, and where the dots stand for light a fine soft rim of light, never a glow
+    "  if (edge) {",
+    "    v_size = u_dot * mix(0.85, 0.75, u_positive) * persp * (1.0 + 0.3 * u_beat) * u_dpr;",
+    "    v_sprite = v_size + 0.5;",
+    "    v_alpha = mix(1.0, 0.55, u_positive) * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha * swapShow;",
+    "    v_star = v_blown = v_flare = 0.0;",
+    "  }",
     // the avatar's own star glints (a_e.w): stars that twinkle each on its own slow rhythm, mostly faint and now and
     // then bright, brighter as the band passes, arriving with the materials' colours, and still in the wind
     "  v_glint = 0.0;",
@@ -1148,6 +1244,20 @@
     // initialize).
     function shape(source) {
       var spots = stipple(source.data, source.width, noise.data, noise.width, res, meta.density, 0.7, fine);
+      // the statue's outline, and the stipple clipped to it, so no stray dot sits outside the line (the clouds of the
+      // base keep their soft fade)
+      var traced = meta.parts ? edges(relief.data, relief.width, meta.parts, meta.over, EDGE_BLUR, EDGE_SPACING * (relief.width - 1) / place.scale) : null;
+      if (traced) {
+        var rw = relief.width, rl = rw - 1, base = meta.parts.indexOf("base") + 1, held = 0;
+        for (var c = 0; c < spots.length; c += 3) {
+          var u = clamp(spots[c] * rl, 0, rl), v = clamp(spots[c + 1] * rl, 0, rl), j0 = Math.floor(u), i0 = Math.floor(v), ex = u - j0, ey = v - i0;
+          var j1 = Math.min(j0 + 1, rl), i1 = Math.min(i0 + 1, rl), fl = traced.field;
+          var level = fl[i0 * rw + j0] * (1 - ex) * (1 - ey) + fl[i0 * rw + j1] * ex * (1 - ey) + fl[i1 * rw + j0] * (1 - ex) * ey + fl[i1 * rw + j1] * ex * ey;
+          if (level < 0.5 && partOf(relief.data, Math.round(v) * rw + Math.round(u)) !== base) continue;
+          spots[held++] = spots[c]; spots[held++] = spots[c + 1]; spots[held++] = spots[c + 2];
+        }
+        spots = spots.slice(0, held);
+      }
       var n = spots.length / 3;
       var normals = depthNormals(field, relief.width, spots, 3, RELIEF);
       var details = sampleColors(relief.data, relief.width, spots, 3);
@@ -1155,7 +1265,7 @@
       if (!outline) outline = outlineField(relief.data, relief.width);
       if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS, meta.features) : new Float32Array(0);
       if (!sky) sky = skyStars(relief.data, relief.width);
-      var g = stars.length / 3, k = sky.length / 3, total = n + g + k;
+      var lines = traced ? traced.points : new Float32Array(0), e = lines.length / 3, g = stars.length / 3, k = sky.length / 3, total = n + g + k + e;
       var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
       // the cloud bank is drawn in Gear Two alone: a dot that the figure would not hold without it (its ink, less the
       // bank's share there, the color map's blue, no longer beats its cell's threshold) is flagged, so on light and
@@ -1210,6 +1320,23 @@
         bytes[(n + g + q) * VERTEX + 24] = MARBLE;
         bytes[(n + g + q) * VERTEX + 25] = 255;
         bytes[(n + g + q) * VERTEX + 31] = 255;
+      }
+      // and the outline, as fine lines of points flagged in a_w's spare byte, each at the relief's depth there so it turns
+      // with the figure, facing out of the figure (a_w.z) and holding its own place in the wind
+      var edgeNormals = depthNormals(field, relief.width, lines, 3, RELIEF), edgeTints = palette ? sampleColors(palette.data, palette.width, lines, 3) : null;
+      for (var ei = 0; ei < e; ei++) {
+        var ef = (n + g + k + ei) * f, eo = (n + g + k + ei) * VERTEX + 24;
+        floats[ef] = lines[ei * 3];
+        floats[ef + 1] = lines[ei * 3 + 1];
+        floats[ef + 2] = edgeNormals[ei * 3 + 2];
+        floats[ef + 3] = 0.5;
+        floats[ef + 4] = edgeNormals[ei * 3];
+        floats[ef + 5] = edgeNormals[ei * 3 + 1];
+        bytes[eo] = palette ? materialAt(palette.data, palette.width, lines[ei * 3], lines[ei * 3 + 1]) : MARBLE;
+        bytes[eo + 1] = edgeTints ? edgeTints[ei * 4 + 1] : 0;
+        bytes[eo + 3] = 128;
+        bytes[eo + 8] = 255;
+        bytes[eo + 10] = Math.round(lines[ei * 3 + 2] * 255);
       }
       var lit = Math.max(1, litDots(normals));
       return { vertices: bytes, count: total, dots: n, banked: banked, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
@@ -2028,6 +2155,7 @@
     outlineField: outlineField,
     glints: glints,
     skyStars: skyStars,
+    edges: edges,
     reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,

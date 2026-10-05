@@ -44,5 +44,36 @@
    0.062,
    0.2
   ]
+ ],
+ "parts": [
+  "wing",
+  "caduceus",
+  "arm",
+  "head",
+  "torso",
+  "reach",
+  "base"
+ ],
+ "over": [
+  [
+   "arm",
+   "wing"
+  ],
+  [
+   "caduceus",
+   "wing"
+  ],
+  [
+   "reach",
+   "base"
+  ],
+  [
+   "head",
+   "arm"
+  ],
+  [
+   "head",
+   "torso"
+  ]
  ]
 }

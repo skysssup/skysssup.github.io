@@ -55,9 +55,11 @@ avatar).
   from `assets/hero/color.webp` (gold, marble, cloud, lightning, or glint), colored from a palette designed per mode
   in `css/site.css` that moves each material from its base to its lit color as the figure turns (marble stays ink; the
   map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the
-  avatar does, a warm key where the stone faces the light and a cool fill where it turns away, and the avatar's own
-  star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
-  in the hair or on a hand) twinkle over it as small, faint eight-point stars; on dark paper and in Gear Two the
+  avatar does, a warm key where the stone faces the light and a cool fill where it turns away. The statue has a clear
+  edge: each part's outline is traced at load from the parts the depth map's blue names and drawn as a fine line of
+  points, ink on white and a soft rim of light on dark, with the stipple clipped to it (the clouds keep their soft fade).
+  The avatar's own star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
+  in the hair or on a hand) twinkle over it as eight-point stars, clearly visible and never dominant; on dark paper and in Gear Two the
   stars of the avatar's sky come out around it too, far behind (read from the depth map's blue channel). The cursor stirs the dots like a hand through dust: they
   turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
   passes. Sway, lighting, the dots' drift, the cursor's stir, and Gear Two all run in the vertex shader. At each turn

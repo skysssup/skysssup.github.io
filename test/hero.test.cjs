@@ -425,6 +425,43 @@ test('the stars of the sky are read from the depth map\'s blue, each with its st
   assert.equal(hero.skyStars(new Uint8ClampedArray(size * size * 4), size).length, 0, 'an empty sky has none');
 });
 
+test('the stars of the sky are read only outside the figure, where the blue does not name a part', () => {
+  const size = 20, rgba = new Uint8ClampedArray(size * size * 4);
+  rgba[(3 * size + 4) * 4 + 2] = 255;                                    // a star at (4, 3)
+  rgba[(9 * size + 9) * 4] = 200; rgba[(9 * size + 9) * 4 + 2] = 64;     // inside the figure: part 2, not a star
+  assert.equal(hero.skyStars(rgba, size).length, 3);
+});
+
+test('the statue is outlined: each part traced at its edge, evenly, where the sky or a part it lies in front of is beyond', () => {
+  const size = 64, rgba = new Uint8ClampedArray(size * size * 4), parts = ['near', 'far', 'base'];
+  const paint = (test, part, depth) => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (test(x, y)) { const i = (y * size + x) * 4; rgba[i] = depth; rgba[i + 2] = part * 32; } };
+  // a far square, a near disc over part of it, and a base below; and around the disc's top a fringe (half a step less)
+  paint((x, y) => x >= 10 && x <= 40 && y >= 10 && y <= 40, 2, 120);
+  paint((x, y) => Math.hypot(x - 40, y - 25) <= 10, 1, 200);
+  paint((x, y) => y >= 46 && y <= 60 && x >= 8 && x <= 56, 3, 150);
+  for (let x = 30; x <= 50; x++) { const i = (14 * size + x) * 4; if (rgba[i + 2] === 32) { rgba[i + 2] = 16; } }
+  const lines = hero.edges(rgba, size, parts, [['near', 'far']], 1.2, 0.5), pts = [];
+  for (let i = 0; i < lines.points.length; i += 3) pts.push([lines.points[i] * (size - 1), lines.points[i + 1] * (size - 1), lines.points[i + 2]]);
+  const onDisc = pts.filter(([x, y]) => Math.abs(Math.hypot(x - 40, y - 25) - 10) < 1.6);
+  const onSquare = pts.filter(([x, y]) => Math.min(Math.abs(x - 10), Math.abs(x - 40), Math.abs(y - 10), Math.abs(y - 40)) < 1.2 && Math.hypot(x - 40, y - 25) > 11.5);
+  assert.ok(onDisc.length + onSquare.length === pts.length, 'every point is on the disc\'s edge or the square\'s');
+  // the disc's whole edge is drawn, over the square and against the sky, but where its fringe is the edge comes in
+  const around = new Set(onDisc.map(([x, y]) => Math.round(Math.atan2(y - 25, x - 40) * 8 / Math.PI)));
+  assert.ok(around.size >= 15, `the near part's edge goes all the way round (${around.size} of 16 sectors)`);
+  // the far square's edge is drawn against the sky, not where the near disc covers it, and the base has none
+  assert.ok(onSquare.every(([x, y]) => !(x > 38 && y > 15 && y < 35)), 'no edge of the far part behind the near one');
+  assert.ok(onSquare.some(([x]) => x < 11), 'the far part\'s own edge against the sky');
+  assert.ok(pts.every(([, y]) => y < 45), 'the base keeps its soft fade');
+  // evenly spaced, and facing out
+  const left = onSquare.filter(([x, y]) => x < 11 && y > 15 && y < 35).sort((a, b) => a[1] - b[1]);
+  const gaps = left.slice(1).map((p, i) => p[1] - left[i][1]);
+  assert.ok(gaps.every(g => g > 0.2 && g < 0.8), `points along an edge every half pixel or so (${Math.min(...gaps).toFixed(2)}-${Math.max(...gaps).toFixed(2)})`);
+  assert.ok(left.every(([, , out]) => Math.abs(out - 0.5) < 0.05), 'and out of the left side is to the left');
+  // the field whose half level the outline is: the statue's parts, blurred, not the base
+  assert.ok(lines.field[25 * size + 20] > 0.9 && lines.field[53 * size + 30] === 0 && lines.field[2 * size + 2] === 0);
+  assert.equal(hero.edges(new Uint8ClampedArray(size * size * 4), size, parts, [], 1.2, 0.5).points.length, 0, 'no figure, no outline');
+});
+
 test('each pixel of the figure knows how far its outline is and which way is out', () => {
   const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8

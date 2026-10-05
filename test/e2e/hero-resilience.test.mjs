@@ -76,10 +76,11 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
         let hash = 0;
         for (const byte of bytes) hash = (Math.imul(hash, 31) + byte) >>> 0;
         // how many of the uploaded dots are drawn smaller, on the finer grid (the dot-size byte, a_e.z, at 30 of 36),
-        // and how many vertices are the avatar's star glints (their flag, a_e.w, at 31)
-        let fine = 0, glints = 0;
-        if (bytes.length % 36 === 0) for (let i = 30; i < bytes.length; i += 36) { if (bytes[i]) fine++; if (bytes[i + 1]) glints++; }
-        probe.uploads.push({ bytes: bytes.length, hash, fine, glints });
+        // how many vertices are the avatar's star glints (their flag, a_e.w, at 31), and how many are the statue's
+        // outline (its flag, a_w.x, at 32)
+        let fine = 0, glints = 0, edges = 0;
+        if (bytes.length % 36 === 0) for (let i = 30; i < bytes.length; i += 36) { if (bytes[i]) fine++; if (bytes[i + 1]) glints++; if (bytes[i + 2]) edges++; }
+        probe.uploads.push({ bytes: bytes.length, hash, fine, glints, edges });
       }
       return result;
     };
@@ -474,7 +475,7 @@ test('a 2x screen draws the whole figure on a grid twice as fine, in smaller dot
   await live(plain.page);
   const two = await state(sharp.page), one = await state(plain.page);
   assert.ok(two.count > one.count * 2.2 && two.count < one.count * 3, `about 2.6 dots where a 1x screen draws one (${two.count} vs ${one.count})`);
-  assert.equal(two.uploads.at(-1).fine, two.count - two.uploads.at(-1).glints, 'every dot on the 2x screen is drawn smaller');
+  assert.equal(two.uploads.at(-1).fine, two.count - two.uploads.at(-1).glints - two.uploads.at(-1).edges, 'every dot on the 2x screen is drawn smaller');
   assert.equal(one.uploads.at(-1).fine, 0, 'and none on the 1x screen');
   const redraw = () => window.__heroApi.highlight(null);
   const tone = (await capture(sharp.page, redraw)).cover / (await capture(plain.page, redraw)).cover;
@@ -499,6 +500,24 @@ test('the material map names five materials inside the figure', async t => {
   assert.deepEqual(Object.keys(counts).map(Number).sort(), [0, 1, 2, 3, 4], 'gold, marble, cloud, lightning, glint');
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
+});
+
+test('the statue has a clear outline: a line of points at its edge, in the first frame, on every paper', async t => {
+  for (const scheme of ['light', 'dark']) {
+    const { page } = await open(t, { scheme, reduced: true });
+    await live(page);
+    const { uploads, count } = await state(page);
+    const last = uploads.at(-1);
+    assert.ok(last.edges > 2000 && last.edges < 12000, `${scheme}: ${last.edges} outline points for ${count} vertices`);
+    // they sit on the statue's edge: in reduced motion the still frame draws them, and the canvas there is inked
+    const redraw = () => window.__heroApi.highlight(null);
+    assert.ok((await capture(page, redraw)).visible > 500);
+  }
+  // with the opening, the outline is drawn from its first frame, in the figure's plain ink, as the still is
+  const opening = await open(t, { intro: true });
+  await live(opening.page);
+  assert.ok((await state(opening.page)).uploads.at(-1).edges > 2000);
+  assert.equal(await opening.page.evaluate(() => document.querySelector('#figure').getAttribute('data-intro')), 'hold');
 });
 
 test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fades as Gear Two ends, and the caption counts the dots drawn', async t => {
@@ -544,16 +563,22 @@ test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fa
 test('the sky\'s stars sit in the sky, and come out on dark paper and in Gear Two but not on white', async t => {
   const { page } = await open(t);
   await live(page);
-  const stars = await page.evaluate(async () => {
+  let stars = await page.evaluate(async () => {
     const bitmap = await createImageBitmap(await (await fetch('/assets/hero/depth.webp')).blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
     const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d');
     ctx.drawImage(bitmap, 0, 0);
-    const depth = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data, out = [];
-    for (let i = 0; i < depth.length; i += 4) if (depth[i + 2]) out.push({ inside: depth[i] > 0, y: Math.floor(i / 4 / bitmap.width) / (bitmap.width - 1) });
-    return out;
+    // outside the figure the blue holds the sky's stars; inside it names the parts (a multiple of 32, less 16 in the fringe)
+    const depth = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data, out = [], codes = new Set();
+    for (let i = 0; i < depth.length; i += 4) {
+      if (depth[i] > 0) codes.add(depth[i + 2]);
+      else if (depth[i + 2]) out.push({ y: Math.floor(i / 4 / bitmap.width) / (bitmap.width - 1) });
+    }
+    return { out, codes: [...codes] };
   });
+  assert.ok(stars.codes.every(c => c > 0 && c % 16 === 0), `every pixel of the figure names its part (${stars.codes.sort((a, b) => a - b)})`);
+  stars = stars.out;
   assert.ok(stars.length > 80 && stars.length < 200, `${stars.length} stars in the sky`);
-  assert.ok(stars.every(s => !s.inside && s.y < 0.75), 'none on the figure or in the clouds');
+  assert.ok(stars.every(s => s.y < 0.75), 'none in the clouds');
   assert.deepEqual((await state(page)).uniforms.u_sky, [0], 'white paper has no stars of its own');
   await page.evaluate(() => window.skyTheme.set('dark'));
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_sky[0] === 1);

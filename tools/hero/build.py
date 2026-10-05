@@ -7,8 +7,8 @@ Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at 
   assets/hero/light.webp     896x896, lossless, gray: where the dots go on dark paper, where they stand for light
                              (dense where the statue is lit), in 64 levels
   assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), as rigid parts
-                             (rigid()), G = detail,
-                             B = the sky's stars (0, or 1 + 254 x a star's strength)
+                             (rigid()), G = detail, B = inside the figure the part (part_codes()) and outside it
+                             the sky's stars (0, or 1 + 254 x a star's strength)
   assets/hero/color.webp     448x448, lossless RGBA: R = material (gold, marble, cloud, lightning, glint) x 51,
                              G = how strongly the pixel belongs to it, B = how much of the figure there is the cloud
                              bank's alone (drawn only in Gear Two), A = 128 + its sparkle highlights
@@ -288,8 +288,9 @@ def maps():
     # inside the bank the depth is smoothed and drawn into a narrow range around the statue's base.
     calm = blurf(vapour, 5.0)
     relief = dep * (1 - calm) + calm * (0.64 + 0.28 * blurf(dep, 8.0))
-    relief = rigid(relief, parts(relief, mask, statue))
-    return relief, ink, light, mask, statue, detail, own
+    label = parts(relief, mask, statue)
+    relief = rigid(relief, label)
+    return relief, ink, light, mask, statue, detail, own, label
 
 
 # The figure's rigid parts, each of which turns as one body (labels 1-7 in PARTS order, 0 outside the figure):
@@ -318,6 +319,30 @@ CHEST = [(176, 212), (205, 236), (232, 232), (250, 250), (268, 268), (280, 300),
 SIGMA = {'wing': 12.0, 'caduceus': 7.0, 'arm': 6.0, 'head': 5.0, 'torso': 9.0, 'reach': 7.0, 'base': 0.0}
 SQUASH = {'wing': 0.55, 'caduceus': 0.8, 'arm': 1.0, 'head': 0.9, 'torso': 1.0, 'reach': 0.9, 'base': 1.0}
 KEEP, DETAIL = 0.35, 0.03
+# Where one part lies in front of another, the engine draws the nearer one's edge across it (as it draws every part's
+# edge against the sky): the raised arm and the caduceus over the wing, the outstretched arm before the clouds, and the
+# head over the raised arm and the chest. Elsewhere parts grow out of each other (the arms out of the shoulders) or sink
+# into the clouds, and no line is drawn.
+OVER = [['arm', 'wing'], ['caduceus', 'wing'], ['reach', 'base'], ['head', 'arm'], ['head', 'torso']]
+# A part's label in depth.webp's blue, inside the figure: its number in PARTS times PART_STEP, less half a step where
+# the figure is still only its soft fringe (the mask under one half), outside the statue's edge.
+PART_STEP = 32
+
+
+def part_codes(label, mask):
+    """The parts at M px for depth.webp's blue: each pixel's part (the nearest at N px, grown a little so every pixel
+    inside the figure has one) times PART_STEP, less half a step in the fringe."""
+    grown = label.copy()
+    for _ in range(4):
+        empty = grown == 0
+        for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            near = np.roll(np.roll(grown, dy, 0), dx, 1)
+            take = empty & (grown == 0) & (near > 0)
+            grown[take] = near[take]
+    small = np.asarray(Image.fromarray(grown.astype(np.uint8)).resize((M, M), Image.NEAREST)).astype(np.int32)
+    small[small == 0] = PARTS.index('base') + 1
+    solid = half(mask) >= 0.5
+    return np.clip(small * PART_STEP - np.where(solid, 0, PART_STEP // 2), 0, 255).astype(np.uint8)
 
 
 def parts(relief, mask, statue):
@@ -336,7 +361,7 @@ def parts(relief, mask, statue):
     paint(zone(HEAD, N), 'head')
     paint(zone(CADUCEUS_TOP, N), 'caduceus')
     paint(zone(CADUCEUS_LOW, N) & (relief > CADUCEUS_NEAR), 'caduceus')
-    paint(zone(RAISED, N) & ~zone(CADUCEUS_TOP, N), 'arm')
+    paint(zone(RAISED, N) & ~zone(CADUCEUS_TOP, N) & ~zone(HEAD, N), 'arm')
     paint(zone(FIST, N), 'arm')
     for _ in range(N):
         empty = inside & (label == 0)
@@ -346,6 +371,8 @@ def parts(relief, mask, statue):
             near = np.roll(np.roll(label, dy, 0), dx, 1)
             take = empty & (label == 0) & (near > 0)
             label[take] = near[take]
+    # (specks of the figure that touch no part are bits of the cloud bank)
+    label[inside & (label == 0)] = PARTS.index('base') + 1
     label[~inside] = 0
     return label
 
@@ -519,15 +546,86 @@ def lossless(a, name):
     Image.fromarray(a).save(os.path.join(OUT, name), 'WEBP', lossless=True, quality=100, method=6, exact=True)
 
 
-def still(levels, bn, dep, meta, suffix, gain):
-    """Still frame: the same threshold stipple at 1000px with round dots (`gain` times as wide), placed the way
-    the engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in js/hero.js) and
-    each dot is foreshortened by its depth around the centre of mass. The still covers the page until the first frame
-    is drawn, so in the opening, where that frame is the figure held still in its ink, one turns into the other in
-    place. One still per dot map: still.webp and preview.webp from the ink map, still-dark.webp and
-    preview-dark.webp from the light map, for dark paper."""
+# The statue's outline, as the engine traces it (edges() in js/hero.js): each part but the base blurred by EDGE_BLUR px of
+# the depth map and traced at its half level, kept where the sky or a part it lies in front of is just beyond.
+EDGE_BLUR = 1.2
+MARCH = [[], [3, 0], [0, 1], [3, 1], [1, 2], [3, 0, 1, 2], [0, 2], [3, 2], [2, 3], [0, 2], [0, 1, 2, 3], [1, 2], [3, 1], [0, 1], [3, 0], []]
+
+
+def outline(codes, inside, spacing):
+    """The statue's edges from depth.webp's blue (`codes`, M px) and its figure (`inside`): points [x, y] in figure
+    units every `spacing` px of the map, and the statue's blurred parts at their strongest (the field whose half level
+    the outline is). Mirrors edges() in js/hero.js."""
+    label = np.where(inside, np.round(codes / PART_STEP), 0).astype(int)
+    solid = inside & (codes % PART_STEP == 0) & (label > 0)
+    r = int(np.ceil(EDGE_BLUR * 3))
+    kernel = np.exp(-np.arange(-r, r + 1) ** 2 / (2 * EDGE_BLUR ** 2))
+    kernel /= kernel.sum()
+    blur = lambda a: np.apply_along_axis(lambda c: np.convolve(c, kernel, 'same'), 0, np.apply_along_axis(lambda c: np.convolve(c, kernel, 'same'), 1, a))
+    front = {(PARTS.index(a) + 1, PARTS.index(b) + 1) for a, b in OVER}
+    base, last, field, points = PARTS.index('base') + 1, M - 1, np.zeros((M, M)), []
+    for p in range(1, len(PARTS) + 1):
+        if p == base or not (solid & (label == p)).any():
+            continue
+        soft = blur((solid & (label == p)).astype(np.float64))
+        field = np.maximum(field, soft)
+        at = lambda x, y: soft[min(max(y, 0), last), min(max(x, 0), last)]
+        cases = (soft[:-1, :-1] >= 0.5) * 1 + (soft[:-1, 1:] >= 0.5) * 2 + (soft[1:, 1:] >= 0.5) * 4 + (soft[1:, :-1] >= 0.5) * 8
+        for y, x in zip(*np.nonzero((cases > 0) & (cases < 15))):
+            v = [at(x, y), at(x + 1, y), at(x + 1, y + 1), at(x, y + 1)]
+            cell = MARCH[cases[y, x]]
+            for c in range(0, len(cell), 2):
+                a, b = cross(v, x, y, cell[c]), cross(v, x, y, cell[c + 1])
+                steps = max(1, round(float(np.hypot(b[0] - a[0], b[1] - a[1])) / spacing))
+                for s in range(steps):
+                    t = (s + 0.5) / steps
+                    px, py = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+                    fx, fy = int(np.floor(px)), int(np.floor(py))
+                    gx = at(fx + 1, fy) - at(fx - 1, fy) + at(fx + 1, fy + 1) - at(fx - 1, fy + 1)
+                    gy = at(fx, fy + 1) - at(fx, fy - 1) + at(fx + 1, fy + 1) - at(fx + 1, fy - 1)
+                    gl = float(np.hypot(gx, gy)) or 1.0
+                    keep = True
+                    for d in range(1, 5):
+                        sx, sy = int(np.floor(px - gx / gl * d + 0.5)), int(np.floor(py - gy / gl * d + 0.5))
+                        if sx < 0 or sy < 0 or sx > last or sy > last:
+                            break
+                        q = label[sy, sx]
+                        if not q:
+                            break
+                        if q == p:
+                            continue
+                        keep = (p, q) in front
+                        break
+                    if keep:
+                        points.append((px / last, py / last))
+    return np.array(points).reshape(-1, 2), field
+
+
+def cross(v, x, y, e):
+    t = (0.5 - v[e]) / (v[(e + 1) % 4] - v[e])
+    return [(x + t, y), (x + 1, y + t), (x + 1 - t, y + 1), (x, y + 1 - t)][e]
+
+
+def still(levels, bn, dep, meta, suffix, gain, edge):
+    """Still frame: the same threshold stipple at 1000px with round dots (`gain` times as wide), clipped to the statue's
+    outline as the engine clips it, and the outline drawn in its points (`edge`: how strongly), all placed the way the
+    engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in js/hero.js) and each
+    dot is foreshortened by its depth around the centre of mass. The still covers the page until the first frame is
+    drawn, so in the opening, where that frame is the figure held still in its ink, one turns into the other in place.
+    One still per dot map: still.webp and preview.webp from the ink map, still-dark.webp and preview-dark.webp from the
+    light map, for dark paper."""
     res = 860
     sx, sy, sv = stipple(levels, bn, res)
+    relief = np.asarray(Image.open(os.path.join(OUT, 'depth.webp')).convert('RGB'))
+    lines, field = outline(relief[..., 2].astype(int), relief[..., 0] > 0, 0.2)
+    # the stipple clipped to the outline: a dot outside the statue's blurred parts is dropped, but in the base
+    fu, fv = np.clip((sx + 0.5) / res * (M - 1), 0, M - 1), np.clip((sy + 0.5) / res * (M - 1), 0, M - 1)
+    j0, i0 = np.floor(fu).astype(int), np.floor(fv).astype(int)
+    j1, i1, ex, ey = np.minimum(j0 + 1, M - 1), np.minimum(i0 + 1, M - 1), fu - j0, fv - i0
+    level = field[i0, j0] * (1 - ex) * (1 - ey) + field[i0, j1] * ex * (1 - ey) + field[i1, j0] * (1 - ex) * ey + field[i1, j1] * ex * ey
+    near = np.round(np.where(relief[..., 0] > 0, relief[..., 2], 0)[np.round(fv).astype(int), np.round(fu).astype(int)] / PART_STEP)
+    held = (level >= 0.5) | (near == PARTS.index('base') + 1)
+    sx, sy, sv = sx[held], sy[held], sv[held]
     iy, ix = np.minimum((sy + 0.5) / res * N, N - 1).astype(int), np.minimum((sx + 0.5) / res * N, N - 1).astype(int)
     sz = dep[iy, ix]
     (x0, y0, x1, y1), (px, py) = meta['bounds'], meta['center']
@@ -542,6 +640,11 @@ def still(levels, bn, dep, meta, suffix, gain):
     for cx, cy, v, f in zip(u, v_, sv, persp):
         r = (0.9 + 0.55 * v) * 1.2 * gain * k * f
         dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(160 + 95 * min(1, v * 1.4)))
+    lz = dep[np.minimum(lines[:, 1] * N, N - 1).astype(int), np.minimum(lines[:, 0] * N, N - 1).astype(int)]
+    lp = 3.2 / (3.2 - (lz - 0.62) * 0.34)
+    for lx, ly, f in zip(lines[:, 0], lines[:, 1], lp):
+        cx, cy, r = (ox + (px + (lx - px) * f) * k) * 2 * S, (oy + (py + (ly - py) * f) * k) * 2 * S, 1.2 * gain * k * f
+        dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(255 * edge))
     im = im.resize((S, S), Image.LANCZOS)
     rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])
     rgba.save(os.path.join(OUT, f'still{suffix}.webp'), 'WEBP', lossless=True, quality=100, method=6)
@@ -582,13 +685,14 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     if '--stars' in sys.argv:   # only the sky's stars, into the blue of the depth map as committed
         relief = np.asarray(Image.open(os.path.join(OUT, 'depth.webp')).convert('RGB')).copy()
-        relief[..., 2] = sky_stars(relief[..., 0] > 0)
+        inside = relief[..., 0] > 0
+        relief[..., 2] = np.where(inside, relief[..., 2], sky_stars(inside))
         lossless(relief, 'depth.webp')
         print('wrote', int((relief[..., 2] > 0).sum()), 'stars into depth.webp')
         return
     if '--upscale' in sys.argv:
         upscale()
-    dep, ink, light, mask, statue, detail, own = maps()
+    dep, ink, light, mask, statue, detail, own, label = maps()
     inside = half(mask) > 0.04
     index, weight, sparkle = material_map(inside, own)
     if '--color' in sys.argv:
@@ -599,7 +703,8 @@ def main():
     lossless(u8(levels), 'ink.webp')
     light_levels = np.round(light * (INK_LEVELS - 1)) / (INK_LEVELS - 1)
     lossless(u8(light_levels), 'light.webp')
-    relief = np.dstack([np.where(inside, np.maximum(u8(half(dep)), 1), 0), np.where(inside, u8(half(detail)), 0), sky_stars(inside)])
+    relief = np.dstack([np.where(inside, np.maximum(u8(half(dep)), 1), 0), np.where(inside, u8(half(detail)), 0),
+                        np.where(inside, part_codes(label, mask), sky_stars(inside))])
     lossless(relief.astype(np.uint8), 'depth.webp')
     bn_path = os.path.join(OUT, 'bluenoise.png')
     if not os.path.exists(bn_path) or '--bluenoise' in sys.argv:
@@ -620,12 +725,16 @@ def main():
         # The ring circles the torso, tilted towards the viewer (radians).
         'ring': {'x': 0.47, 'y': 0.6, 'r': 0.4, 'tilt': 0.3},
         'features': [list(z) for z in FEATURES],
+        # the parts named in depth.webp's blue, in label order, and which part lies in front of which where they meet,
+        # where the engine draws the nearer part's edge
+        'parts': PARTS,
+        'over': OVER,
     }
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
     # the stills cover the page on light and dark paper, where the bank is not drawn
-    n = still(levels * (1 - own), bn, dep, meta, '', STILL_GAIN[0])
-    still(light_levels * (1 - own), bn, dep, meta, '-dark', STILL_GAIN[1])
+    n = still(levels * (1 - own), bn, dep, meta, '', STILL_GAIN[0], 1.0)
+    still(light_levels * (1 - own), bn, dep, meta, '-dark', STILL_GAIN[1], 0.55)
     print(json.dumps(meta), n, 'still points')
 
 
