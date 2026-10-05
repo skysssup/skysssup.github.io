@@ -40,6 +40,7 @@ INK_LEVELS = 64
 DENSITY = 0.85
 SHARPEN = 0.7                          # the unsharp mask over the whole figure
 CAVITY_INK, CAVITY_LIGHT = 0.35, 0.45  # how much a hollow darkens the ink, and takes from the light
+CLOUD_INK, CLOUD_LIGHT = 0.62, 0.6     # the clouds' darkest ink on light paper, and their brightest light on dark
 
 UPSCALERS = [  # (url, sha256)
     ('https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth',
@@ -174,22 +175,29 @@ def maps():
     dep = depth_map()
 
     yy, xx = np.mgrid[0:N, 0:N] / (N - 1)
-    # The figure is everything the depth model puts in front of the sky. The cloud bank fades out
-    # towards the bottom and sides so the sculpture has no hard cut where the avatar's frame ends.
+    # The statue is everything the depth model puts in front of the sky, with the near cloud bank right under it.
     figure = smoothstep(0.24, 0.32, dep)
     base = 1 - smoothstep(0.80, 0.985, yy)
     sides = smoothstep(0.0, 0.06, xx) * smoothstep(0.0, 0.06, 1 - xx)
     cloud = smoothstep(0.68, 0.78, yy)                     # where the clouds start
-    under = np.exp(-((xx - 0.50) / 0.22) ** 2)             # keep a cloud bank under the statue only
+    under = np.exp(-((xx - 0.50) / 0.22) ** 2)             # the bank under the statue, which the depth test keeps
     # ...and the outstretched arm and open hand, which cross the cloud band towards the lower right. The band is
     # generous: the clouds around the hand lie far behind it, so the depth test above already leaves them out.
     ax, ay, bx, by = 0.58, 0.69, 0.92, 0.82
     t = np.clip(((xx - ax) * (bx - ax) + (yy - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2), 0, 1)
     arm = 1 - smoothstep(0.06, 0.10, np.hypot(xx - (ax + t * (bx - ax)), yy - (ay + t * (by - ay))))
-    cloud_keep = 1 - cloud * (1 - np.maximum(under, arm))
-    mask = figure * base * sides * cloud_keep
-    mask = np.where(mask < 0.08, 0, mask)
-    mask = blurf(mask, 1.6)
+    statue = figure * base * sides * (1 - cloud * (1 - np.maximum(under, arm)))
+    statue = np.where(statue < 0.08, 0, statue)
+    # The cloud bank around and below him, beyond what the depth model puts in front of the sky: the avatar's billows
+    # wherever they are lit against the dark sky between them, across the band below the statue, fading into the
+    # paper over a long soft gradient at the bottom and both sides, and before the open hand, which reads against
+    # the paper. The statue's frame (its bounds and centre in hero.json) is the statue's alone, so the bank's faint
+    # edge may run past it.
+    billow = smoothstep(0.05, 0.15, blurf(lum, 1.5))
+    bank = billow * blurf(clouds(N).astype(np.float32), 6.0) * smoothstep(0.0, 0.17, xx) \
+        * (1 - smoothstep(0.56, 0.76, xx)) * (1 - smoothstep(0.83, 0.985, yy))
+    mask = blurf(np.maximum(statue, bank), 1.6)
+    statue = blurf(statue, 1.6)
 
     # Shade it like an engraving. The image's own light carries the features (eye sockets, nostrils, the open
     # mouth are its local darks), so its tone and local shadows lead; the depth surface, lit from the upper left,
@@ -202,12 +210,14 @@ def maps():
     nx, ny = -gx * nz, -gy * nz
     L = np.array([-0.55, -0.62, 0.56]); L /= np.linalg.norm(L)
     lambert = np.clip(nx * L[0] + ny * L[1] + nz * L[2], 0, 1)
+    solid = statue > 0.5
     shadow = lum - blurf(lum, 8.0)
-    tone = np.clip(1 - (lum - lum[mask > 0.5].mean()) * 1.4, 0, 1.6) / 1.6
+    tone = np.clip(1 - (lum - lum[solid].mean()) * 1.4, 0, 1.6) / 1.6
     rim = np.clip(np.hypot(*np.gradient(blurf(mask, 2.8))) * 18, 0, 1)
     step = np.hypot(*np.gradient(blurf(dep, 1.2)))
-    step = np.clip(step / np.percentile(step[mask > 0.5], 97), 0, 1)
-    cavity = hollows(dep, figure, normal_map(), lum)
+    step = np.clip(step / np.percentile(step[solid], 97), 0, 1)
+    normals = normal_map()
+    cavity = hollows(dep, figure, normals, lum)
     ink = 0.14 + 0.20 * (1 - lambert) + 0.55 * tone + np.clip(-shadow * 7.0, -0.3, 0.55) + 0.30 * rim + 0.40 * step \
         + CAVITY_INK * cavity
     # a contrast curve around 0.62: lit stone lighter, deep shadow darker, so features stand off the skin
@@ -217,13 +227,13 @@ def maps():
     # to 1.6x the ink, so more dots, and a detail value that shrinks them, so features are drawn with small dense
     # dots and broad shadows with larger sparse ones, as in an engraving.
     contrast = np.abs(lum - blurf(lum, 3.0))
-    contrast = np.clip(contrast / np.percentile(contrast[mask > 0.5], 98), 0, 1)
+    contrast = np.clip(contrast / np.percentile(contrast[solid], 98), 0, 1)
     ink = ink * np.minimum(1.6, 1 + 0.6 * contrast) * mask / 1.6
     # The whole figure is sharpened (an unsharp mask on the features), so the eye socket, the open mouth, the fingers,
     # the curls, the feathers, and the snakes stand off the stone.
     ink = sharpen(ink, mask)
     detail = blurf(contrast, 3.0)
-    detail = np.clip(detail / np.percentile(detail[mask > 0.5], 98), 0, 1)
+    detail = np.clip(detail / np.percentile(detail[solid], 98), 0, 1)
 
     # The light map, for dark paper, where the dots are light: a positive engraving, like a lit statue in a dark room
     # (the avatar is exactly that). Drawn from the ink map, white dots would make a negative: shadows and crevices
@@ -237,9 +247,33 @@ def maps():
     light = 0.08 + 0.92 * tone_l ** 1.1 + 0.10 * (lambert - 0.5) + 2.6 * (tone_l - blurf(tone_l, 2.0)) \
         + 0.8 * (tone_l - blurf(tone_l, 6.0)) - 0.2 * step
     light = 1.15 * (1 - np.exp(-np.clip(light, 0, None) / 1.15)) * (1 - CAVITY_LIGHT * cavity)
-    light = light * mask * (0.5 + 0.5 * smoothstep(0.5, 1.0, blurf((figure > 0.5).astype(np.float32), 1.5)))
+    light = light * mask * (0.5 + 0.5 * smoothstep(0.5, 1.0, blurf(np.maximum(figure > 0.5, bank), 1.5)))
     light = sharpen(light, mask)
-    return dep, ink, light, mask, detail
+
+    # The clouds have their own light and shadow: the sky lights the billows from above, so their tops are lit and
+    # their undersides fall into shade (the normals turned towards the sky, with the avatar's own light on them, which
+    # keeps their pink tops and lilac shadows where the image has them). On light paper they are drawn lighter than
+    # the stone, as cloud is; on dark paper as lit cloud, its tops dense with light. Their shading is sharpened but not
+    # their fade into the paper, so no edge of the bank is outlined. The gold rubble and the lightning in them are
+    # drawn like the statue.
+    Lab = lab(np.dstack([blurf(rgb[..., c], 1.5) for c in range(3)]))
+    vapour = clouds(N) & (Lab[..., 2] < 6) & ~((Lab[..., 2] < -8) & (Lab[..., 0] > 60))
+    vapour = blurf(vapour.astype(np.float32), 2.0)
+    S = np.array([-0.3, -0.85, 0.43]); S /= np.linalg.norm(S)
+    sky = np.clip(normals[0] * S[0] + normals[1] * S[1] + normals[2] * S[2], 0, 1)
+    glow = np.clip(blurf(lum, 1.0) / np.percentile(lum[(vapour > 0.5) & (mask > 0.3)], 97), 0, 1)
+    lit = smoothstep(0.28, 0.92, 0.5 * glow + 0.5 * sky + 1.5 * (lum - blurf(lum, 2.5)))
+    whole = np.ones_like(mask)
+    # (on light paper the billows' edges, where they thin out against the sky, are lit too, so they are never inked)
+    edge_lit = lit + (1 - lit) * (1 - smoothstep(0.6, 0.95, blurf(billow, 4.0)))
+    ink = ink * (1 - vapour) + vapour * sharpen(CLOUD_INK * (1 - edge_lit) ** 1.2, whole) * mask
+    light = light * (1 - vapour) + vapour * sharpen(CLOUD_LIGHT * (0.12 + 0.88 * lit), whole) * mask
+    # The clouds lie in a shallow relief of their own. The depth model puts the far billows well behind the near bank,
+    # and that step would show as a seam of tilted dots, and the billows would slide apart as the figure turns; so
+    # inside the bank the depth is smoothed and drawn into a narrow range around the statue's base.
+    calm = blurf(vapour, 5.0)
+    relief = dep * (1 - calm) + calm * (0.64 + 0.28 * blurf(dep, 8.0))
+    return relief, ink, light, mask, statue, detail
 
 
 # The five materials, in index order. css/site.css gives each a base and a lit color per mode.
@@ -251,6 +285,9 @@ HAIR = [(171, 203), (172, 196), (175, 190), (178, 184), (181, 179), (185, 175), 
         (234.5, 198), (233, 204), (232, 211), (230, 218), (228, 222), (225, 222), (225, 215), (224, 207), (223, 199),
         (221, 191), (219, 185), (217, 180), (213, 177.5), (207, 177), (201, 177.5), (196, 180), (193, 184), (191, 190),
         (190, 197), (190, 203), (190, 208), (184, 207), (178, 206)]
+# The torso and the outstretched arm, which rise out of the clouds.
+TORSO = [(168, 280), (276, 280), (268, 338), (240, 350), (200, 350), (178, 338)]
+ARM = [(250, 318), (300, 322), (385, 352), (380, 372), (300, 360), (250, 345)]
 
 
 def lab(rgb):
@@ -261,11 +298,18 @@ def lab(rgb):
     return np.dstack([116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)])
 
 
-def zone(points):
-    """A filled polygon (points in the 424 px avatar's coordinates) at M px."""
-    im = Image.new('L', (M, M), 0)
-    ImageDraw.Draw(im).polygon([(x / 424 * M, y / 424 * M) for x, y in points], fill=255)
+def zone(points, size=M):
+    """A filled polygon (points in the 424 px avatar's coordinates) at `size` px."""
+    im = Image.new('L', (size, size), 0)
+    ImageDraw.Draw(im).polygon([(x / 424 * size, y / 424 * size) for x, y in points], fill=255)
     return np.asarray(im) > 0
+
+
+def clouds(size):
+    """Where the clouds are, at `size` px: everything below the statue, and the billows that rise higher on the left,
+    beside the torso, but not the torso or the outstretched arm."""
+    yy, xx = np.mgrid[0:size, 0:size] * (424 / size)
+    return ((yy > 330) | ((xx < 165) & (yy > 280))) & ~zone(TORSO, size) & ~zone(ARM, size)
 
 
 def material_map(inside):
@@ -284,16 +328,13 @@ def material_map(inside):
     src = Image.open(AVATAR).convert('RGB').resize((M, M), Image.LANCZOS)
     rgb = np.asarray(src, np.float32) / 255
     L, _, b = lab(np.dstack([blurf(rgb[..., c], 1.5) for c in range(3)])).transpose(2, 0, 1)
-    yy = np.mgrid[0:M, 0:M][0] * (424 / M)
     fist = zone([(86, 104), (124, 100), (130, 140), (92, 142)])
     caduceus = zone([(0, 0), (200, 0), (200, 88), (128, 88), (126, 104), (122, 150), (125, 200), (122, 248), (100, 250),
                      (86, 200), (84, 150), (88, 104), (84, 88), (0, 88)]) & ~fist
     wing = zone([(30, 158), (95, 182), (150, 215), (178, 238), (172, 268), (120, 266), (70, 240), (38, 205)]) \
         & ~zone([(118, 128), (140, 140), (200, 230), (170, 250), (128, 170)])
     hair = zone(HAIR)
-    torso = zone([(168, 280), (276, 280), (268, 338), (240, 350), (200, 350), (178, 338)])
-    arm = zone([(250, 318), (300, 322), (385, 352), (380, 372), (300, 360), (250, 345)])
-    below = (yy > 330) & ~torso & ~arm
+    below = clouds(M)
     warm, blue = smoothstep(6, 14, b), smoothstep(4, 14, -b)
     index = np.full((M, M), MATERIALS.index('marble'))
     weight = np.ones((M, M))
@@ -408,7 +449,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     if '--upscale' in sys.argv:
         upscale()
-    dep, ink, light, mask, detail = maps()
+    dep, ink, light, mask, statue, detail = maps()
     inside = half(mask) > 0.04
     index, weight, sparkle = material_map(inside)
     if '--color' in sys.argv:
@@ -426,8 +467,10 @@ def main():
         Image.fromarray(void_and_cluster(), 'L').save(bn_path, optimize=True)
     bn = np.asarray(Image.open(bn_path), np.float32)
 
-    ys, xs = np.nonzero(mask > 0.05)
-    w = mask[ys, xs]
+    # the frame and the centre (the pivot the figure turns about) are the statue's; the cloud bank's soft edge runs
+    # past them
+    ys, xs = np.nonzero(statue > 0.05)
+    w = statue[ys, xs]
     meta = {
         'size': N,
         'depth': M,
