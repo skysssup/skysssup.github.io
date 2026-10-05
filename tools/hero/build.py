@@ -37,8 +37,7 @@ DEPTH_INPUT = 1036
 INK_LEVELS = 64
 DENSITY = 0.85
 # The face and the hands, as soft ellipses (x, y, rx, ry, turn in radians; figure units, 0..1 across the map):
-# the engine stipples them on a grid twice as fine with dots half the size, and the ink is sharpened inside
-# them so the eye socket, the open mouth, and the fingers stand off the stone. Read by the engine from hero.json.
+# the ink is sharpened inside them so the eye socket, the open mouth, and the fingers stand off the stone.
 FINE = [(0.497, 0.455, 0.094, 0.09, 0.0),     # the head, its face upturned
         (0.236, 0.284, 0.064, 0.072, 0.0),    # the fist on the caduceus
         (0.852, 0.832, 0.108, 0.062, 0.2)]    # the open hand
@@ -124,7 +123,7 @@ def u8(a):
 
 
 def fine_weight(xx, yy):
-    """1 inside a fine zone, falling to 0 over the outer 30% of its radius: js/hero.js fineWeight, on the map."""
+    """1 inside a fine zone, falling to 0 over the outer 30% of its radius."""
     w = np.zeros_like(xx)
     for cx, cy, rx, ry, turn in FINE:
         dx, dy = xx - cx, yy - cy
@@ -183,8 +182,8 @@ def maps():
     contrast = np.abs(lum - blurf(lum, 3.0))
     contrast = np.clip(contrast / np.percentile(contrast[mask > 0.5], 98), 0, 1)
     ink = ink * np.minimum(1.6, 1 + 0.6 * contrast) * mask / 1.6
-    # Inside the fine zones the engine draws four times the dots, enough to show a sharper ink: an unsharp mask
-    # (1.5 px, 0.8) on the features, faded in with the same weight the engine uses to split its cells.
+    # Inside the face and the hands the ink is sharper: an unsharp mask (1.5 px, 0.8) on the features, faded in over
+    # the rim of each zone.
     zone = fine_weight(xx, yy)
     sharp = np.clip(ink + 0.8 * (ink - blurf(ink, 1.5)), 0, 1) * (mask > 0.02)
     ink = ink * (1 - zone) + sharp * zone
@@ -400,7 +399,6 @@ def main():
         'density': DENSITY,
         # The ring circles the torso, tilted towards the viewer (radians).
         'ring': {'x': 0.47, 'y': 0.6, 'r': 0.4, 'tilt': 0.3},
-        'fine': [list(z) for z in FINE],
     }
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
