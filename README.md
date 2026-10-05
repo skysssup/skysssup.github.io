@@ -15,8 +15,10 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 - `/404.html`, and `/portfolio/`, which forwards old links to `/work/`.
 
 The design rules (grid, type, color, motion) are in [docs/design-spec.md](docs/design-spec.md). The brief for the
-next pass on the hero (sheen and sparkle bursts, face and hand detail, the ring's line, the palette) is
-[docs/next-2.md](docs/next-2.md); the visual QA helper it uses is `tools/qa/shots.mjs`.
+next pass on the hero figure (a 2 s hold in the opening, a positive figure on dark paper, the shine as wind that
+blows dots off the edges, white star sparkles like the avatar's, and head-to-toe detail) is
+[docs/next-3.md](docs/next-3.md); the visual QA helper it uses is `tools/qa/shots.mjs` (its `film` mode plays the
+opening under virtual time).
 
 ## How it works
 
