@@ -210,6 +210,13 @@ def maps():
 
 # The five materials, in index order. css/site.css gives each a base and a lit color per mode.
 MATERIALS = ['gold', 'marble', 'cloud', 'lightning', 'glint']
+# The hair, in the 424 px avatar's coordinates: around the curls from the nape on the left, over the crown, down the
+# right side behind the jaw, and back along the hairline at the brow and the temples, leaving the face out.
+HAIR = [(171, 203), (172, 196), (175, 190), (178, 184), (181, 179), (185, 175), (189, 171), (194, 169), (199, 169),
+        (203, 167), (209, 166), (215, 166), (220, 168), (224, 171), (228, 175), (231, 180), (234, 186), (235, 192),
+        (234.5, 198), (233, 204), (232, 211), (230, 218), (228, 222), (225, 222), (225, 215), (224, 207), (223, 199),
+        (221, 191), (219, 185), (217, 180), (213, 177.5), (207, 177), (201, 177.5), (196, 180), (193, 184), (191, 190),
+        (190, 197), (190, 203), (190, 208), (184, 207), (178, 206)]
 
 
 def lab(rgb):
@@ -220,14 +227,10 @@ def lab(rgb):
     return np.dstack([116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)])
 
 
-def zone(shape):
-    """A filled polygon (points in the 424 px avatar's coordinates) or an ellipse (cx, cy, rx, ry) at M px."""
+def zone(points):
+    """A filled polygon (points in the 424 px avatar's coordinates) at M px."""
     im = Image.new('L', (M, M), 0)
-    if len(shape) == 4 and not isinstance(shape[0], tuple):
-        cx, cy, rx, ry = (v / 424 * M for v in shape)
-        ImageDraw.Draw(im).ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=255)
-    else:
-        ImageDraw.Draw(im).polygon([(x / 424 * M, y / 424 * M) for x, y in shape], fill=255)
+    ImageDraw.Draw(im).polygon([(x / 424 * M, y / 424 * M) for x, y in points], fill=255)
     return np.asarray(im) > 0
 
 
@@ -235,10 +238,11 @@ def material_map(inside):
     """Which material each pixel of the figure is made of. Color alone cannot tell them apart in this image: gold,
     marble, cloud, and glint overlap in every CIELAB channel, and a five-way k-means over the figure splits it by
     lightness instead (shadows one cluster, highlights another). So the avatar's layout names a few zones once,
-    and color decides inside each, by how far a pixel leans warm (b* > 0) or blue (b* < 0): the wings and the
-    caduceus are gold, except where the sky's blue glints catch them; the hair is gold around the marble face (lit
-    as warm as the hair, so the zone leaves it out); below the statue the clouds are rose, with cyan lightning and
-    gold rubble in them; everything else is marble.
+    and color decides inside some of them, by how far a pixel leans warm (b* > 0) or blue (b* < 0): the wings and the
+    caduceus are gold, except where the sky's blue glints catch them; the hair is gold, all of it, inside a polygon
+    that follows the curls around the marble face (lit as warm as the hair, so color alone would gild it, and the
+    curls in shadow are as cool as the stone, so color alone would leave them out); below the statue the clouds are
+    rose, with cyan lightning and gold rubble in them; everything else is marble.
     Writes color.webp: R = material index x 51; G = how strongly the pixel belongs to it, fading to 0 within
     2 px of a boundary, so a dot on an edge shows ink instead of flickering between two materials; B unused;
     A = 128 + sparkle (an opaque floor: browsers premultiply canvas pixels by alpha, so a transparent pixel would
@@ -252,8 +256,7 @@ def material_map(inside):
                      (86, 200), (84, 150), (88, 104), (84, 88), (0, 88)]) & ~fist
     wing = zone([(30, 158), (95, 182), (150, 215), (178, 238), (172, 268), (120, 266), (70, 240), (38, 205)]) \
         & ~zone([(118, 128), (140, 140), (200, 230), (170, 250), (128, 170)])
-    face = zone([(198, 182), (214, 176), (230, 182), (232, 204), (224, 220), (207, 221), (199, 206)])
-    hair = zone((205, 187, 34, 25)) & ~face
+    hair = zone(HAIR)
     torso = zone([(168, 280), (276, 280), (268, 338), (240, 350), (200, 350), (178, 338)])
     arm = zone([(250, 318), (300, 322), (385, 352), (380, 372), (300, 360), (250, 345)])
     below = (yy > 330) & ~torso & ~arm
@@ -268,7 +271,7 @@ def material_map(inside):
     speck = smoothstep(2, 10, L - blurf(L, 4.0))
     glint = smoothstep(4, 12, -b) * smoothstep(25, 45, L) * speck
     paint((caduceus | wing) & (glint > 0.25), 'glint', glint)
-    paint(hair & (b > 6), 'gold', warm)
+    paint(hair, 'gold', np.ones((M, M)))
     paint(below, 'cloud', np.ones((M, M)))
     paint(below & (b > 8), 'gold', warm)
     lightning = blue * smoothstep(50, 70, L)
