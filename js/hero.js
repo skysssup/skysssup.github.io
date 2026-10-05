@@ -1337,7 +1337,9 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    function drawRing(yawNow, pitchNow, fade, beat, glow) {
+    // `motion` (null when still): the angle of the light that runs round the ring, and the sheen's gust while it blows
+    // ({ age, sweep, dir, left, right, cy }, the band's geometry as the shader's gust() has it)
+    function drawRing(yawNow, pitchNow, fade, beat, glow, motion) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
       drawTiles();
@@ -1354,6 +1356,7 @@
       if (!ring) ring = ringText(line, TAU * Rpx, advance);
       var n = ring.glyphs.length;
       var accent = colors.gear ? colors.text : colors.accent;
+      var base = rgb(accent), lamp = rgb(colors.palette && colors.lit ? colors.lit[0] : accent);
       var ct = Math.cos(tilt), st = Math.sin(tilt);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1382,17 +1385,40 @@
         var sx = pc[0] + pr[0] * place.scale, sy = pc[1] - pr[1] * place.scale;
         var front = nrm[2] > 0;
         var facing = Math.abs(nrm[2]);
+        // a light reads along the line, once every 7 s (3.5 s in Gear Two): the glyphs it has just passed take its colour
+        // and grow, fading behind it
+        var shine = 0, size = 1;
+        if (motion) {
+          var behind = ((motion.comet - (i / n) * TAU) % TAU + TAU) % TAU;
+          shine = Math.exp(-behind / 0.8) + Math.exp(-(TAU - behind) / 0.06) * 0.6;
+          size = 1 + 0.22 * shine;
+          // a gust lifts the glyphs its band has crossed and lets them settle, as it does the dots
+          var gust = motion.gust;
+          if (gust) {
+            var gw = gust.right - gust.left, travel = gw * 1.4;
+            var along = sx + (sy - gust.cy) * 0.25 - gust.left + gw * 0.2;
+            if (gust.dir < 0) along = travel - along;
+            var c = clamp(along / travel, 0, 1);
+            var since = gust.age - (c < 0.5 ? Math.cbrt(c * 0.25) : 1 - Math.cbrt(2 - 2 * c) * 0.5) * gust.sweep;
+            if (since > 0) {
+              var sway = Math.exp(-since * 2.5) * Math.sin(since * 5.7) / 0.55;
+              sx += gust.dir * Rpx * 0.04 * sway;
+              sy -= Rpx * 0.025 * Math.abs(sway);
+            }
+          }
+        }
         if (!front && maskAt(sx, sy) > 0.3) continue;
         var alpha = (front ? 1 : 0.3) * (0.35 + 0.65 * Math.pow(facing, 0.6));
         // a brighten lifts every glyph toward full strength, the dim ones behind the figure most
         alpha = (alpha + (1 - alpha) * glow) * fade;
         if (alpha < 0.02) continue;
-        var k = pr[2];
+        var k = pr[2] * size;
         var tx = tg[0] * k, ty = -tg[1] * k, ux = -up[0] * k, uy = up[1] * k;
         ctx.setTransform(tx * dpr, ty * dpr, ux * dpr, uy * dpr, sx * dpr, sy * dpr);
         ctx.globalAlpha = alpha;
         if (front) ctx.strokeText(ch, 0, 0);
-        ctx.fillStyle = accent;
+        var lit = Math.min(1, shine);
+        ctx.fillStyle = lit < 0.02 ? accent : "rgb(" + [0, 1, 2].map(function (c) { return Math.round((base[c] + (lamp[c] - base[c]) * lit) * 255); }).join(",") + ")";
         ctx.fillText(ch, 0, 0);
       }
       ctx.globalAlpha = 1;
@@ -1665,7 +1691,11 @@
       // a theme hover brightens the ring for 400 ms: up in the first 100, back down by the end
       var lit = live && ringLitAt ? (now - ringLitAt) / 400 : 1;
       var brighten = lit < 0.25 ? smoothstep(0, 0.25, lit) : 1 - smoothstep(0.25, 1, lit);
-      drawRing(yaw.x, pitch.x, fade, beat, brighten);
+      var ringMotion = live ? {
+        comet: (now / 1000) * (gear ? 1.8 : 0.9),
+        gust: sheening ? { age: sheenAge, sweep: sheenSweep, dir: sheenDir, left: left, right: right, cy: box.y + place.y + meta.center[1] * place.scale } : null
+      } : null;
+      drawRing(yaw.x, pitch.x, fade, beat, brighten, ringMotion);
       if (live) drawBolts(now);
       if (!drawChecked) {
         drawChecked = true;
