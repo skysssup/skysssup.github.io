@@ -353,6 +353,19 @@ test('the face and the hands are stippled on a grid twice as fine, fading in ove
   assert.deepEqual(Array.from(fine), Array.from(hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones)), 'deterministic');
 });
 
+test('where the wind carries a dot off the figure, it knows the outline\'s normal, both ways', () => {
+  const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8
+  const at = (x, y) => [x / (size - 1), y / (size - 1), 1];
+  const out = hero.edgeNormals(rgba, size, new Float32Array([...at(5, 5), ...at(5, 3), ...at(0, 0)]), 3);
+  const turn = t => [Math.cos(t * 2 * Math.PI), Math.sin(t * 2 * Math.PI)];
+  assert.ok(Math.abs(turn(out[0])[0] - 1) < 1e-6 && Math.abs(turn(out[1])[0] + 1) < 1e-6, 'the middle row leaves through the sides, straight out');
+  const [rx, ry] = turn(out[2]), [lx, ly] = turn(out[3]);
+  assert.ok(rx > 0.5 && ry < -0.2, `near the top the right exit faces right and up, y down (${rx}, ${ry})`);
+  assert.ok(lx < -0.5 && ly < -0.2, `and the left exit faces left and up (${lx}, ${ly})`);
+  assert.deepEqual([out[4], out[5]], [0, 0.5], 'a dot outside the figure is blown straight on');
+});
+
 test('each dot knows how far it is from the figure\'s edge along its row, both ways', () => {
   const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
   for (let x = 2; x <= 8; x++) rgba[(5 * size + x) * 4] = 200;   // one row inside the figure, from x = 2 to 8

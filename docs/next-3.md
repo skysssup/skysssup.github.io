@@ -1,5 +1,17 @@
 # Handoff 3: the hero figure's next pass
 
+> **Status.** §2.1–§2.3 are live on `main`; §2.4–§2.6 are still to do. Where the build departed from this brief:
+> - §2.2: Gear Two takes the light map too, since red reads as a lit statue that way and as a red negative the other.
+>   Only the lights' switch swaps the maps behind a band; Gear Two's switch swaps them at once, under its flash and
+>   glitch, and reduced motion swaps them in one still. While the other map is on its way the figure is drawn at 60%,
+>   and the opening fetches the light map once its shine has crossed, because it always visits Gear Two. The still and
+>   the preview have dark versions; the home page's boot script preloads the one for the paper it opens on.
+> - §2.3: the flow around the body is per dot, not a field. A blown dot slides along its row to the figure's edge
+>   (`edgeDistances`) and leaves along the outline there, the wind with its component into the outline taken out
+>   (`edgeNormals`, two bytes in a 36-byte vertex, `a_w`), then turns into the wind; its turbulence is a waver shared
+>   with its row, which keeps the streams coherent, rather than curl noise. No texture or transform feedback: still one
+>   program, one buffer, one VAO. The paper glow is as it was; the owner approved the gust as filmed.
+
 You are taking over the hero figure of Aakash Dahal's portfolio: the winged statue (his GitHub avatar) drawn as a
 turning WebGL sculpture of dots at the top of the home page. Repo `skysssup/skysssup.github.io`, live at
 https://skysssup.github.io (GitHub Pages, deployed from `main` about 30 seconds after a push). You have push access to

@@ -46,10 +46,13 @@ opening under virtual time).
   in `css/site.css` that moves each material from its base to its lit color as the figure turns (marble stays ink; the
   map's alpha carries the image's sparkles, which twinkle). Sway, lighting, blinking, cursor push, click ripples, and
   Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
-  dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in Gear Two; a few dots
-  leave the surface as the band passes, stream on behind it as bits, and turn to eight-point crystals where they reach
-  the figure's edge, then re-form in place. On light and dark paper the shine is stronger: a wider band with an
-  afterglow, more stars, and a glow on the paper behind the figure. Opening the page plays an opening once a tab
+  dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in Gear Two. The band is a
+  gust of wind: every dot it reaches sways downwind and springs back with its neighbours, and up to a third of the
+  dots near the downwind edge are blown off. They slide over the surface, leave along the outline (so the dust streams
+  up the raised arm and off the wing tips), turn into the wind wavering together in the light's color, flare to a
+  bright point just before they are gone, and re-form in place once the gust has passed. On light and dark paper the
+  shine is stronger: a wider band with a sharp leading edge and an afterglow, more stars, more dust, and a glow on the
+  paper behind the figure; Gear Two's gust blows off far fewer dots. Opening the page plays an opening once a tab
   (again on a reload, never under reduced motion): the figure holds still in its ink for two seconds, a slower shine
   crosses it and leaves its colors behind, it turns once and comes back, the page goes to Gear Two with the shockwave
   leaving the figure, a red shine crosses it as it turns once more, and the page comes back; Gear Two is never saved

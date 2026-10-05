@@ -412,6 +412,7 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   assert.ok(sweep.some(([, x]) => x > 0.02 && x < 0.98), 'the band travels across the figure rather than jumping');
   for (let i = 1; i < sweep.length && sweep[i][1] < 0.999; i++) assert.ok(sweep[i][1] >= sweep[i - 1][1], 'the band never runs backwards within a sweep');
   assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
+  assert.equal(uniforms.u_flow[0], 0.32, 'on light paper its gust blows off up to a third of the dots near the downwind edge');
 });
 
 test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {
@@ -494,6 +495,7 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   await page.evaluate(() => window.skyGear.setGear(true));
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
+  assert.ok((await state(page)).uniforms.u_flow[0] < 0.2, 'Gear Two\'s gust is quieter than the blue one');
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
