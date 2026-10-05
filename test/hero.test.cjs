@@ -162,6 +162,27 @@ test('rotation keeps lengths, and perspective magnifies what is nearer', () => {
   assert.ok(hero.project([0, 0, 0.2])[2] > hero.project([0, 0, -0.2])[2]);
 });
 
+test('a sheen sweeps the turned figure from the key light at the upper left, in front, to the lower right, behind', () => {
+  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'hero', 'hero.json'), 'utf8'));
+  const [x0, y0, x1] = meta.bounds, [cx, cy] = meta.center, M = hero.WAY_MARGIN, relief = 0.34;
+  assert.ok(Math.abs(Math.hypot(...hero.WAY) - 1) < 1e-12 && hero.WAY[0] > 0 && hero.WAY[1] < 0 && hero.WAY[2] < 0, 'right, down, and away');
+  // the corners of the box the sweep is fitted to: the statue's bounds and a little either side, the clouds below, its relief
+  const corner = (x, y, z) => [x - cx, cy - y, (z - 0.62) * relief];
+  const near = corner(x0 - 0.04, y0, 1), far = corner(x1 + 0.04, 1, 0);
+  for (const yaw of [-0.3, 0, 0.3]) for (const pitch of [-0.07, 0, 0.07]) {
+    const lane = hero.sheenWay(meta, yaw, pitch), at = q => hero.wayAt(hero.rotate(q, yaw, pitch), lane);
+    assert.ok(lane.k > 0);
+    const all = [];
+    for (const x of [x0 - 0.04, x1 + 0.04]) for (const y of [y0, 1]) for (const z of [0, 1]) all.push(at(corner(x, y, z)));
+    assert.ok(Math.abs(Math.min(...all) - M / (1 + 2 * M)) < 1e-9, `the band starts a margin before the figure (yaw ${yaw}, pitch ${pitch})`);
+    assert.ok(Math.abs(Math.max(...all) - (1 + M) / (1 + 2 * M)) < 1e-9, `and leaves it a margin after (yaw ${yaw}, pitch ${pitch})`);
+    assert.ok(Math.abs(at(near) - M / (1 + 2 * M)) < 0.03, `the corner at the upper left, in front, is reached first (${at(near)})`);
+    assert.ok(Math.abs(at(far) - (1 + M) / (1 + 2 * M)) < 0.03, `the lower right, behind, last (${at(far)})`);
+    // through its depth: of two points one above the other on the screen, the nearer is reached first
+    assert.ok(at(corner(0.5, 0.5, 0.9)) < at(corner(0.5, 0.5, 0.1)), 'the band reaches a near surface before the one behind it');
+  }
+});
+
 test('the shipped hero data matches what the engine expects', () => {
   const dir = path.join(__dirname, '..', 'assets', 'hero');
   const meta = JSON.parse(fs.readFileSync(path.join(dir, 'hero.json'), 'utf8'));

@@ -432,6 +432,22 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   assert.ok(uniforms.u_breeze[0] > 0 && uniforms.u_breeze[1] > 0, 'and between gusts a breeze keeps taking dots off the outline');
 });
 
+test('every sheen comes from the key light\'s side: its light sweeps right, down, and away in every mode', async t => {
+  const { page } = await open(t);
+  await live(page);
+  for (const mode of ['light', 'dark', 'two', 'blue']) {
+    if (mode === 'dark') await page.evaluate(() => window.skyTheme.set('dark'));
+    if (mode === 'two' || mode === 'blue') await page.evaluate(gear => window.skyGear.setGear(gear), mode);
+    await page.waitForFunction(gear => (document.documentElement.getAttribute('data-gear') || null) === gear, mode === 'two' || mode === 'blue' ? mode : null);
+    const before = (await state(page)).draws;
+    await page.waitForFunction(n => window.__heroProbe.draws > n + 2, before);
+    const { u_way, u_wayk } = (await state(page)).uniforms;
+    assert.ok(Math.abs(Math.hypot(u_way[0], u_way[1], u_way[2]) - 1) < 1e-5, `${mode}: the sweep's direction is a unit vector (${u_way})`);
+    assert.ok(u_way[0] > 0 && u_way[1] < 0 && u_way[2] < 0, `${mode}: from the upper left, in front, to the lower right, behind (${u_way})`);
+    assert.ok(u_wayk[0] > 0 && u_wayk[1] > 0, `${mode}: the figure spans the sweep, with a margin either side (${u_wayk})`);
+  }
+});
+
 test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {
   const { page } = await open(t);
   await live(page);

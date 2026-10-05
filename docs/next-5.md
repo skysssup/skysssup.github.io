@@ -1,7 +1,15 @@
 # Handoff 5: finish the hero pass (the shine, a living figure, Tide's own entrance, the red cursor's dots, the docs)
 
-> **Status.** Not started. Whoever works on this updates this line after every push: which steps of §3 are live on
-> `main`, and where the build departed from this brief, and why.
+> **Status.** Live on `main`: step 5, the shine ("Let the shine cross the statue…"), after a commit that finds frames for the pass
+> (`b153719`: the cloud bank's own dots are not drawn while it is away; the ring draws a halo only where it hides
+> something). Where it departs from §3: the sweep's progress is linear (the cubic ease rushed the light across the
+> figure's middle in 0.3 s), idle sheens take 1.4 s, and the opening keeps its 1.4 s shine and a 1.1 s red shine
+> (`INTRO.redSweep`); WAY weighs depth more than the key light (`[0.45, -0.6, -1.0]`); the band became a sharp line with a
+> warm wash behind it, and the fringe runs on the stone only (on gold it went grey). Tide's shine is cyan until the owner
+> picks gold. New hold-frame hashes (the vertex order moved): light `3763294288`, dark `656134758`. Also fixed: CI had
+> been red since 17:30 UTC on 5 October because the contact dial's "you" label ran past a 390 px screen between about
+> 17:15 and 18:45 local time (`2312b4c`). Whoever works on this updates this line after every push: which steps of §3
+> are live on `main`, and where the build departed from this brief, and why.
 
 You are taking over the hero figure of Aakash Dahal's portfolio, https://skysssup.github.io: his GitHub avatar (a winged
 statue of Hermes raising a caduceus, rising out of clouds into a starry sky) drawn as a turning WebGL sculpture of
