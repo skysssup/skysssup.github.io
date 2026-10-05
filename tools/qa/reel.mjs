@@ -73,6 +73,10 @@ const SEGMENTS = {
   'blue-turn': { theme: 'blue', intro: false, seconds: 6, skip: 1.2, label: 'blue, a turn and its sheen' },
   'light-idle': { theme: 'light', intro: false, seconds: 10, skip: 5, label: 'light, idle' },
   'dark-idle': { theme: 'dark', intro: false, seconds: 10, skip: 5, label: 'dark, idle' },
+  'gear-cursor': { theme: 'gear', intro: false, seconds: 6, skip: 3.5, label: 'Gear Two: the dots under the cursor run ember-hot', mouse: (t, b) => {
+    const cx = b.x + b.width * 0.52, cy = b.y + b.height * 0.6;
+    return [cx + Math.cos(t * 1.1) * b.width * 0.1, cy + Math.sin(t * 1.1) * b.height * 0.12];
+  } },
   'light-cursor': { theme: 'light', intro: false, seconds: 5, skip: 3.5, label: 'the cursor stirs, a quick sweep puffs', mouse: (t, b) => {
     const cx = b.x + b.width * 0.5, cy = b.y + b.height * 0.55;
     if (t < 2.5) return [cx + Math.cos(t * 1.6) * b.width * 0.12, cy + Math.sin(t * 1.6) * b.height * 0.08];

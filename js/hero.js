@@ -778,6 +778,7 @@
     "uniform vec4 u_staff;",
     "uniform vec4 u_life;",
     "uniform vec4 u_key;",
+    "uniform vec4 u_ember;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -916,6 +917,10 @@
     "    px += u_stir.xy * 0.05 * push;",
     "  }",
     "  float lift = push;",
+    // in Gear Two the dots under the cursor run ember-hot (u_ember: how much, eased over the switch, and the ember's
+    // colour): white-hot at its centre, ember at the edge of its reach, each in a soft glow of its own; nothing on touch
+    // or under reduced motion, where the cursor stirs nothing (u_pointer.z is 0)
+    "  float heat = within * within * u_pointer.z * u_ember.x;",
     // the opening's strike of lightning (u_rip: where, when, how strong) sends a ring out through the figure and lights it
     // up. The strikes and the cursor's puffs still under way come first in their arrays (u_blast: how many of each), and
     // the loops run over those alone: a renderer without a GPU runs every line of a shader for every dot, taken or not,
@@ -1099,6 +1104,7 @@
     "  float tw = sparkle * (0.5 + 0.5 * sin(u_time * 2.2 + s2 * 6.2831853)) * min(1.0, tint * 2.5);",
     "  hot = max(hot, tw * 0.5);",
     "  col = mix(col, u_hot, hot * 0.9);",
+    "  col = mix(col, mix(u_ember.yzw, u_hot, within * within), heat * 0.75);",
     "  col = mix(col, u_light[0], max(wash * (0.25 + 0.75 * lam * lam) * 0.85, trail * 0.35));",
     "  col = mix(col, mix(u_light[0], u_light[1], smoothstep(0.55, 1.0, band)), band * 0.95);",
     "  col = mix(col, u_light[3], fringe * 0.7);",
@@ -1147,7 +1153,7 @@
     "  v_star = star;",
     "  v_blown = blown;",
     "  v_heading = normalize(heading);",
-    "  v_flare = max(flare, max(0.6 * swell, mix(0.4, 0.6, u_positive) * band));",
+    "  v_flare = max(flare, max(max(0.6 * swell, mix(0.4, 0.6, u_positive) * band), 0.35 * heat));",
     "  v_size = size * u_dpr;",
     // a star's sprite is larger than its disc, to hold the arms of the cross; a flare's larger too, for its halo
     "  v_sprite = v_size * (1.0 + 2.0 * star + 2.5 * v_flare);",
@@ -1272,6 +1278,8 @@
       light: [get("--figure-sheen"), get("--figure-sheen-core"), get("--figure-star"), get("--figure-sheen-fringe")],
       // the ink's cool fill and warm key once the colours have arrived, and the glints' heart and edge
       tone: [get("--figure-fill"), get("--figure-key")], glint: [get("--figure-glint"), get("--figure-glint-edge")],
+      // the colour the dots under the cursor run in Gear Two: the page's embers' (--trail-ember), else the key's
+      ember: get("--trail-ember") || get("--figure-key"),
       // each material's base and lit color, in index order; marble is the figure's ink
       palette: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m); }),
       lit: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m + "-lit"); }),
@@ -1355,8 +1363,9 @@
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
     var tintNow = tintFor(colors), tintFrom = tintNow, tintTo = tintNow;
-    // how much of the cloud bank is drawn: all of it in Gear Two, none on light and dark paper
-    var bankNow = colors.gear ? 1 : 0;
+    // how much of the cloud bank is drawn: all of it in Gear Two, none on light and dark paper; and how hot the dots
+    // under the cursor run, Gear Two's ember heat, eased over its switch the same way
+    var bankNow = colors.gear ? 1 : 0, emberNow = bankNow, emberColor = rgb(colors.ember);
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
     var touch = null;
@@ -1385,6 +1394,7 @@
     var staff = [0, 0, 0];
 
     function paintLights() {
+      emberColor = rgb(colors.ember);
       colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); });
       colors.tone.forEach(function (css, i) { tones.set(rgb(css), i * 3); });
       colors.glint.forEach(function (css, i) { glintColors.set(rgb(css), i * 3); });
@@ -1449,7 +1459,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_way", "u_wayk", "u_drift", "u_sky", "u_tiles", "u_wind", "u_bank", "u_vortex", "u_tide", "u_parts", "u_joints", "u_staff", "u_life", "u_key"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_way", "u_wayk", "u_drift", "u_sky", "u_tiles", "u_wind", "u_bank", "u_vortex", "u_tide", "u_parts", "u_joints", "u_staff", "u_life", "u_key", "u_ember"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -2011,6 +2021,7 @@
       // the cloud bank comes in under Gear Two's switch and leaves over 0.3 s as it ends
       var bankTo = gear ? 1 : 0;
       bankNow = live ? (bankNow < bankTo ? Math.min(bankTo, bankNow + dt / 0.3) : Math.max(bankTo, bankNow - dt / 0.3)) : bankTo;
+      emberNow = live ? (emberNow < bankTo ? Math.min(bankTo, emberNow + dt / 0.3) : Math.max(bankTo, emberNow - dt / 0.3)) : bankTo;
       if (inkAt) {
         var q = clamp((now - inkAt) / 320, 0, 1);
         inkNow = [0, 1, 2].map(function (c) { return inkFrom[c] + (inkTo[c] - inkFrom[c]) * q; });
@@ -2152,6 +2163,7 @@
       var wx = Math.sin(t * 0.26) + 0.35 * Math.sin(t * 0.61 + 1.3), wy = 0.25 * Math.sin(t * 0.37 + 0.6), wl = Math.hypot(wx, wy) || 1;
       gl.uniform2f(U.u_wind, wx / wl, wy / wl);
       gl.uniform1f(U.u_bank, bankNow);
+      gl.uniform4f(U.u_ember, emberNow, emberColor[0], emberColor[1], emberColor[2]);
       // Tide's entrance (vortex()), and as it settles a sheen crosses the blue figure
       var va = vortexAt && live ? (now - vortexAt) / 1000 : 0;
       if (vortexShine && va >= VORTEX.shine) { vortexShine = false; shine(now, 1, SHEEN_SWEEP, false, ++bursts + 200); }

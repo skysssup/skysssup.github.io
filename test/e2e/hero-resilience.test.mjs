@@ -27,7 +27,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
   t.after(() => context.close());
   if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [], u_life: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [], u_life: [], u_ember: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -633,6 +633,51 @@ test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fa
   await still.page.evaluate(() => window.skyGear.setGear(true));
   await still.page.waitForFunction(() => window.__heroProbe.uniforms.u_bank[0] === 1);
   assert.ok((await state(still.page)).series.u_bank.every(([, v]) => v === 0 || v === 1), 'under reduced motion the bank is there or not');
+});
+
+test('in Gear Two the dots under the cursor run ember-hot, in the embers\' colour; on light paper, on touch, and under reduced motion they do not', async t => {
+  const { page } = await open(t);
+  await live(page);
+  const box = await page.locator('#figure').boundingBox();
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.6);
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_pointer[2] > 0.5);
+  assert.equal((await state(page)).uniforms.u_ember[0], 0, 'on light paper the cursor only stirs the dots');
+  const switched = await page.evaluate(() => { window.skyGear.setGear(true); return performance.now(); });
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_ember[0] === 1, null, { timeout: 5000 });
+  const hot = (await state(page)).uniforms;
+  assert.ok(hot.u_pointer[2] > 0.5, 'the cursor still reaches the dots');
+  // the ember's colour is the page's embers' (--trail-ember, the key in Gear Two): warm, more red than blue
+  const ember = await page.evaluate(() => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--trail-ember').trim(); return c.fillStyle; });
+  const want = [1, 3, 5].map(i => parseInt(ember.slice(i, i + 2), 16) / 255);
+  assert.ok(want.every((v, i) => Math.abs(v - hot.u_ember[i + 1]) < 0.01), `the heat runs in the embers' colour ${ember} (${hot.u_ember.slice(1)})`);
+  assert.ok(hot.u_ember[1] > hot.u_ember[3], 'warm');
+  const rising = (await state(page)).series.u_ember.filter(([time]) => time > switched).map(([, v]) => v);
+  assert.ok(rising.some(v => v > 0 && v < 1), 'the heat comes in under the switch rather than at once');
+  const ended = await page.evaluate(() => { window.skyGear.setGear(false); return performance.now(); });
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_ember[0] === 0, null, { timeout: 5000 });
+  const leaving = (await state(page)).series.u_ember.filter(([time]) => time > ended).map(([, v]) => v);
+  assert.ok(leaving.some(v => v > 0 && v < 1), 'and eases away as Gear Two ends');
+  for (let i = 1; i < leaving.length; i++) assert.ok(leaving[i] <= leaving[i - 1], 'never coming back on the way');
+
+  const still = await open(t, { reduced: true });
+  await live(still.page);
+  await still.page.evaluate(() => window.skyGear.setGear(true));
+  await still.page.waitForFunction(() => window.__heroProbe.uniforms.u_ember[0] === 1);
+  const quietBox = await still.page.locator('#figure').boundingBox();
+  await still.page.mouse.move(quietBox.x + quietBox.width * 0.55, quietBox.y + quietBox.height * 0.6);
+  await stillDrawing(still.page);
+  assert.equal((await state(still.page)).uniforms.u_pointer[2], 0, 'under reduced motion the cursor reaches no dot, so none runs hot');
+
+  const touched = await open(t, { touch: true });
+  await live(touched.page);
+  await touched.page.evaluate(() => window.skyGear.setGear(true));
+  await touched.page.waitForFunction(() => window.__heroProbe.uniforms.u_ember[0] === 1);
+  const touch = await touchAt(touched.context, touched.page);
+  await touch.send('touchStart');
+  await touch.send('touchMove', touch.x + 40, touch.y + 4);
+  await touched.page.waitForTimeout(600);
+  assert.equal((await state(touched.page)).uniforms.u_pointer[2], 0, 'a touch stirs nothing and heats nothing');
+  await touch.send('touchEnd');
 });
 
 test('the sky\'s stars sit in the sky, and come out on dark paper and in Gear Two but not on white', async t => {
