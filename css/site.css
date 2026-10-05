@@ -27,6 +27,7 @@
   --figure-sheen: #2c62ff;
   --figure-sheen-core: #9db8ff;
   --figure-star: #2c62ff;
+  --figure-glow: rgba(44, 98, 255, .2);
   /* the figure's materials, base and lit (marble is --figure-ink); see docs/design-spec.md §5 */
   --mat-gold: #b8860b;
   --mat-gold-lit: #d4a017;
@@ -64,6 +65,7 @@
   --figure-sheen: #38d9ff;
   --figure-sheen-core: #bff4ff;
   --figure-star: #8ae8ff;
+  --figure-glow: rgba(56, 217, 255, .2);
   --mat-gold: #f2c14e;
   --mat-gold-lit: #ffe08a;
   --mat-cloud: #f0a8b8;
@@ -87,6 +89,7 @@
     --figure-sheen: #38d9ff;
     --figure-sheen-core: #bff4ff;
     --figure-star: #8ae8ff;
+    --figure-glow: rgba(56, 217, 255, .2);
     --mat-gold: #f2c14e;
     --mat-gold-lit: #ffe08a;
     --mat-cloud: #f0a8b8;
@@ -380,8 +383,13 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
   mask: url("/assets/hero/still.webp") center / contain no-repeat;
 }
 .hero-figure.is-live:not(.is-fallback) .still { display: none; }
+/* in the opening the still and the first drawn frame are the same figure in ink, so one fades into the other */
+.hero-figure[data-intro].is-live:not(.is-fallback) .still { display: block; opacity: 0; visibility: hidden; transition: opacity .3s var(--ease-out), visibility 0s .3s; }
 .hero-figure:not(.is-live) canvas, .hero-figure.is-fallback canvas { visibility: hidden; }
 .hero-figure canvas { position: absolute; max-width: none; pointer-events: none; }
+/* the light a sheen throws on the paper behind the figure, moved and faded by js/hero.js on light and dark paper */
+.hero-glow { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; border-radius: 50%; background: radial-gradient(closest-side, var(--figure-glow), transparent); will-change: transform, opacity; }
+.hero-figure:not(.is-live) .hero-glow, .hero-figure.is-fallback .hero-glow { visibility: hidden; }
 .essentially { grid-column: 4; grid-row: 1; align-self: start; }
 .themes { grid-column: 1; grid-row: 3; align-self: end; }
 .fig-note { grid-column: 4; grid-row: 3; align-self: end; display: grid; gap: 4px; }
@@ -524,7 +532,7 @@ html.js:not([data-motion="reduced"]) .fig-frame[data-reveal].is-seen > :is(img, 
 /* a screenshot develops from a stipple drawing in the figure's ink the first time it is seen (js/page.js) */
 .is-stippled { position: relative; }
 .stipple { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 1.2s var(--ease-out) .15s; }
-.is-stippled > img { transition: opacity 1s var(--ease-out); }
+.is-developed > img { transition: opacity 1s var(--ease-out); }
 html:not([data-motion="reduced"]) .is-stippled:not(.is-developed) > img { opacity: 0; }
 .is-developed > .stipple, :root[data-motion="reduced"] .stipple { opacity: 0; }
 
@@ -1131,13 +1139,15 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .crosshair, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .crosshair, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .hero-glow, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }
   .fig-note .fine, .fig-note .coarse { display: none; }
   .hero-figure .still, .hero-figure.is-live .still {
     display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
     -webkit-mask: none;
     mask: none;
     background: url("/assets/hero/still.webp") center / contain no-repeat;

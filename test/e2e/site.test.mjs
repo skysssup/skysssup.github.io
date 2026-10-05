@@ -33,6 +33,7 @@ async function open(url, { width = 1440, height = 900, mode = 'light', reduced =
     try {
       if (!sessionStorage.getItem('e2e-seeded')) {
         sessionStorage.setItem('e2e-seeded', '1');
+        sessionStorage.setItem('sky-intro', 'seen');
         localStorage.setItem('sky-theme', m === 'light' ? 'light' : 'dark');
         if (m === 'gear') sessionStorage.setItem('sky-gear', 'two');
       }

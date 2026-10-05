@@ -272,3 +272,78 @@ test('glitch tiles are deterministic per frame, land inside the box on the figur
   for (const [x, , w] of onFigure) assert.ok(rightHalf(x + w / 2), 'a tile centre misses the figure');
   assert.deepEqual(hero.glitchTiles(7, box, 3, () => false), []);
 });
+
+test('the opening holds still in ink, shines, turns once and returns, goes to Gear Two and back, then hands over', () => {
+  const { INTRO } = hero;
+  // frames at 60 fps; the page answers "red" by switching Gear Two on 90 ms later and "back" by switching it off 300 ms later
+  let state = { stage: 'hold', at: 0, redAt: null }, clock = 0, gear = false, switchAt = null, target = null;
+  const stages = [], acts = [];
+  for (let f = 0; f < 60 * 30 && state; f++) {
+    const now = f / 60;
+    if (switchAt !== null && now >= switchAt) { gear = target; switchAt = null; }
+    const step = hero.introStep(state, now, clock, gear);
+    if (step.act) acts.push([step.act, now, step.clock]);
+    if (step.act === 'red') { switchAt = now + 0.09; target = true; }
+    if (step.act === 'back') { switchAt = now + 0.3; target = false; }
+    if (!step.state || step.state.stage !== state.stage) stages.push([step.state ? step.state.stage : 'done', now]);
+    clock = step.clock;
+    state = step.state;
+    if (state) clock += ({ hold: 0, shine: 0, turn: INTRO.rate, red: 0, redshine: 0, redturn: INTRO.redRate, back: 0 })[state.stage] / 60;
+  }
+  assert.equal(state, null, 'the opening ends');
+  assert.deepEqual(stages.map(s => s[0]), ['shine', 'turn', 'red', 'redshine', 'redturn', 'back', 'done']);
+  assert.deepEqual(acts.map(a => a[0]), ['shine', 'ring', 'red', 'redshine', 'back']);
+  const at = name => acts.find(a => a[0] === name);
+  assert.ok(Math.abs(at('shine')[1] - INTRO.hold) < 1 / 60 + 1e-9, 'the figure holds still for INTRO.hold');
+  assert.ok(Math.abs(at('ring')[1] - at('shine')[1] - INTRO.sweep) < 1 / 60 + 1e-9, 'the ring arrives once the shine has crossed');
+  assert.equal(at('red')[2], 7, 'Gear Two comes when the figure has turned once and is back in the middle');
+  assert.ok(Math.abs(at('red')[1] - at('ring')[1] - 7 / INTRO.rate) < 0.05, 'the turn runs at INTRO.rate');
+  assert.ok(Math.abs(at('redshine')[1] - at('red')[1] - 0.09 - INTRO.red) < 0.03, 'the red shine waits INTRO.red after the switch');
+  assert.equal(at('back')[2], 14, 'the page comes back when the red figure has turned once the other way');
+  assert.ok(stages.at(-1)[1] - at('back')[1] >= 0.3 - 1e-9, 'it hands over only once Gear Two is off');
+
+  // from Gear Two the opening turns once and hands over without switching anything
+  state = { stage: 'turn', at: 0, redAt: null };
+  const done = hero.introStep(state, 3, 7, true);
+  assert.equal(done.state, null);
+  assert.equal(done.act, null);
+  // a page that never switches is not waited on for longer than INTRO.wait
+  state = { stage: 'red', at: 0, redAt: null };
+  assert.equal(hero.introStep(state, INTRO.wait - 0.01, 7, false).state.stage, 'red');
+  assert.equal(hero.introStep(state, INTRO.wait + 0.01, 7, false).state, null);
+});
+
+test('the face and the hands are stippled on a grid twice as fine, fading in over the rim of each zone', () => {
+  const zones = [[0.5, 0.5, 0.2, 0.1, 0], [0.2, 0.8, 0.1, 0.05, Math.PI / 2]];
+  assert.equal(hero.fineWeight(zones, 0.5, 0.5), 1);
+  assert.equal(hero.fineWeight(zones, 0.5, 0.65), 0, 'outside the ellipse');
+  const rim = hero.fineWeight(zones, 0.5 + 0.2 * 0.85, 0.5);
+  assert.ok(rim > 0 && rim < 1, `the rim fades (${rim})`);
+  assert.equal(hero.fineWeight(zones, 0.2, 0.8 + 0.06), 1, 'a turned ellipse is long across its turn');
+  assert.equal(hero.fineWeight(zones, 0.2 + 0.09, 0.8), 0);
+  assert.equal(hero.fineWeight(null, 0.5, 0.5), 0);
+
+  const size = 16, rgba = new Uint8ClampedArray(size * size * 4).fill(255);
+  const noise = Uint8Array.from({ length: 16 }, (_, i) => i * 16);
+  const plain = hero.stipple(rgba, size, noise, 4, 40, 0.6, 0);
+  const fine = hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones);
+  const cells = pts => Array.from({ length: pts.length / 3 }, (_, i) => [pts[i * 3], pts[i * 3 + 1]]);
+  const inZone = ([x, y]) => hero.fineCell(zones, 40, Math.floor(x * 40), Math.floor(y * 40));
+  const outside = cells(fine).filter(p => !inZone(p));
+  assert.deepEqual(outside, cells(plain).filter(p => !inZone(p)), 'outside the zones nothing changes');
+  const inside = cells(fine).filter(inZone), before = cells(plain).filter(inZone);
+  assert.ok(inside.length > before.length * 3, `about four dots where there was one (${inside.length} vs ${before.length})`);
+  for (const [x, y] of inside) {
+    assert.ok(Math.abs(x * 80 - Math.floor(x * 80) - 0.5) < 1e-4 && Math.abs(y * 80 - Math.floor(y * 80) - 0.5) < 1e-4, 'fine dots sit on the cells of a grid twice as fine');
+  }
+  assert.deepEqual(Array.from(fine), Array.from(hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones)), 'deterministic');
+});
+
+test('each dot knows how far it is from the figure\'s edge along its row, both ways', () => {
+  const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let x = 2; x <= 8; x++) rgba[(5 * size + x) * 4] = 200;   // one row inside the figure, from x = 2 to 8
+  const at = x => [x / (size - 1), 5 / (size - 1), 1];
+  const out = hero.edgeDistances(rgba, size, new Float32Array([...at(2), ...at(5), ...at(8), ...at(0)]), 3);
+  const px = Array.from(out, d => Math.round(d * (size - 1)));
+  assert.deepEqual(px, [7, 1, 4, 4, 1, 7, 0, 0], 'right and left, counting the dot\'s own pixel; none outside the figure');
+});

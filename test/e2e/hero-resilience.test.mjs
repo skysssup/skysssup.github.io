@@ -18,14 +18,16 @@ before(async () => {
 });
 after(async () => { await browser?.close(); site?.server.close(); });
 
-async function open(t, { reduced = false, touch = false, setup } = {}) {
+// Every test but the opening's own starts from a tab that has already seen the opening (js/page.js).
+async function open(t, { reduced = false, touch = false, setup, intro = false } = {}) {
   const context = await browser.newContext({
     viewport: touch ? { width: 390, height: 844 } : { width: 1280, height: 800 },
     colorScheme: 'light', reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch,
   });
   t.after(() => context.close());
+  if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -62,7 +64,7 @@ async function open(t, { reduced = false, touch = false, setup } = {}) {
         const result = original.call(this, location, ...values);
         const name = locations.get(location);
         if (hero(this)) probe.uniforms[name] = method === 'uniform4fv' ? Array.from(values[0]) : values;
-        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), values[0]]);
+        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[3] : values[0]]);
         return result;
       };
     }
@@ -541,3 +543,73 @@ for (const failure of ['unavailable context', 'throwing context', 'shader compil
     assert.equal((await state(page)).draws, 0);
   });
 }
+
+// The opening (js/hero.js INTRO, js/page.js): still in ink, a shine that brings the colors, a turn, Gear Two and back.
+async function stages(page) {
+  await page.evaluate(() => {
+    const figure = document.getElementById('figure'), root = document.documentElement;
+    window.__stages = [[performance.now(), figure.getAttribute('data-intro'), root.getAttribute('data-gear')]];
+    new MutationObserver(() => window.__stages.push([performance.now(), figure.getAttribute('data-intro'), root.getAttribute('data-gear')]))
+      .observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-intro', 'data-gear'] });
+  });
+}
+
+test('the opening holds the figure still in its ink, shines its colors in, and takes the page to Gear Two and back without saving it', async t => {
+  const { page } = await open(t, { intro: true });
+  await stages(page);
+  await live(page);
+  assert.equal(await page.locator('#figure').getAttribute('data-intro'), 'hold');
+  const held = (await state(page)).uniforms;
+  assert.deepEqual(held.u_tint, [0], 'the figure starts in its ink alone');
+  assert.deepEqual(held.u_rot, [0, 0], 'facing the viewer, as the still that covered the page did');
+  assert.deepEqual(held.u_blink, [0], 'and nothing blinks');
+  await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'turn', null, { timeout: 15000 });
+  const { series } = await state(page);
+  assert.ok(series.u_flow.some(([, wake]) => wake === 1), 'the opening shine brings the colors in behind its band');
+  assert.ok(series.u_sheen.some(([, x]) => x > 0.02 && x < 0.98), 'and crosses the figure');
+  assert.deepEqual((await state(page)).uniforms.u_tint, [1], 'after the shine the figure wears its colors');
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two', null, { timeout: 30000 });
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), null, 'Gear Two is not saved for the next page');
+  await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'done', null, { timeout: 30000 });
+  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the page comes back');
+  const seen = (await page.evaluate(() => window.__stages)).map(([, stage, gear]) => `${stage}${gear ? '+gear' : ''}`).filter((x, i, a) => x !== a[i - 1]);
+  assert.deepEqual(seen, ['hold', 'shine', 'turn', 'red', 'red+gear', 'redshine+gear', 'redturn+gear', 'back+gear', 'back', 'done']);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-intro')), 'seen');
+});
+
+test('a press or a key ends the opening at once; a press on Gear Two then acts on the page as it is', async t => {
+  const { page } = await open(t, { intro: true });
+  await live(page);
+  await page.keyboard.press('Shift');
+  assert.equal(await page.locator('#figure').getAttribute('data-intro'), 'done');
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_tint[0] === 1, null, { timeout: 5000 });
+
+  const red = await open(t, { intro: true });
+  await live(red.page);
+  await red.page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two', null, { timeout: 30000 });
+  await red.page.locator('[data-gear-toggle]').click();
+  assert.equal(await red.page.locator('#figure').getAttribute('data-intro'), 'done');
+  await red.page.waitForFunction(() => !document.documentElement.hasAttribute('data-gear'));
+  await red.page.waitForTimeout(1500);
+  assert.equal(await red.page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the visitor switched Gear Two off, and it stays off');
+  assert.equal(await red.page.evaluate(() => sessionStorage.getItem('sky-gear')), null);
+});
+
+test('the opening plays once a tab and again on a reload, never on the way back from another page or under reduced motion', async t => {
+  const { page } = await open(t, { intro: true });
+  await live(page);
+  assert.equal(await page.locator('#figure').getAttribute('data-intro'), 'hold');
+  await page.goto(site.origin + '/work/', { waitUntil: 'domcontentloaded' });
+  await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
+  await live(page);
+  assert.equal(await page.locator('#figure').getAttribute('data-intro'), null, 'coming back to the page does not replay it');
+  assert.ok((await state(page)).uniforms.u_build[0] < 99, 'the figure assembles as before');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await live(page);
+  assert.notEqual(await page.locator('#figure').getAttribute('data-intro'), null, 'a reload plays it again');
+
+  const still = await open(t, { intro: true, reduced: true });
+  await live(still.page);
+  assert.equal(await still.page.locator('#figure').getAttribute('data-intro'), null);
+  assert.deepEqual((await state(still.page)).uniforms.u_tint, [1]);
+});

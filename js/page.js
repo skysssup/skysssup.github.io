@@ -347,10 +347,31 @@
       var counters = doc.querySelectorAll("[data-dot-count]");
       var telemetry = doc.querySelector("[data-hero-telemetry]");
       var degrees = function (rad) { var d = rad * 180 / Math.PI; return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + "°"; };
+      // The opening (js/hero.js INTRO) plays when the page is opened: once a tab, again on a reload, never under
+      // reduced motion. It takes the page into Gear Two and back without saving it, and any press, key, or scroll
+      // ends it; a press on Gear Two or the lights then acts on the page as it is.
+      var opening = false;
+      if (!motion.reduced()) {
+        try {
+          var arrival = win.performance && win.performance.getEntriesByType ? win.performance.getEntriesByType("navigation")[0] : null;
+          opening = !win.sessionStorage.getItem("sky-intro") || !!(arrival && arrival.type === "reload");
+          win.sessionStorage.setItem("sky-intro", "seen");
+        } catch (e) { opening = true; }
+      }
+      var interrupts = ["pointerdown", "keydown", "wheel"];
+      var interrupt = function (event) {
+        var target = event.target;
+        if (hero) hero.skipIntro(!!(target && target.closest && target.closest("[data-gear-toggle], [data-lamp]")));
+      };
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
         line: figure.getAttribute("data-ring") || "",
         motion: motion,
+        intro: opening,
+        onIntro: function (step) {
+          if ((step === "red" || step === "back") && win.skyGear) win.skyGear.switchGear(step === "red", figure, true);
+          if (step === "done") interrupts.forEach(function (type) { doc.removeEventListener(type, interrupt, true); });
+        },
         onCount: function (n) {
           var text = n.toLocaleString("en-US");
           for (var i = 0; i < counters.length; i++) { counters[i].textContent = text; counters[i].setAttribute("data-final", text); }
@@ -365,6 +386,7 @@
           telemetry.hidden = false;
         }
       });
+      if (opening) interrupts.forEach(function (type) { doc.addEventListener(type, interrupt, { capture: true, passive: true }); });
       var ripple = doc.querySelector("[data-hero-ripple]");
       if (ripple && hero.ripple) {
         var syncRipple = function () { ripple.hidden = false; ripple.disabled = motion.reduced() || figure.classList.contains("is-fallback") || !figure.classList.contains("is-live"); };
@@ -479,7 +501,9 @@
         var px = pctx.getImageData(0, 0, cols, rows).data;
         var styles = win.getComputedStyle(doc.documentElement);
         var paper = styles.getPropertyValue("--paper").trim(), darkPaper = parseInt(paper.slice(1, 3), 16) < 128;
-        var ctx = canvas.getContext("2d");
+        // drawn in software: tens of thousands of arcs on an accelerated canvas queue ahead of the hero's shaders on
+        // the GPU, which held its first frame back by seconds on a software renderer
+        var ctx = canvas.getContext("2d", { willReadFrequently: true });
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = styles.getPropertyValue("--figure-ink").trim();

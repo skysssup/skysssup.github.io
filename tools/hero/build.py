@@ -31,6 +31,12 @@ M = 448          # depth, detail, and color maps: smooth fields, half the resolu
 DEPTH_INPUT = 1036
 INK_LEVELS = 64
 DENSITY = 0.85
+# The face and the hands, as soft ellipses (x, y, rx, ry, turn in radians; figure units, 0..1 across the map):
+# the engine stipples them on a grid twice as fine with dots half the size, and the ink is sharpened inside
+# them so the eye socket, the open mouth, and the fingers stand off the stone. Read by the engine from hero.json.
+FINE = [(0.497, 0.455, 0.094, 0.09, 0.0),     # the head, its face upturned
+        (0.236, 0.284, 0.064, 0.072, 0.0),    # the fist on the caduceus
+        (0.852, 0.832, 0.108, 0.062, 0.2)]    # the open hand
 
 UPSCALERS = [  # (url, sha256)
     ('https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth',
@@ -112,6 +118,17 @@ def u8(a):
     return np.clip(np.round(a * 255), 0, 255).astype(np.uint8)
 
 
+def fine_weight(xx, yy):
+    """1 inside a fine zone, falling to 0 over the outer 30% of its radius: js/hero.js fineWeight, on the map."""
+    w = np.zeros_like(xx)
+    for cx, cy, rx, ry, turn in FINE:
+        dx, dy = xx - cx, yy - cy
+        u = (dx * np.cos(turn) + dy * np.sin(turn)) / rx
+        v = (dy * np.cos(turn) - dx * np.sin(turn)) / ry
+        w = np.maximum(w, 1 - smoothstep(0.7, 1.0, np.hypot(u, v)))
+    return w
+
+
 def maps():
     src = Image.open(AVATAR).convert('RGB').resize((N, N), Image.LANCZOS)
     rgb = np.asarray(src, np.float32) / 255
@@ -161,6 +178,11 @@ def maps():
     contrast = np.abs(lum - blurf(lum, 3.0))
     contrast = np.clip(contrast / np.percentile(contrast[mask > 0.5], 98), 0, 1)
     ink = ink * np.minimum(1.6, 1 + 0.6 * contrast) * mask / 1.6
+    # Inside the fine zones the engine draws four times the dots, enough to show a sharper ink: an unsharp mask
+    # (1.5 px, 0.8) on the features, faded in with the same weight the engine uses to split its cells.
+    zone = fine_weight(xx, yy)
+    sharp = np.clip(ink + 0.8 * (ink - blurf(ink, 1.5)), 0, 1) * (mask > 0.02)
+    ink = ink * (1 - zone) + sharp * zone
     detail = blurf(contrast, 3.0)
     detail = np.clip(detail / np.percentile(detail[mask > 0.5], 98), 0, 1)
     return dep, ink, mask, detail
@@ -325,20 +347,30 @@ def main():
         'density': DENSITY,
         # The ring circles the torso, tilted towards the viewer (radians).
         'ring': {'x': 0.47, 'y': 0.6, 'r': 0.4, 'tilt': 0.3},
+        'fine': [list(z) for z in FINE],
     }
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
-    # Still frame: the same threshold stipple, drawn flat at 1000px with round dots, smaller where detail is high.
+    # Still frame: the same threshold stipple at 1000px with round dots, smaller where detail is high, placed the
+    # way the engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in
+    # js/hero.js) and each dot is foreshortened by its depth around the centre of mass. The still covers the page
+    # until the first frame is drawn, so in the opening, where that frame is the figure held still in its ink, one
+    # turns into the other in place.
     res = 860
     sx, sy, sv = stipple(levels, bn, res)
-    sd = detail[np.minimum((sy + 0.5) / res * N, N - 1).astype(int), np.minimum((sx + 0.5) / res * N, N - 1).astype(int)]
+    iy, ix = np.minimum((sy + 0.5) / res * N, N - 1).astype(int), np.minimum((sx + 0.5) / res * N, N - 1).astype(int)
+    sd, sz = detail[iy, ix], dep[iy, ix]
+    (x0, y0, x1, y1), (px, py) = meta['bounds'], meta['center']
+    k = 0.96 / max(x1 - x0, y1 - y0)
+    ox, oy = (1 - (x1 - x0) * k) / 2 - x0 * k, (1 - (y1 - y0) * k) / 2 - y0 * k
+    persp = 3.2 / (3.2 - (sz - 0.62) * 0.34)
+    fx, fy = (sx + 0.5) / res, (sy + 0.5) / res
     S = 1000
+    u, v_ = (ox + (px + (fx - px) * persp) * k) * 2 * S, (oy + (py + (fy - py) * persp) * k) * 2 * S
     im = Image.new('L', (S * 2, S * 2), 0)
     dr = ImageDraw.Draw(im)
-    scale = 2 * S / res
-    for x, y, v, dd in zip(sx, sy, sv, sd):
-        r = (0.9 + 0.55 * v) * 1.2 * (1 - 0.3 * dd)
-        cx, cy = (x + 0.5) * scale, (y + 0.5) * scale
+    for cx, cy, v, dd, f in zip(u, v_, sv, sd, persp):
+        r = (0.9 + 0.55 * v) * 1.2 * (1 - 0.3 * dd) * k * f
         dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(160 + 95 * min(1, v * 1.4)))
     im = im.resize((S, S), Image.LANCZOS)
     rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])

@@ -194,3 +194,19 @@ test('leaving Gear Two sends no ring, and reduced motion sends none either', () 
   assert.equal(created, 0);
   assert.equal(q.root.getAttribute('data-gear'), 'two');
 });
+
+test('the opening can take Gear Two on and back off without saving it to the session', () => {
+  const p = page();
+  p.api.switchGear(true, p.gearButton, true);
+  p.run(GEAR.flash);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.session.has('sky-gear'), false, 'a visitor who leaves now does not carry Gear Two to the next page');
+  p.api.switchGear(true, p.gearButton, true);
+  assert.equal(p.root.getAttribute('data-phase'), null, 'asking for the state it is in cancels what was running and does nothing else');
+  p.api.switchGear(false, null, true);
+  p.run(GEAR.exit);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  p.click(p.gearButton);
+  p.run(GEAR.flash);
+  assert.equal(p.session.get('sky-gear'), 'two', 'a visitor\'s own switch is saved as before');
+});

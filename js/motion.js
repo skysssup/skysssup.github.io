@@ -90,13 +90,15 @@
       if (!root.style || typeof root.style.setProperty !== "function" || !win.performance) return;
       root.style.setProperty("--beat-delay", (-((win.performance.now() / 1000) % BEAT)).toFixed(3) + "s");
     }
-    function setGear(on) {
+    // `transient` keeps Gear Two out of the session: the hero's opening switches it on and back off by itself, so a
+    // visitor who leaves in the middle does not carry it to the next page.
+    function setGear(on, transient) {
       gearOn = on;
       if (on) { root.setAttribute("data-gear", "two"); syncBeat(); }
       else root.removeAttribute("data-gear");
       try {
-        if (on) session.setItem("sky-gear", "two");
-        else session.removeItem("sky-gear");
+        if (!on) session.removeItem("sky-gear");
+        else if (!transient) session.setItem("sky-gear", "two");
       } catch (e) {}
       var buttons = doc.querySelectorAll("[data-gear-toggle]");
       for (var i = 0; i < buttons.length; i++) buttons[i].setAttribute("aria-pressed", on ? "true" : "false");
@@ -120,14 +122,16 @@
       later(done, 1400);
       doc.body.appendChild(ring);
     }
-    function toggleGear(origin) {
+    // Runs the sequence towards `on` from `origin` (the ring leaves it); a sequence still running is cancelled first,
+    // and nothing more happens when Gear Two is already where it is asked to be.
+    function switchGear(on, origin, transient) {
       clearPhases();
-      var next = !gearOn;
-      if (reduced()) { setGear(next); return; }
-      if (next) {
+      if (on === gearOn) return;
+      if (reduced()) { setGear(on, transient); return; }
+      if (on) {
         shockwave(origin);
         root.setAttribute("data-phase", "flash");
-        at(GEAR.flash, function () { setGear(true); root.setAttribute("data-phase", "glitch"); });
+        at(GEAR.flash, function () { setGear(true, transient); root.setAttribute("data-phase", "glitch"); });
         at(GEAR.settle, function () { root.setAttribute("data-phase", "settle"); });
         at(GEAR.done, clearPhases);
       } else {
@@ -135,6 +139,7 @@
         at(GEAR.exit, function () { setGear(false); clearPhases(); });
       }
     }
+    function toggleGear(origin) { switchGear(!gearOn, origin); }
 
     /* light switch: a soft circle grows from the switch (View Transitions where available) */
     win.skyThemeTransition = function (apply, current, origin) {
@@ -180,7 +185,7 @@
     setGear(gearOn);
     applyMotion();
 
-    var api = { motion: motion, setGear: setGear, toggleGear: toggleGear, isGear: function () { return gearOn; }, GEAR: GEAR, BEAT: BEAT };
+    var api = { motion: motion, setGear: setGear, toggleGear: toggleGear, switchGear: switchGear, isGear: function () { return gearOn; }, GEAR: GEAR, BEAT: BEAT };
     win.SkyMotion = motion;
     win.skyGear = api;
     return api;

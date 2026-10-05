@@ -23,6 +23,7 @@ async function open(url = '/work/', { width = 1440, mode = 'light', reduced = tr
     viewport: { width, height: 900 }, colorScheme: mode === 'light' ? 'light' : 'dark',
     reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: width < 768, isMobile: width < 768, javaScriptEnabled,
   });
+  await context.addInitScript(() => sessionStorage.setItem('sky-intro', 'seen'));
   if (mode === 'gear') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'two'));
   if (seed) await context.addInitScript(seed);
   const page = await context.newPage();
