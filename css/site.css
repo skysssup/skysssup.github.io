@@ -1154,6 +1154,31 @@ body > .lines span { position: relative; }
   6% { opacity: .9; }
   55%, 100% { opacity: 0; transform: translateY(100vh); }
 }
+/* The cursor's embers (js/page.js): a soft glow follows the pointer, beating with the heart, and sheds a short trail
+   of embers that drift up and fade, white-hot to ember to red. These tokens switch it on and colour it; a gear without
+   --trail has none. Both layers sit under the header and take no pointer events. */
+:root[data-gear="two"] {
+  --trail: 1;
+  --trail-hot: var(--figure-sheen-core);
+  --trail-ember: var(--figure-key);
+  --trail-cool: var(--accent);
+  --trail-glow: #ff6a3d;
+}
+.fx-embers { position: fixed; inset: 0; z-index: 40; width: 100%; height: 100%; max-width: none; pointer-events: none; }
+.fx-ember { position: fixed; left: 0; top: 0; z-index: 40; width: 0; height: 0; pointer-events: none; mix-blend-mode: screen; opacity: 0; transition: opacity .5s var(--ease-out); }
+.fx-ember.is-on { opacity: 1; }
+.fx-ember::before {
+  content: "";
+  position: absolute;
+  left: -110px;
+  top: -110px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--trail-glow) 24%, transparent), color-mix(in srgb, var(--trail-glow) 7%, transparent) 55%, transparent);
+  animation: glow-beat .9s linear infinite;
+  animation-delay: var(--beat-delay, 0s);
+}
 /* hovering a plate in Gear Two shows its stipple drawing again, in red */
 :root[data-gear="two"] :is(.plate, .project):hover .is-developed > .stipple { opacity: 1; transition: opacity .2s; }
 :root[data-gear="two"] :is(.plate, .project):hover .is-developed > img { opacity: .12; transition: opacity .2s; }
@@ -1314,7 +1339,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .fx-tide, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .fx-tide, .fx-embers, .fx-ember, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

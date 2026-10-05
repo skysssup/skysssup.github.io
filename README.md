@@ -83,7 +83,8 @@ in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the openi
   engine's JS time per frame. CI renders with SwiftShader, which runs every branch of a shader whether it is taken or
   not, so the shaders loop only over what is live and share what their shapes can.
 - `js/page.js` — local time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
-  /work search and views, the sticky case-study section index and reading progress, video play/pause,
+  /work search and views, the sticky case-study section index and reading progress, video play/pause, Gear Two's
+  embers (a glow that follows a fine pointer, beating with the heart, and a short trail of embers that rise and fade),
   the reveals (`[data-reveal]`: section rules draw in and media wipes in, once, when first seen, never under
   reduced motion), and mounting the hero. Below the hero it also runs the contact dial (my day on a 24-hour face,
   the night stippled in from a sunrise and sunset worked out for the date, a hand for now, and a readout that
