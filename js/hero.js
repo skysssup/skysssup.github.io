@@ -929,7 +929,8 @@
       // each material's base and lit color, in index order; marble is the figure's ink
       palette: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m); }),
       lit: ["gold", "marble", "cloud", "lightning", "glint"].map(function (m) { return m === "marble" ? get("--figure-ink") : get("--mat-" + m + "-lit"); }),
-      gear: document.documentElement.getAttribute("data-gear") === "two", dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5
+      gear: document.documentElement.getAttribute("data-gear") === "two", blue: document.documentElement.getAttribute("data-gear") === "blue",
+      dark: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] < 0.5
     };
   }
 
@@ -1555,7 +1556,8 @@
       last = now;
       var gear = colors.gear, rate = gear ? 1.6 : 1;
       if (live && intro) {
-        var step = intro.at == null ? { state: intro, clock: clock, act: null } : introStep(intro, now / 1000, clock, gear);
+        // (a gear chosen by hand, Gear Two or Tide, is left as it is: the opening then ends after its turn)
+        var step = intro.at == null ? { state: intro, clock: clock, act: null } : introStep(intro, now / 1000, clock, gear || colors.blue);
         clock = step.clock;
         if (step.act === "shine") shine(now, -1, INTRO.sweep, true, ++bursts + 100);
         else if (step.act === "redshine") shine(now, 1, SHEEN_SWEEP, false, ++bursts + 100);

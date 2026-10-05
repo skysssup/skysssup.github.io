@@ -755,6 +755,20 @@ test('a press or a key ends the opening at once; a press on Gear Two then acts o
   assert.equal(await red.page.evaluate(() => sessionStorage.getItem('sky-gear')), null);
 });
 
+test('the opening never visits Tide, and leaves Tide chosen by hand as it is', async t => {
+  const { page } = await open(t, { intro: true, setup: page => page.addInitScript(() => { try { if (!sessionStorage.getItem('qa-tide')) { sessionStorage.setItem('qa-tide', '1'); sessionStorage.setItem('sky-gear', 'blue'); } } catch (e) {} }) });
+  await page.evaluate(() => {
+    window.__gears = [document.documentElement.getAttribute('data-gear')];
+    new MutationObserver(() => window.__gears.push(document.documentElement.getAttribute('data-gear'))).observe(document.documentElement, { attributes: true, attributeFilter: ['data-gear'] });
+  });
+  await live(page);
+  await page.waitForFunction(() => document.querySelector('#figure').getAttribute('data-intro') === 'done', null, { timeout: 20000 });
+  await page.waitForTimeout(500);
+  assert.deepEqual(await page.evaluate(() => [...new Set(window.__gears)]), ['blue'], 'the page stays in Tide throughout the opening');
+  assert.ok((await state(page)).series.u_glitch.every(([, x]) => x === 0), 'and the opening never switches to Gear Two');
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), 'blue');
+});
+
 test('the opening plays once a tab and again on a reload, never on the way back from another page or under reduced motion', async t => {
   const { page } = await open(t, { intro: true });
   await live(page);
