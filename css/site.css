@@ -24,9 +24,10 @@
   --line-strong: rgba(12, 12, 12, 0.22);
   --wash: rgba(12, 12, 12, 0.035);
   --figure-ink: #0c0c0c;
-  --figure-sheen: #b89a64;
-  --figure-sheen-core: #ece2cc;
-  --figure-star: #b89a64;
+  --figure-sheen: #cf9a2e;
+  --figure-sheen-core: #fbe3a1;
+  --figure-star: #e6b04a;
+  --figure-sheen-fringe: #6f7df2;
   /* once the colours arrive the ink takes the light: a cool fill where the stone turns away, a warm key where it faces
      the light; and the avatar's star glints, a heart and the edge that shows it on this paper */
   --figure-fill: #0b1a33;
@@ -75,9 +76,10 @@
   --line-strong: rgba(236, 235, 232, 0.24);
   --wash: rgba(236, 235, 232, 0.04);
   --figure-ink: #ecebe8;
-  --figure-sheen: #e8dcc4;
-  --figure-sheen-core: #fffaf0;
-  --figure-star: #f4ead6;
+  --figure-sheen: #f2b544;
+  --figure-sheen-core: #ffffff;
+  --figure-star: #ffe1a0;
+  --figure-sheen-fringe: #8f8cff;
   --figure-fill: #93a9dd;
   --figure-key: #fff2dc;
   --figure-glint: #ffffff;
@@ -104,9 +106,10 @@
     --line-strong: rgba(236, 235, 232, 0.24);
     --wash: rgba(236, 235, 232, 0.04);
     --figure-ink: #ecebe8;
-    --figure-sheen: #e8dcc4;
-    --figure-sheen-core: #fffaf0;
-    --figure-star: #f4ead6;
+    --figure-sheen: #f2b544;
+    --figure-sheen-core: #ffffff;
+    --figure-star: #ffe1a0;
+    --figure-sheen-fringe: #8f8cff;
     --figure-fill: #93a9dd;
     --figure-key: #fff2dc;
     --figure-glint: #ffffff;
@@ -133,9 +136,10 @@
   --line-strong: rgba(255, 59, 48, 0.42);
   --wash: rgba(255, 59, 48, 0.06);
   --figure-ink: #ff3b30;
-  --figure-sheen: #ff8a7a;
-  --figure-sheen-core: #ffe9e0;
-  --figure-star: #ff8a7a;
+  --figure-sheen: #ff7a2e;
+  --figure-sheen-core: #ffe1c2;
+  --figure-star: #ffb273;
+  --figure-sheen-fringe: #ff3d7a;
   --figure-fill: #b3122a;
   --figure-key: #ffb36b;
   --figure-glint: #fff1e6;
@@ -168,6 +172,7 @@
   --figure-sheen: #45d4ff;
   --figure-sheen-core: #eafcff;
   --figure-star: #9feaff;
+  --figure-sheen-fringe: #b07cff;
   --figure-fill: #1f3fbf;
   --figure-key: #c9efff;
   --figure-glint: #f2fbff;
