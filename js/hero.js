@@ -629,6 +629,8 @@
     "  v_sprite = v_size * (1.0 + 3.0 * star + 6.0 * flare);",
     // a blown dot is drawn as a streak behind its head, as long as it moves in 25 ms: the sprite holds it both ways
     "  if (blown > 0.0) v_sprite = max(v_sprite, 2.0 * clamp(speed * 0.025, 5.0, 16.0) * u_dpr * blown);",
+    // one more device pixel, so the soft edge of a small dot is drawn instead of clipped by its sprite
+    "  v_sprite += 1.0;",
     "  gl_PointSize = v_sprite;",
     "  gl_Position = vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);",
     "}"
