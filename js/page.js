@@ -599,32 +599,6 @@
       }
     }
 
-    /* Gear Two: a drafting crosshair follows the pointer across the sheet and reads out where it is */
-    if (win.matchMedia && win.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      var cross = doc.createElement("div");
-      cross.className = "crosshair";
-      cross.setAttribute("aria-hidden", "true");
-      cross.innerHTML = '<i class="crosshair-x"></i><i class="crosshair-y"></i><span class="crosshair-read"></span>';
-      doc.body.appendChild(cross);
-      var crossRead = cross.lastChild, crossQueued = false, crossX = 0, crossY = 0;
-      var moveCross = function () {
-        crossQueued = false;
-        var m = parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--m")), n = parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--n"));
-        var column = Math.min(n, Math.max(1, Math.floor((crossX - m) / ((win.innerWidth - 2 * m) / n)) + 1));
-        cross.style.setProperty("--x", crossX + "px");
-        cross.style.setProperty("--y", crossY + "px");
-        crossRead.textContent = "x " + String(Math.round(crossX + win.scrollX)).padStart(4, "0") + " · y " + String(Math.round(crossY + win.scrollY)).padStart(4, "0") + " · col " + column;
-        cross.classList.add("is-on");
-      };
-      doc.addEventListener("pointermove", function (event) {
-        if (doc.documentElement.getAttribute("data-gear") !== "two" || event.pointerType !== "mouse") return;
-        crossX = event.clientX;
-        crossY = event.clientY;
-        if (!crossQueued) { crossQueued = true; win.requestAnimationFrame(moveCross); }
-      }, { passive: true });
-      doc.documentElement.addEventListener("pointerleave", function () { cross.classList.remove("is-on"); });
-    }
-
     /* reveals: graphics that draw in the first time they come into view (text is never hidden) */
     var reveals = Array.prototype.slice.call(doc.querySelectorAll("[data-reveal]"));
     if (reveals.length && win.IntersectionObserver) {

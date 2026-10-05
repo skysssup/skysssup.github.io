@@ -86,7 +86,7 @@ in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the openi
   the night stippled in from a sunrise and sunset worked out for the date, a hand for now, and a readout that
   follows the pointer), the plates that develop from a stipple drawing of their own screenshot the first time
   they are seen, the construction grid (`G`: minor columns, insets, and a tag naming the role, size, and line of
-  whatever text the pointer rests on), and Gear Two's drafting crosshair. Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
+  whatever text the pointer rests on). Open the site index from the header, `/`, or `Ctrl/Cmd+K`;
   use arrow keys to browse, Enter to open, and Escape to close. It uses a native dialog, traps focus,
   restores the opener, and locks background scrolling without changing the saved motion preference.
 - `js/diagram.js` — draws case-study diagrams from their JSON specs.

@@ -1052,14 +1052,8 @@ body > .lines span { position: relative; }
 .inspect-tag { position: absolute; left: -1px; bottom: calc(100% + 4px); padding: 0 4px; background: var(--paper); font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
 
 /* ── Gear Two, below the hero ───────────────────────────── */
-/* A drafting crosshair follows the pointer and reads out where it is, and a pulse runs down each sheet line in
-   step with the heartbeat, every other beat, a quarter of the way round from the line before. */
-.crosshair { position: fixed; inset: 0; z-index: 45; display: none; pointer-events: none; }
-:root[data-gear="two"]:not([data-motion="reduced"]) .crosshair.is-on { display: block; }
-.crosshair-x, .crosshair-y { position: absolute; left: 0; top: 0; background: var(--accent); opacity: .3; }
-.crosshair-x { right: 0; height: 1px; transform: translateY(var(--y)); }
-.crosshair-y { bottom: 0; width: 1px; transform: translateX(var(--x)); }
-.crosshair-read { position: absolute; left: 0; top: 0; padding: 0 4px; transform: translate(calc(var(--x) + 12px), calc(var(--y) + 12px)); background: var(--paper); font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+/* A pulse runs down each sheet line in step with the heartbeat, every other beat, a quarter of the way round from
+   the line before. */
 :root[data-gear="two"]:not([data-motion="reduced"]) body > .lines span::after {
   content: "";
   position: absolute;
@@ -1159,7 +1153,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .crosshair, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }
