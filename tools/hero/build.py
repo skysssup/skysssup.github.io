@@ -30,7 +30,7 @@ transformers, diffusers). --color stops after the material map (color.webp); --s
 """
 import hashlib, json, os, sys, urllib.request
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'assets', 'hero')
@@ -43,6 +43,7 @@ INK_LEVELS = 64
 DENSITY = 0.85
 SHARPEN = 0.7                          # the unsharp mask over the whole figure
 STILL_GAIN = (0.965, 1.02)                # how wide the stills' dots are drawn, for the ink map and the light map
+FEATHER_INK, FEATHER_LIGHT = 0.4, 0.2  # how strongly the feathers' local contrast inks the wings and the caduceus (feathers())
 CAVITY_INK, CAVITY_LIGHT = 0.35, 0.45  # how much a hollow darkens the ink, and takes from the light
 CLOUD_INK, CLOUD_LIGHT = 0.62, 0.6     # the clouds' darkest ink on light paper, and their brightest light on dark
 # The core of the body, in the chest (figure units): a sheen's wave of light runs out of the body from here.
@@ -290,7 +291,29 @@ def maps():
     relief = dep * (1 - calm) + calm * (0.64 + 0.28 * blurf(dep, 8.0))
     label = parts(relief, mask, statue)
     relief = rigid(relief, label)
+    ink, light = feathers(ink, light, lum, label, mask)
     return relief, ink, light, mask, statue, detail, own, label
+
+
+def feathers(ink, light, lum, label, mask):
+    """The wings and the caduceus drawn as the avatar shows them: rows of feathers with clear edges, the snakes' coils,
+    the small wings at the top. The engraving's own tone (ink and light below) lets their structure go: the wing is
+    darker than the statue's mean, so its tone saturates, and its glitter outshouts the gaps between the feathers. In
+    those parts the maps keep their broad tone (smoothed over a few pixels) and take their detail from the image's own
+    local contrast instead: the luminance less its local mean, over its local spread (feather()), about -1 in a gap
+    between feathers and +1 on a lit edge whatever the light there, so each feather reads against its neighbours, its
+    gap inked (on dark paper, unlit) and its edge lit."""
+    # (the wing's glitter, specks smaller than the feathers, is opened away first: the stars drawn over it carry it, and
+    # left in it would punch holes in the feathers that scramble their rows)
+    smooth = np.asarray(Image.fromarray(u8(lum)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5)), np.float32) / 255
+    hp = blurf(smooth, 1.0) - blurf(smooth, 7.0)
+    z = np.clip(hp / (np.sqrt(blurf(hp * hp, 7.0)) + 0.02), -2.5, 2.5)
+    plumed = np.isin(label, [PARTS.index('wing') + 1, PARTS.index('caduceus') + 1]).astype(np.float32)
+    w = blurf(plumed, 2.0) * (mask > 0.02)
+    ink = ink * (1 - w) + np.clip(0.9 * blurf(ink, 5.0) - FEATHER_INK * z, 0, 1) * mask * w
+    light = light * (1 - w) + np.clip(blurf(light, 5.0) + FEATHER_LIGHT * z, 0, 1) * mask * w
+    return ink, light
+
 
 
 # The figure's rigid parts, each of which turns as one body (labels 1-7 in PARTS order, 0 outside the figure):
@@ -530,7 +553,10 @@ def void_and_cluster(n=64, sigma=1.9, seed=7):
     return ((rank + 0.5) / (n * n) * 255).astype(np.uint8)
 
 
-def stipple(ink, bn, res):
+def stipple(ink, bn, res, angle=None):
+    """Threshold stippling on a res x res grid, as the engine's stipple(): returns cell positions (x, y; a dot at the
+    cell's centre is at +0.5) and each dot's ink. Where `angle` (M px, from strokes()) gives a direction, a kept cell
+    seeds a stroke of STROKE dots one cell apart along it, kept against a third of the ink."""
     ys, xs = np.mgrid[0:res, 0:res]
     u = (xs + 0.5) / res * (N - 1); v = (ys + 0.5) / res * (N - 1)
     i0, j0 = np.floor(v).astype(int), np.floor(u).astype(int)
@@ -538,8 +564,44 @@ def stipple(ink, bn, res):
     i1, j1 = np.minimum(i0 + 1, N - 1), np.minimum(j0 + 1, N - 1)
     s = ink[i0, j0] * (1 - fx) * (1 - fy) + ink[i0, j1] * fx * (1 - fy) + ink[i1, j0] * (1 - fx) * fy + ink[i1, j1] * fx * fy
     t = bn[ys % bn.shape[0], xs % bn.shape[1]] / 255.0
-    keep = s * DENSITY > t
-    return xs[keep], ys[keep], s[keep]
+    if angle is None:
+        keep = s * DENSITY > t
+        return xs[keep].astype(float), ys[keep].astype(float), s[keep]
+    a = angle[np.round((ys + 0.5) / res * (M - 1)).astype(int), np.round((xs + 0.5) / res * (M - 1)).astype(int)]
+    run = np.where(np.isnan(a), 1, STROKE)
+    keep = (s > 0) & (s * DENSITY / run > t)
+    out = [(xs[keep & (run == 1)].astype(float), ys[keep & (run == 1)].astype(float), s[keep & (run == 1)])]
+    seeds = keep & (run > 1)
+    for k in range(STROKE):
+        along = k - (STROKE - 1) / 2
+        out.append((xs[seeds] + np.cos(a[seeds]) * along, ys[seeds] + np.sin(a[seeds]) * along, s[seeds]))
+    return tuple(np.concatenate([o[i] for o in out]) for i in range(3))
+
+
+# The wing and the caduceus are stippled in strokes along their feathers and coils, as the engine stipples them
+# (strokes() and stipple() in js/hero.js): STROKE dots a stroke, their direction smoothed over STROKE_BLUR px of M.
+PLUMED, STROKE, STROKE_BLUR = ['wing', 'caduceus'], 3, 3.0
+
+
+def strokes(dots, codes, inside):
+    """The direction of the feathers and the coils at M px (radians, y down; NaN elsewhere): the structure tensor of the
+    dot map, its direction of least change wherever its coherence is over a third, inside the plumed parts. Mirrors
+    strokes() in js/hero.js."""
+    label = np.where(inside, np.round(codes / PART_STEP), 0).astype(int)
+    wanted = np.isin(label, [PARTS.index(p) + 1 for p in PLUMED])
+    step = (N - 1) / (M - 1)
+    idx = np.round(np.arange(M) * step).astype(int)
+    tone = dots[idx][:, idx]
+    gx = (np.roll(tone, -1, 1) - np.roll(tone, 1, 1)) / 2
+    gy = (np.roll(tone, -1, 0) - np.roll(tone, 1, 0)) / 2
+    r = int(np.ceil(STROKE_BLUR * 3))
+    kernel = np.exp(-np.arange(-r, r + 1) ** 2 / (2 * STROKE_BLUR ** 2)); kernel /= kernel.sum()
+    blur = lambda a: np.apply_along_axis(lambda c: np.convolve(np.pad(c, r, mode='edge'), kernel, 'valid'), 0,
+                                          np.apply_along_axis(lambda c: np.convolve(np.pad(c, r, mode='edge'), kernel, 'valid'), 1, a))
+    a, b, c = blur(gx * gx), blur(gy * gy), blur(gx * gy)
+    spread = np.sqrt((a - b) ** 2 + 4 * c * c)
+    clear = wanted & (spread >= (a + b) / 3) & (a + b > 1e-6)
+    return np.where(clear, 0.5 * np.arctan2(2 * c, a - b) + np.pi / 2, np.nan)
 
 
 def lossless(a, name):
@@ -615,8 +677,8 @@ def still(levels, bn, dep, meta, suffix, gain, edge):
     One still per dot map: still.webp and preview.webp from the ink map, still-dark.webp and preview-dark.webp from the
     light map, for dark paper."""
     res = 860
-    sx, sy, sv = stipple(levels, bn, res)
     relief = np.asarray(Image.open(os.path.join(OUT, 'depth.webp')).convert('RGB'))
+    sx, sy, sv = stipple(levels, bn, res, strokes(levels, relief[..., 2].astype(int), relief[..., 0] > 0))
     lines, field = outline(relief[..., 2].astype(int), relief[..., 0] > 0, 0.2)
     # the stipple clipped to the outline: a dot outside the statue's blurred parts is dropped, but in the base
     fu, fv = np.clip((sx + 0.5) / res * (M - 1), 0, M - 1), np.clip((sy + 0.5) / res * (M - 1), 0, M - 1)

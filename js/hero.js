@@ -151,7 +151,10 @@
   // Threshold stippling: every cell of a res x res grid over the figure (twice as fine when `fine`) keeps a dot when
   // its ink (green channel, bilinear from the size x size map) beats the tiled blue-noise threshold. Output is
   // [x, y, ink] per dot with x, y in figure units (0..1). What else a dot carries is sampled from the other maps.
-  function stipple(rgba, size, noise, noiseSize, res, density, jitter, fine) {
+  // `strokes` (optional, from strokes()): where it gives a direction, a kept cell seeds a short stroke of STROKE dots one
+  // cell apart along it instead of one dot, kept against a third of the ink so the tone holds: an engraving's hatching.
+  var STROKE = 3;
+  function stipple(rgba, size, noise, noiseSize, res, density, jitter, fine, strokes) {
     var n = fine ? res * 2 : res, kept = fine ? density * FINE_INK : density, last = size - 1, scale = last / n;
     var out = new Float32Array(1 << 16), count = 0, at = new Int32Array(n), frac = new Float64Array(n), x, y;
     // where each column (and row) of the grid samples the map: the pixel before it and how far past it
@@ -167,14 +170,19 @@
         var j0 = at[gx], fx = frac[gx], j1 = Math.min(j0 + 1, last);
         var a = (i0 * size + j0) * 4, b = (i0 * size + j1) * 4, c = (i1 * size + j0) * 4, d = (i1 * size + j1) * 4;
         var ink = (rgba[a + 1] * (1 - fx) * (1 - fy) + rgba[b + 1] * fx * (1 - fy) + rgba[c + 1] * (1 - fx) * fy + rgba[d + 1] * fx * fy) / 255;
-        if (ink <= 0 || ink * kept <= noise[(gy % noiseSize) * noiseSize + (gx % noiseSize)] / 255) continue;
+        var dir = strokes ? strokes.angle[Math.round((gy + 0.5) / n * (strokes.size - 1)) * strokes.size + Math.round((gx + 0.5) / n * (strokes.size - 1))] : NaN;
+        var run = dir === dir ? STROKE : 1;
+        if (ink <= 0 || ink * kept / run <= noise[(gy % noiseSize) * noiseSize + (gx % noiseSize)] / 255) continue;
         var k = gy * n + gx;
         var jx = jitter ? (hash(k * 2 + 1) - 0.5) * jitter : 0;
         var jy = jitter ? (hash(k * 2 + 2) - 0.5) * jitter : 0;
-        if (count + 3 > out.length) { var grown = new Float32Array(out.length * 2); grown.set(out); out = grown; }
-        out[count++] = (gx + 0.5 + jx) / n;
-        out[count++] = (gy + 0.5 + jy) / n;
-        out[count++] = ink;
+        if (count + 3 * run > out.length) { var grown = new Float32Array(out.length * 2 + 3 * run); grown.set(out); out = grown; }
+        for (var r = 0; r < run; r++) {
+          var along = r - (run - 1) / 2;
+          out[count++] = (gx + 0.5 + jx + (run > 1 ? Math.cos(dir) * along : 0)) / n;
+          out[count++] = (gy + 0.5 + jy + (run > 1 ? Math.sin(dir) * along : 0)) / n;
+          out[count++] = ink;
+        }
       }
     }
     return out.slice(0, count);
@@ -267,6 +275,45 @@
     var out = new Float32Array(Math.min(limit, found.length) * 3);
     for (i = 0; i < out.length / 3; i++) out.set(found[i], i * 3);
     return out;
+  }
+
+  // The direction of the feathers and the coils, for stippling them in strokes (stipple()): the structure tensor of the
+  // dot map (blurred by `sigma` px, at the depth map's size), its direction of least change, wherever it is clear (the
+  // tensor's coherence over a third) inside the parts named `plumed` (the wing and the caduceus); NaN elsewhere.
+  // Returns { angle: radians per pixel of the depth map, y down, size }.
+  function strokes(map, mapSize, depth, size, parts, plumed, sigma) {
+    var n = size * size, angle = new Float32Array(n).fill(NaN), wanted = {}, any = false, i, x, y;
+    (plumed || []).forEach(function (name) { var k = (parts || []).indexOf(name) + 1; if (k > 0) wanted[k] = true; });
+    var x0 = size, y0 = size, x1 = -1, y1 = -1;
+    for (i = 0; i < n; i++) if (wanted[partOf(depth, i)]) { any = true; x = i % size; y = (i - x) / size; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (!any) return { angle: angle, size: size };
+    var r = Math.ceil(sigma * 3), pad = r + 2;
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(size - 1, x1 + pad); y1 = Math.min(size - 1, y1 + pad);
+    var w = x1 - x0 + 1, h = y1 - y0 + 1, tone = new Float32Array(w * h), step = (mapSize - 1) / (size - 1);
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) tone[y * w + x] = map[(Math.round((y + y0) * step) * mapSize + Math.round((x + x0) * step)) * 4 + 1] / 255;
+    var at = function (a, x, y) { return a[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)]; };
+    var xx = new Float32Array(w * h), yy = new Float32Array(w * h), xy = new Float32Array(w * h);
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var gx = (at(tone, x + 1, y) - at(tone, x - 1, y)) / 2, gy = (at(tone, x, y + 1) - at(tone, x, y - 1)) / 2;
+      xx[y * w + x] = gx * gx; yy[y * w + x] = gy * gy; xy[y * w + x] = gx * gy;
+    }
+    var kernel = [], sum = 0, j;
+    for (j = -r; j <= r; j++) { kernel.push(Math.exp(-j * j / (2 * sigma * sigma))); sum += kernel[j + r]; }
+    var blur = function (a) {
+      var tmp = new Float32Array(w * h), out = new Float32Array(w * h), acc;
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) { acc = 0; for (j = -r; j <= r; j++) acc += at(a, x + j, y) * kernel[j + r]; tmp[y * w + x] = acc / sum; }
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) { acc = 0; for (j = -r; j <= r; j++) acc += at(tmp, x, y + j) * kernel[j + r]; out[y * w + x] = acc / sum; }
+      return out;
+    };
+    xx = blur(xx); yy = blur(yy); xy = blur(xy);
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var g = (y + y0) * size + x + x0;
+      if (!wanted[partOf(depth, g)]) continue;
+      var a = xx[y * w + x], b = yy[y * w + x], c = xy[y * w + x], spread = Math.sqrt((a - b) * (a - b) + 4 * c * c);
+      if (spread < (a + b) / 3 || !(a + b > 1e-6)) continue;
+      angle[g] = 0.5 * Math.atan2(2 * c, a - b) + Math.PI / 2;
+    }
+    return { angle: angle, size: size };
   }
 
   // The stars of the avatar's sky, which build.py writes into the depth map's blue outside the figure (1 + 254 x a
@@ -437,6 +484,9 @@
   // The statue's outline (edges()): its parts blurred by EDGE_BLUR px of the depth map and traced, a point every
   // EDGE_SPACING CSS px of the drawn figure.
   var EDGE_BLUR = 1.2, EDGE_SPACING = 0.75;
+  // The parts stippled in strokes along their feathers and coils (strokes()), and how far their direction is smoothed,
+  // in px of the depth map.
+  var PLUMED = ["wing", "caduceus"], STROKE_BLUR = 3;
   // STRIKE is how long the opening's strike of lightning lights the figure and runs its ring through it, and PUFF how long
   // a puff of the cursor goes on blowing dots off it, in seconds (the shader's 1.3 and 2.6).
   var STRIKE = 1.3, PUFF = 2.6;
@@ -729,7 +779,10 @@
     // the dot's material in the mode's designed palette (gold, marble, cloud, lightning, glint), moving from
     // its base color to its lit one as the surface turns to the light; marble carries no weight, so it stays ink
     "  int m = int(a_c.r * 5.0 + 0.5);",
-    "  vec3 mat = mix(u_palette[m], u_lit[m], smoothstep(0.15, 0.9, lam));",
+    // gold catches the light on the feathers' edges, which the dot maps draw as the sparse dots of the ink map and the
+    // dense ones of the light map, and sits in their gaps as bronze (below), as well as turning to the light
+    "  float edgeLit = m == 0 ? mix(1.0 - smoothstep(0.1, 0.45, a_p.w), smoothstep(0.45, 0.9, a_p.w), u_positive) : 0.0;",
+    "  vec3 mat = mix(u_palette[m], u_lit[m], max(smoothstep(0.15, 0.9, lam), 0.8 * edgeLit));",
     // on light paper the densest dots of a material lean toward the ink, so gold has bronze in its crevices
     "  mat = mix(mat, u_color, u_deep * smoothstep(0.45, 0.95, a_p.w));",
     // at each turn of the sway a wave of light runs out of the body (u_sheen: its eased progress, whether it runs, its
@@ -1243,7 +1296,9 @@
     // detail, material, sparkle, and way out of the figure from the other maps, packed VERTEX bytes a dot (see
     // initialize).
     function shape(source) {
-      var spots = stipple(source.data, source.width, noise.data, noise.width, res, meta.density, 0.7, fine);
+      // the wing and the caduceus are stippled in strokes along their feathers and coils
+      if (!source.strokes) source.strokes = meta.parts ? strokes(source.data, source.width, relief.data, relief.width, meta.parts, PLUMED, STROKE_BLUR) : null;
+      var spots = stipple(source.data, source.width, noise.data, noise.width, res, meta.density, 0.7, fine, source.strokes);
       // the statue's outline, and the stipple clipped to it, so no stray dot sits outside the line (the clouds of the
       // base keep their soft fade)
       var traced = meta.parts ? edges(relief.data, relief.width, meta.parts, meta.over, EDGE_BLUR, EDGE_SPACING * (relief.width - 1) / place.scale) : null;
@@ -2156,6 +2211,7 @@
     glints: glints,
     skyStars: skyStars,
     edges: edges,
+    strokes: strokes,
     reliefField: reliefField,
     depthNormals: depthNormals,
     sampleColors: sampleColors,

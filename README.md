@@ -58,7 +58,8 @@ avatar).
   avatar does, a warm key where the stone faces the light and a cool fill where it turns away. The statue has a clear
   edge: each part's outline is traced at load from the parts the depth map's blue names and drawn as a fine line of
   points, ink on white and a soft rim of light on dark, with the stipple clipped to it (the clouds keep their soft fade).
-  The avatar's own star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
+  The wing and the caduceus are drawn in strokes along their feathers and coils, an engraving's hatching, from the
+  image's own local contrast. The avatar's own star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
   in the hair or on a hand) twinkle over it as eight-point stars, clearly visible and never dominant; on dark paper and in Gear Two the
   stars of the avatar's sky come out around it too, far behind (read from the depth map's blue channel). The cursor stirs the dots like a hand through dust: they
   turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it

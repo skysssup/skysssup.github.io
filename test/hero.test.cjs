@@ -462,6 +462,33 @@ test('the statue is outlined: each part traced at its edge, evenly, where the sk
   assert.equal(hero.edges(new Uint8ClampedArray(size * size * 4), size, parts, [], 1.2, 0.5).points.length, 0, 'no figure, no outline');
 });
 
+test('the wing and the caduceus are stippled in strokes along their feathers, in the same tone', () => {
+  // a dot map of diagonal stripes (the feathers, running down to the right) over a part named "wing", in the depth map
+  const big = 96, small = 48, map = new Uint8ClampedArray(big * big * 4), depth = new Uint8ClampedArray(small * small * 4);
+  for (let y = 0; y < big; y++) for (let x = 0; x < big; x++) map[(y * big + x) * 4 + 1] = 120 + 100 * Math.sin((x - y) * 0.6);
+  for (let y = 8; y < 40; y++) for (let x = 8; x < 40; x++) { depth[(y * small + x) * 4] = 200; depth[(y * small + x) * 4 + 2] = 32; }
+  const field = hero.strokes(map, big, depth, small, ['wing', 'torso'], ['wing'], 2);
+  const at = (x, y) => field.angle[y * small + x];
+  assert.ok(Math.abs(Math.cos(at(24, 24) - Math.PI / 4)) > 0.98, `along the stripes (${at(24, 24)})`);
+  assert.ok(Number.isNaN(at(2, 2)), 'nowhere outside the plumed parts');
+  assert.ok(Number.isNaN(hero.strokes(map, big, depth, small, ['torso', 'wing'], ['wing'], 2).angle[24 * small + 24]), 'only in the parts named');
+  // stippled in strokes: the same number of dots within a few percent, lined up in threes along the direction
+  const noise = Uint8Array.from({ length: 256 }, (_, i) => Math.floor(((i * 97) % 256)));
+  const plain = hero.stipple(map, big, noise, 16, 60, 0.85, 0), lined = hero.stipple(map, big, noise, 16, 60, 0.85, 0, false, field);
+  assert.ok(Math.abs(lined.length / plain.length - 1) < 0.12, `the tone holds (${lined.length / 3} dots in strokes, ${plain.length / 3} without)`);
+  // inside the wing a stroke's dots follow each other a cell apart along the feathers: two of every three steps
+  let steps = 0, along = 0;
+  for (let i = 0; i + 1 < lined.length / 3; i++) {
+    const x = lined[i * 3], y = lined[i * 3 + 1];
+    if (!(x > 0.3 && y > 0.3 && x < 0.7 && y < 0.7)) continue;
+    const dx = (lined[i * 3 + 3] - x) * 60, dy = (lined[i * 3 + 4] - y) * 60;
+    steps++;
+    if (Math.abs(Math.hypot(dx, dy) - 1) < 1e-3 && Math.abs(Math.cos(Math.atan2(dy, dx) - Math.PI / 4)) > 0.98) along++;
+  }
+  assert.ok(along / steps > 0.55, `a stroke\'s dots a cell apart along the feathers (${along} of ${steps} steps)`);
+  assert.deepEqual(Array.from(hero.stipple(map, big, noise, 16, 60, 0.85, 0.7, false, field)), Array.from(hero.stipple(map, big, noise, 16, 60, 0.85, 0.7, false, field)), 'deterministic');
+});
+
 test('each pixel of the figure knows how far its outline is and which way is out', () => {
   const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8
