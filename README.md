@@ -33,8 +33,9 @@ opening under virtual time).
   and back without saving it to the session.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring that carries one line in the statue's
   voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms). It stipples a map of
-  where the dots go against a blue-noise tile at load (the face and both hands on a grid twice as fine, with half-size
-  dots, on screens of 1.5 device pixels per CSS pixel or more; the zones are `fine` in `assets/hero/hero.json`). On
+  where the dots go against a blue-noise tile at load (the whole figure on a grid twice as fine, with smaller dots in
+  the same tone, on screens of 1.5 device pixels per CSS pixel or more), the statue and the bank of clouds it rises
+  from, its hollows drawn from a normal map (`tools/hero/normals.png`, Marigold) checked against the avatar. On
   light paper that is `assets/hero/ink.webp` (896 px), dense where the statue is dark, so the dots are ink, as in an
   engraving; on dark paper, Gear Two's included, it is `assets/hero/light.webp`, dense where the statue is lit, so
   the dots are light and the figure reads as a lit statue in a dark room instead of a negative. A page loads only the

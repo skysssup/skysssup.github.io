@@ -332,30 +332,54 @@ test('the opening holds still in ink, shines, turns once and returns, goes to Ge
   assert.equal(hero.introStep(state, INTRO.wait + 0.01, 7, false).state, null);
 });
 
-test('the face and the hands are stippled on a grid twice as fine, fading in over the rim of each zone', () => {
-  const zones = [[0.5, 0.5, 0.2, 0.1, 0], [0.2, 0.8, 0.1, 0.05, Math.PI / 2]];
-  assert.equal(hero.fineWeight(zones, 0.5, 0.5), 1);
-  assert.equal(hero.fineWeight(zones, 0.5, 0.65), 0, 'outside the ellipse');
-  const rim = hero.fineWeight(zones, 0.5 + 0.2 * 0.85, 0.5);
-  assert.ok(rim > 0 && rim < 1, `the rim fades (${rim})`);
-  assert.equal(hero.fineWeight(zones, 0.2, 0.8 + 0.06), 1, 'a turned ellipse is long across its turn');
-  assert.equal(hero.fineWeight(zones, 0.2 + 0.09, 0.8), 0);
-  assert.equal(hero.fineWeight(null, 0.5, 0.5), 0);
-
-  const size = 16, rgba = new Uint8ClampedArray(size * size * 4).fill(255);
-  const noise = Uint8Array.from({ length: 16 }, (_, i) => i * 16);
-  const plain = hero.stipple(rgba, size, noise, 4, 40, 0.6, 0);
-  const fine = hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones);
-  const cells = pts => Array.from({ length: pts.length / 3 }, (_, i) => [pts[i * 3], pts[i * 3 + 1]]);
-  const inZone = ([x, y]) => hero.fineCell(zones, 40, Math.floor(x * 40), Math.floor(y * 40));
-  const outside = cells(fine).filter(p => !inZone(p));
-  assert.deepEqual(outside, cells(plain).filter(p => !inZone(p)), 'outside the zones nothing changes');
-  const inside = cells(fine).filter(inZone), before = cells(plain).filter(inZone);
-  assert.ok(inside.length > before.length * 3, `about four dots where there was one (${inside.length} vs ${before.length})`);
-  for (const [x, y] of inside) {
+test('on screens with the pixels for it the whole figure is stippled on a grid twice as fine, in the same tone', () => {
+  // a 16 x 16 tile holding every threshold once, shuffled, so each grid keeps exactly its share of cells
+  const size = 16, noise = Uint8Array.from(Array.from({ length: 256 }, (_, i) => i).sort((a, b) => hero.hash(a + 77) - hero.hash(b + 77)));
+  const map = ink => { const rgba = new Uint8ClampedArray(size * size * 4); for (let i = 0; i < size * size; i++) rgba[i * 4 + 1] = ink; return rgba; };
+  const cells = pts => Array.from({ length: pts.length / 3 }, (_, i) => [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]]);
+  const pale = map(51), plain = cells(hero.stipple(pale, size, noise, 16, 40, 0.6, 0)), fine = cells(hero.stipple(pale, size, noise, 16, 40, 0.6, 0, true));
+  for (const [x, y] of fine) {
     assert.ok(Math.abs(x * 80 - Math.floor(x * 80) - 0.5) < 1e-4 && Math.abs(y * 80 - Math.floor(y * 80) - 0.5) < 1e-4, 'fine dots sit on the cells of a grid twice as fine');
   }
-  assert.deepEqual(Array.from(fine), Array.from(hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones)), 'deterministic');
+  assert.ok(fine.length > plain.length * 2.2 && fine.length < plain.length * 3, `about 2.6 dots where there was one (${fine.length} vs ${plain.length})`);
+  // the vertex shader draws a dot mix(1, 0.62, scale) its size: where the dots stand apart, the fine ones cover the paper the coarse ones did
+  const cover = (dots, split) => dots.reduce((sum, [, , ink]) => sum + (1 - 0.38 * hero.fineScale(split, ink)) ** 2, 0);
+  const ratio = cover(fine, true) / cover(plain, false);
+  assert.ok(ratio > 0.85 && ratio < 1.15, `the same tone where the ink is pale (${ratio.toFixed(2)})`);
+  assert.equal(hero.fineScale(false, 0.7), 0, 'the coarse grid draws full-size dots');
+  assert.equal(hero.fineScale(true, 0), 1, 'a pale fine dot is 62% the size');
+  for (let ink = 0.1; ink <= 1; ink += 0.1) {
+    assert.ok(hero.fineScale(true, ink) < hero.fineScale(true, ink - 0.1), 'a fine dot grows with its ink, so a fine shadow stays solid');
+    assert.ok(hero.fineScale(true, ink) > 0, 'and never past a coarse dot');
+  }
+  const dense = map(255);
+  assert.deepEqual(Array.from(hero.stipple(dense, size, noise, 16, 40, 0.6, 0.7, true)), Array.from(hero.stipple(dense, size, noise, 16, 40, 0.6, 0.7, true)), 'deterministic');
+});
+
+test('stippling skips only the paper beside the figure: every cell it skips would have kept no dot', () => {
+  // islands of ink in an empty map, read by a straightforward stippler that visits every cell
+  const size = 37, rgba = new Uint8ClampedArray(size * size * 4), noise = Uint8Array.from({ length: 64 }, (_, i) => hero.hash(i) * 255);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const island = (x > 3 && x < 11 && y > 5 && y < 30) || Math.hypot(x - 25, y - 12) < 6 || (x === 33 && y === 33);
+    rgba[(y * size + x) * 4 + 1] = island ? Math.round(255 * hero.hash(y * size + x + 9)) : 0;
+  }
+  const every = (res, density, jitter, fine) => {
+    const n = fine ? res * 2 : res, kept = density * (fine ? 1 / (4 * 0.62 * 0.62) : 1), last = size - 1, scale = last / n, out = [];
+    for (let gy = 0; gy < n; gy++) for (let gx = 0; gx < n; gx++) {
+      const v = (gy + 0.5) * scale, u = (gx + 0.5) * scale, i0 = Math.floor(v), j0 = Math.floor(u), fy = v - i0, fx = u - j0;
+      const i1 = Math.min(i0 + 1, last), j1 = Math.min(j0 + 1, last), at = (i, j) => rgba[(i * size + j) * 4 + 1];
+      const ink = (at(i0, j0) * (1 - fx) * (1 - fy) + at(i0, j1) * fx * (1 - fy) + at(i1, j0) * (1 - fx) * fy + at(i1, j1) * fx * fy) / 255;
+      if (ink <= 0 || ink * kept <= noise[(gy % 8) * 8 + (gx % 8)] / 255) continue;
+      const k = gy * n + gx;
+      out.push((gx + 0.5 + (hero.hash(k * 2 + 1) - 0.5) * jitter) / n, (gy + 0.5 + (hero.hash(k * 2 + 2) - 0.5) * jitter) / n, ink);
+    }
+    return Array.from(new Float32Array(out));
+  };
+  for (const [res, fine] of [[29, false], [64, false], [29, true], [53, true]]) {
+    const dots = Array.from(hero.stipple(rgba, size, noise, 8, res, 0.85, 0.7, fine));
+    assert.ok(dots.length > 30, `the islands are stippled at ${res}${fine ? ', fine' : ''}`);
+    assert.deepEqual(dots, every(res, 0.85, 0.7, fine), `the same dots as visiting every cell at ${res}${fine ? ', fine' : ''}`);
+  }
 });
 
 test('the avatar\'s star glints are its round sparkles off the marble, strongest first', () => {

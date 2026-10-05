@@ -134,51 +134,47 @@
     return { show: f < 0.6 ? 1 - smoothstep(0, 0.6, f) : smoothstep(0.7, 1, f), drift: f < 0.7 ? smoothstep(0, 0.6, f) : 0 };
   }
 
-  // The face and the hands are stippled on a grid twice as fine, with smaller dots, inside soft ellipses listed in
-  // hero.json as `fine` ([x, y, rx, ry, turn] in figure units and radians), on screens that have the pixels for it. The weight is 1 inside an
-  // ellipse and falls to 0 over the outer 30% of its radius; a cell there splits with that probability, chosen
-  // by a hash of the cell, so the finer texture fades in instead of starting at a seam.
-  function fineWeight(zones, x, y) {
-    var w = 0;
-    for (var i = 0; zones && i < zones.length; i++) {
-      var z = zones[i], dx = x - z[0], dy = y - z[1], r = Math.max(z[2], z[3]);
-      if (dx > r || dx < -r || dy > r || dy < -r) continue;
-      var c = Math.cos(z[4] || 0), s = Math.sin(z[4] || 0), u = (dx * c + dy * s) / z[2], v = (dy * c - dx * s) / z[3];
-      w = Math.max(w, 1 - smoothstep(0.7, 1, Math.sqrt(u * u + v * v)));
-    }
-    return w;
-  }
-  function fineCell(zones, res, gx, gy) {
-    var w = zones ? fineWeight(zones, (gx + 0.5) / res, (gy + 0.5) / res) : 0;
-    return w > 0 && hash(gy * res + gx + 0x5bd1e995) < w;
-  }
+  // On screens of 1.5 device pixels per CSS pixel or more, the whole figure is stippled on a grid twice as fine, four
+  // cells where one would be, with dots 62% the size (the vertex shader), so the feathers, the snakes, the curls, the
+  // fingers, the muscles, and the billows are drawn as finely as the face. Each cell keeps its tone: where the dots
+  // stand apart, four dots 62% the size would cover 4 × 0.62² ≈ 1.54 times the paper one dot does, so a fine cell is
+  // kept against the ink times FINE_INK; where the ink is dense, dots that small leave the paper showing between
+  // them, so a fine dot grows with its ink, by up to FINE_GROW of the way back to full size, and a shadow is as solid
+  // as on the coarse grid. fineScale is what a dot carries to the vertex shader (a_e.z): 0 for a full-size dot, 1 for
+  // a dot 62% the size.
+  var FINE_INK = 1 / (4 * 0.62 * 0.62), FINE_GROW = 0.65;
+  function fineScale(fine, ink) { return fine ? 1 - FINE_GROW * ink * ink : 0; }
 
-  // Threshold stippling: every cell of a res x res grid over the figure keeps a dot when its ink (green
-  // channel, bilinear from the size x size map) beats the tiled blue-noise threshold; a cell in a fine zone is
-  // four cells of a grid twice as fine, thresholded against the tile at that scale. Output is [x, y, ink] per
-  // dot with x, y in figure units (0..1); a dot's cell, and so whether it is fine, is floor(x * res, y * res).
-  // What else a dot carries is sampled from the other maps.
-  function stipple(rgba, size, noise, noiseSize, res, density, jitter, zones) {
-    var out = [];
-    var keep = function (n, gx, gy) {
-      var scale = (size - 1) / n, u = (gx + 0.5) * scale, v = (gy + 0.5) * scale;
-      var i0 = Math.floor(v), fy = v - i0, i1 = Math.min(i0 + 1, size - 1);
-      var j0 = Math.floor(u), fx = u - j0, j1 = Math.min(j0 + 1, size - 1);
-      var a = (i0 * size + j0) * 4, b = (i0 * size + j1) * 4, c = (i1 * size + j0) * 4, d = (i1 * size + j1) * 4;
-      var ink = (rgba[a + 1] * (1 - fx) * (1 - fy) + rgba[b + 1] * fx * (1 - fy) + rgba[c + 1] * (1 - fx) * fy + rgba[d + 1] * fx * fy) / 255;
-      if (ink <= 0 || ink * density <= noise[(gy % noiseSize) * noiseSize + (gx % noiseSize)] / 255) return;
-      var k = gy * n + gx;
-      var jx = jitter ? (hash(k * 2 + 1) - 0.5) * jitter : 0;
-      var jy = jitter ? (hash(k * 2 + 2) - 0.5) * jitter : 0;
-      out.push((gx + 0.5 + jx) / n, (gy + 0.5 + jy) / n, ink);
-    };
-    for (var gy = 0; gy < res; gy++) {
-      for (var gx = 0; gx < res; gx++) {
-        if (!fineCell(zones, res, gx, gy)) { keep(res, gx, gy); continue; }
-        for (var q = 0; q < 4; q++) keep(res * 2, gx * 2 + (q & 1), gy * 2 + (q >> 1));
+  // Threshold stippling: every cell of a res x res grid over the figure (twice as fine when `fine`) keeps a dot when
+  // its ink (green channel, bilinear from the size x size map) beats the tiled blue-noise threshold. Output is
+  // [x, y, ink] per dot with x, y in figure units (0..1). What else a dot carries is sampled from the other maps.
+  function stipple(rgba, size, noise, noiseSize, res, density, jitter, fine) {
+    var n = fine ? res * 2 : res, kept = fine ? density * FINE_INK : density, last = size - 1, scale = last / n;
+    var out = new Float32Array(1 << 16), count = 0, at = new Int32Array(n), frac = new Float64Array(n), x, y;
+    // where each column (and row) of the grid samples the map: the pixel before it and how far past it
+    for (var g = 0; g < n; g++) { var u = (g + 0.5) * scale; at[g] = Math.floor(u); frac[g] = u - at[g]; }
+    // the first and last column of each map row that holds any ink: a cell that reads only pixels outside them is
+    // empty, so each row of the grid skips the paper on either side of the figure
+    var from = new Int32Array(size).fill(size), to = new Int32Array(size).fill(-1);
+    for (y = 0; y < size; y++) for (x = 0; x < size; x++) if (rgba[(y * size + x) * 4 + 1]) { if (from[y] === size) from[y] = x; to[y] = x; }
+    for (var gy = 0; gy < n; gy++) {
+      var i0 = at[gy], fy = frac[gy], i1 = Math.min(i0 + 1, last), lo = Math.min(from[i0], from[i1]), hi = Math.max(to[i0], to[i1]);
+      if (hi < 0) continue;
+      for (var gx = Math.max(0, Math.floor((lo - 1) / scale - 0.5)), end = Math.min(n - 1, Math.ceil((hi + 1) / scale)); gx <= end; gx++) {
+        var j0 = at[gx], fx = frac[gx], j1 = Math.min(j0 + 1, last);
+        var a = (i0 * size + j0) * 4, b = (i0 * size + j1) * 4, c = (i1 * size + j0) * 4, d = (i1 * size + j1) * 4;
+        var ink = (rgba[a + 1] * (1 - fx) * (1 - fy) + rgba[b + 1] * fx * (1 - fy) + rgba[c + 1] * (1 - fx) * fy + rgba[d + 1] * fx * fy) / 255;
+        if (ink <= 0 || ink * kept <= noise[(gy % noiseSize) * noiseSize + (gx % noiseSize)] / 255) continue;
+        var k = gy * n + gx;
+        var jx = jitter ? (hash(k * 2 + 1) - 0.5) * jitter : 0;
+        var jy = jitter ? (hash(k * 2 + 2) - 0.5) * jitter : 0;
+        if (count + 3 > out.length) { var grown = new Float32Array(out.length * 2); grown.set(out); out = grown; }
+        out[count++] = (gx + 0.5 + jx) / n;
+        out[count++] = (gy + 0.5 + jy) / n;
+        out[count++] = ink;
       }
     }
-    return new Float32Array(out);
+    return out.slice(0, count);
   }
 
   // How far each pixel of the figure is from its outline and which way is out: the nearest pixel outside the figure
@@ -219,11 +215,22 @@
     return out;
   }
 
+  // Whether a point (figure units) lies inside any of `zones`, ellipses [x, y, rx, ry, turn] in figure units and radians.
+  function withinZones(zones, x, y) {
+    for (var i = 0; zones && i < zones.length; i++) {
+      var z = zones[i], dx = x - z[0], dy = y - z[1], c = Math.cos(z[4]), s = Math.sin(z[4]);
+      var u = (dx * c + dy * s) / z[2], v = (dy * c - dx * s) / z[3];
+      if (u * u + v * v <= 1) return true;
+    }
+    return false;
+  }
+
   // The avatar's own star glints: the points of its sparkle (the color map's alpha above its floor of 128) that are
   // brighter than everything within two pixels and round, not drawn out along the edge of a highlight (over two pixels
   // each way the weaker curvature is at least a third of the stronger), on the wings, the caduceus, the rubble, the
   // lightning, and the clouds, where the avatar's stars are, and not on its marble, where a highlight is the light on
-  // the skin, nor in the hair or on a hand (inside `zones`, the face's and the hands' ellipses); or within eight pixels
+  // the skin, nor in the hair or on a hand (inside `zones`: the head's and the hands' ellipses, `features` in
+  // hero.json); or within eight pixels
   // outside the figure, where the sky's are. Output is [x, y, strength] per glint, x and y in figure units, strongest
   // first, at most `limit`.
   function glints(rgba, relief, size, limit, zones) {
@@ -239,7 +246,7 @@
     for (y = 2; y < size - 2; y++) for (x = 2; x < size - 2; x++) {
       i = y * size + x;
       var v = sp[i];
-      if (v < 0.3 || !near[i] || (relief[i * 4] > 0 && rgba[i * 4] === MARBLE) || fineWeight(zones, x / last, y / last) > 0) continue;
+      if (v < 0.3 || !near[i] || (relief[i * 4] > 0 && rgba[i * 4] === MARBLE) || withinZones(zones, x / last, y / last)) continue;
       var peak = true;
       for (dy = -2; dy <= 2 && peak; dy++) for (dx = -2; dx <= 2; dx++) {
         var u = sp[i + dy * size + dx];
@@ -1114,7 +1121,7 @@
       var details = sampleColors(relief.data, relief.width, spots, 3);
       var tints = palette ? sampleColors(palette.data, palette.width, spots, 3) : null;
       if (!outline) outline = outlineField(relief.data, relief.width);
-      if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS, meta.fine) : new Float32Array(0);
+      if (!stars) stars = palette && palette.width === relief.width ? glints(palette.data, relief.data, relief.width, GLINTS, meta.features) : new Float32Array(0);
       var g = stars.length / 3, total = n + g;
       var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
       for (var i = 0; i < n; i++) {
@@ -1130,8 +1137,8 @@
         bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
         bytes[o + 2] = details[i * 4 + 1];
         bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
-        // whether the dot is on the fine grid of a face or hand
-        bytes[o + 6] = fineCell(fine, res, Math.floor(spots[i * 3] * res), Math.floor(spots[i * 3 + 1] * res)) ? 255 : 0;
+        // how much smaller the dot is drawn on the fine grid
+        bytes[o + 6] = Math.round(fineScale(fine, spots[i * 3 + 2]) * 255);
         // which way is out of the figure from the dot, and how far in it lies (255 for a tenth of the figure or more)
         var at = (Math.round(clamp(spots[i * 3 + 1], 0, 1) * (relief.width - 1)) * relief.width + Math.round(clamp(spots[i * 3], 0, 1) * (relief.width - 1))) * 2;
         bytes[o + 10] = Math.round(outline[at + 1] * 255);
@@ -1179,12 +1186,12 @@
       }));
       gl.viewport(0, 0, canvas.width, canvas.height);
       var want = resolutionFor(place.scale);
-      // the face and the hands get their finer grid where the screen has the pixels to show it: below 1.5 device
-      // pixels per CSS pixel the finer dots are smaller than a pixel and only darken the stone
-      var zones = dpr >= 1.5 && meta.fine ? meta.fine : null;
-      if (want !== res || zones !== fine) {
+      // the figure gets its finer grid on screens that have the pixels to show it: below 1.5 device pixels per CSS
+      // pixel the finer dots are smaller than a pixel and only darken the stone
+      var split = dpr >= 1.5;
+      if (want !== res || split !== fine) {
         res = want;
-        fine = zones;
+        fine = split;
         shapes = {};
         swap = null;
       }
@@ -1861,7 +1868,7 @@
           !Array.isArray(data.center) || data.center.length !== 2 || !data.center.every(normalized) ||
           !normalized(data.density) || data.density <= 0 ||
           (data.core != null && !(Array.isArray(data.core) && data.core.length === 2 && data.core.every(normalized))) ||
-          (data.fine != null && !(Array.isArray(data.fine) && data.fine.every(function (z) {
+          (data.features != null && !(Array.isArray(data.features) && data.features.every(function (z) {
             return Array.isArray(z) && z.length === 5 && z.every(Number.isFinite) && normalized(z[0]) && normalized(z[1]) && z[2] > 0 && z[3] > 0 && z[2] < 0.5 && z[3] < 0.5;
           })))) throw new Error("hero metadata is invalid");
       sources[first] = all[0];
@@ -1900,8 +1907,8 @@
     rippleWeight: rippleWeight,
     fadeAway: fadeAway,
     stipple: stipple,
-    fineWeight: fineWeight,
-    fineCell: fineCell,
+    fineScale: fineScale,
+    withinZones: withinZones,
     outlineField: outlineField,
     glints: glints,
     reliefField: reliefField,

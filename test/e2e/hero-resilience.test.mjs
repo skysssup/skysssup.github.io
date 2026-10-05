@@ -19,10 +19,10 @@ before(async () => {
 after(async () => { await browser?.close(); site?.server.close(); });
 
 // Every test but the opening's own starts from a tab that has already seen the opening (js/page.js).
-async function open(t, { reduced = false, touch = false, setup, intro = false, scheme = 'light' } = {}) {
+async function open(t, { reduced = false, touch = false, setup, intro = false, scheme = 'light', scale = 1 } = {}) {
   const context = await browser.newContext({
     viewport: touch ? { width: 390, height: 844 } : { width: 1280, height: 800 },
-    colorScheme: scheme, reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch,
+    colorScheme: scheme, reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch, deviceScaleFactor: scale,
   });
   t.after(() => context.close());
   if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
@@ -75,7 +75,11 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
         const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
         let hash = 0;
         for (const byte of bytes) hash = (Math.imul(hash, 31) + byte) >>> 0;
-        probe.uploads.push({ bytes: bytes.length, hash });
+        // how many of the uploaded dots are drawn smaller, on the finer grid (the dot-size byte, a_e.z, at 30 of 36),
+        // and how many vertices are the avatar's star glints (their flag, a_e.w, at 31)
+        let fine = 0, glints = 0;
+        if (bytes.length % 36 === 0) for (let i = 30; i < bytes.length; i += 36) { if (bytes[i]) fine++; if (bytes[i + 1]) glints++; }
+        probe.uploads.push({ bytes: bytes.length, hash, fine, glints });
       }
       return result;
     };
@@ -89,12 +93,15 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
         const pixels = new Uint8Array(this.drawingBufferWidth * this.drawingBufferHeight * 4);
         this.readPixels(0, 0, this.drawingBufferWidth, this.drawingBufferHeight, this.RGBA, this.UNSIGNED_BYTE, pixels);
         let visible = 0, hash = 0, colored = 0;
+        let cover = 0;
         for (let i = 3; i < pixels.length; i += 4) {
           if (pixels[i]) visible++;
           if (pixels[i] > 64 && Math.max(pixels[i - 3], pixels[i - 2], pixels[i - 1]) - Math.min(pixels[i - 3], pixels[i - 2], pixels[i - 1]) > 40) colored++;
           hash = (Math.imul(hash, 31) + pixels[i]) >>> 0;
+          cover += pixels[i];
         }
-        probe.pixels = { visible, hash, colored, draw: probe.draws, sheen: (probe.uniforms.u_sheen || [0, 0, 0, 0]).slice() };
+        // cover: how much of the canvas the dots cover, 0..1, whatever its pixel density
+        probe.pixels = { visible, hash, colored, cover: cover / 255 / (pixels.length / 4), draw: probe.draws, sheen: (probe.uniforms.u_sheen || [0, 0, 0, 0]).slice() };
         probe.capture = false;
       }
       return result;
@@ -459,6 +466,19 @@ test('Gear Two keeps tearing the figure after the switch; light mode, reduced mo
   const during = (await state(touched.page)).series.u_glitch.filter(([time]) => time > dragging);
   assert.ok(during.length > 3 && during.every(([, x]) => x === 0), 'no tears while a touch drag turns the figure');
   await touch.send('touchEnd');
+});
+
+test('a 2x screen draws the whole figure on a grid twice as fine, in smaller dots and the same tone; a 1x screen the coarse grid', async t => {
+  const sharp = await open(t, { scale: 2, reduced: true }), plain = await open(t, { reduced: true });
+  await live(sharp.page);
+  await live(plain.page);
+  const two = await state(sharp.page), one = await state(plain.page);
+  assert.ok(two.count > one.count * 2.2 && two.count < one.count * 3, `about 2.6 dots where a 1x screen draws one (${two.count} vs ${one.count})`);
+  assert.equal(two.uploads.at(-1).fine, two.count - two.uploads.at(-1).glints, 'every dot on the 2x screen is drawn smaller');
+  assert.equal(one.uploads.at(-1).fine, 0, 'and none on the 1x screen');
+  const redraw = () => window.__heroApi.highlight(null);
+  const tone = (await capture(sharp.page, redraw)).cover / (await capture(plain.page, redraw)).cover;
+  assert.ok(tone > 0.85 && tone < 1.15, `the finer dots cover as much of the paper (${tone.toFixed(2)})`);
 });
 
 test('the material map names five materials inside the figure', async t => {
