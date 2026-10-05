@@ -27,7 +27,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
   t.after(() => context.close());
   if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -499,6 +499,46 @@ test('the material map names five materials inside the figure', async t => {
   assert.deepEqual(Object.keys(counts).map(Number).sort(), [0, 1, 2, 3, 4], 'gold, marble, cloud, lightning, glint');
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
+});
+
+test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fades as Gear Two ends, and the caption counts the dots drawn', async t => {
+  // on dark paper, so that Gear Two draws from the same map (the light map) and the counts compare
+  const { page } = await open(t, { scheme: 'dark' });
+  await live(page);
+  const share = await page.evaluate(async () => {
+    const decode = async url => {
+      const bitmap = await createImageBitmap(await (await fetch(url)).blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+      const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d');
+      ctx.drawImage(bitmap, 0, 0);
+      return { size: bitmap.width, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data };
+    };
+    const color = await decode('/assets/hero/color.webp'), depth = await decode('/assets/hero/depth.webp');
+    const meta = await (await fetch('/assets/hero/hero.json')).json();
+    let figure = 0, bank = 0;
+    for (let i = 0; i < color.data.length; i += 4) if (depth.data[i] > 0) { figure++; if (color.data[i + 2] > 127) bank++; }
+    const at = ([x, y]) => color.data[(Math.round(y * (color.size - 1)) * color.size + Math.round(x * (color.size - 1))) * 4 + 2];
+    return { bank: bank / figure, core: at(meta.core), center: at(meta.center) };
+  });
+  assert.ok(share.bank > 0.1 && share.bank < 0.5, `the bank's own share of the figure is ${share.bank}`);
+  assert.equal(share.core, 0, 'none of it on the statue');
+  assert.deepEqual((await state(page)).uniforms.u_bank, [0], 'dark paper draws no bank');
+  const plain = await page.textContent('[data-dot-count]');
+  await page.evaluate(() => window.skyGear.setGear(true));
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_bank[0] === 1);
+  const red = await page.textContent('[data-dot-count]');
+  assert.ok(Number(red.replace(/,/g, '')) > Number(plain.replace(/,/g, '')) * 1.1, `Gear Two draws the bank's dots too (${red} vs ${plain})`);
+  const ended = await page.evaluate(() => { window.skyGear.setGear(false); return performance.now(); });
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_bank[0] === 0);
+  const leaving = (await state(page)).series.u_bank.filter(([time]) => time > ended).map(([, v]) => v);
+  assert.ok(leaving.some(v => v > 0 && v < 1), 'the bank fades out rather than vanishing');
+  for (let i = 1; i < leaving.length; i++) assert.ok(leaving[i] <= leaving[i - 1], 'and never comes back on the way');
+  assert.equal(await page.textContent('[data-dot-count]'), plain);
+
+  const still = await open(t, { reduced: true });
+  await live(still.page);
+  await still.page.evaluate(() => window.skyGear.setGear(true));
+  await still.page.waitForFunction(() => window.__heroProbe.uniforms.u_bank[0] === 1);
+  assert.ok((await state(still.page)).series.u_bank.every(([, v]) => v === 0 || v === 1), 'under reduced motion the bank is there or not');
 });
 
 test('the sky\'s stars sit in the sky, and come out on dark paper and in Gear Two but not on white', async t => {

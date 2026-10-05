@@ -8,7 +8,7 @@
   "bio": "I build developer tools and interactive physics software in TypeScript and Python. Interested in reinforcement learning and robotics.",
   "intro": "Most AI agents will tell you the job is done. I’m\u00a019 and I build the tools that check.",
   "why": { "title": "Why the statue", "body": "It’s Hermes. On the day he was born he stole fifty of Apollo’s cattle and walked them backwards so the tracks pointed the wrong way. Agents pull the same trick with their logs. I build the trackers. Robots are next and I expect they’ll try it too." },
-  "dots": "105,788",
+  "dots": "92,319",
   "ringLine": "I stole Apollo’s cattle on day one. Your agent won’t sneak one past me",
   "themes": [
     { "id": "ai-systems", "name": "AI systems" },

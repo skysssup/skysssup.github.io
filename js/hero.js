@@ -509,6 +509,7 @@
     "uniform float u_sky;",
     "uniform int u_tiles;",
     "uniform vec2 u_wind;",
+    "uniform float u_bank;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -545,7 +546,7 @@
     "  float an = a_w.z * 6.2831853;",
     "  vec2 normal = vec2(cos(an), sin(an));",
     "  float lee = clamp(dot(normal, wind) * 0.8 + 0.2, 0.0, 1.0);",
-    "  if (r01(id * 19u + uint(sh.z) * 7u + 3u) >= u_flow.x * near * lee) return g;",
+    "  if (r01(id * 19u + uint(sh.z) * 7u + 3u) >= u_flow.x * near * lee * (1.0 - a_e.x * (1.0 - u_bank))) return g;",
     "  float life = 1.2 + 0.6 * r01(id * 23u + 1u), reach = (0.02 + 0.05 * s3) * w;",
     "  if (since < life) {",
     "    float q = since / life, s = reach * (1.0 - exp(-2.5 * q)), L = 0.005 * w, lift = L * (1.0 - exp(-s / L));",
@@ -567,6 +568,8 @@
     "void main() {",
     "  uint id = uint(gl_VertexID);",
     "  float s1 = r01(id * 3u + 1u), s2 = r01(id * 3u + 2u), s3 = r01(id * 3u + 3u);",
+    // the dots that only the cloud bank holds (a_e.x) are drawn in Gear Two alone (u_bank, eased over the switch)
+    "  float hidden = a_e.x * (1.0 - u_bank);",
     "  vec3 p = vec3(a_p.x - u_pivot.x, u_pivot.y - a_p.y, (a_p.z - 0.62) * u_depth);",
     // assemble from a scattered shell, centre first
     "  float reach = length(p.xy);",
@@ -695,7 +698,7 @@
     "      float an = a_w.z * 6.2831853;",
     "      vec2 away = vec2(cos(an), sin(an)), bz = breeze(u_time - tau);",
     "      float lee = clamp(dot(away, bz) * 0.7 + 0.3, 0.0, 1.0);",
-    "      if (u_time - tau >= u_breeze.w && r01(cid * 5u + uint(cyc) * 3u) < 0.5 && r01(id * 29u + uint(cyc) * 13u) < u_breeze.y * near * lee) {",
+    "      if (u_time - tau >= u_breeze.w && r01(cid * 5u + uint(cyc) * 3u) < 0.5 && r01(id * 29u + uint(cyc) * 13u) < u_breeze.y * near * lee * (1.0 - hidden)) {",
     "        float fly = (0.012 + 0.025 * s3) * W, v = W * (0.025 + 0.02 * r01(id * 37u + 3u));",
     "        float s = v * max(0.0, tau - 0.4 * (1.0 - exp(-tau / 0.4)));",
     "        if (s < inside + fly) {",
@@ -800,7 +803,7 @@
     "  size = mix(size * 0.7, size, k);",
     "  v_alpha = (0.62 + 0.38 * smoothstep(-0.25, 0.2, p.z)) * fade * mix(0.0, 1.0, smoothstep(0.0, 0.25, k)) * u_alpha;",
     "  v_alpha = mix(v_alpha, u_alpha, max(max(band, star), blown)) * show;",
-    "  v_alpha *= vis;",
+    "  v_alpha *= vis * (1.0 - hidden);",
     "  v_star = star;",
     "  v_blown = blown;",
     "  v_heading = normalize(heading);",
@@ -822,11 +825,12 @@
     "    v_size = u_dot * mix(2.5 + 5.0 * a_p.w * a_p.w, 1.6 + 3.5 * a_p.w * a_p.w, a_c.g) * (0.7 + 0.3 * twinkle + 0.3 * band) * persp * u_dpr;",
     "    v_sprite = v_size + 0.5;",
     // (a glint has no dot of its own: before the colours arrive it draws nothing, not a disc of its size)
-    "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow : 0.0;",
+    "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow * (1.0 - hidden) : 0.0;",
     "    v_star = v_blown = v_flare = 0.0;",
     "  }",
     "  gl_PointSize = v_sprite;",
-    "  gl_Position = vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);",
+    // (a dot the bank alone holds, while the bank is away, is put outside the view, so it costs no pixels)
+    "  gl_Position = hidden > 0.999 ? vec4(-2.0, -2.0, 0.0, 1.0) : vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);",
     "}"
   ].join("\n");
 
@@ -994,6 +998,8 @@
     var colors = readColors();
     var inkNow = rgb(colors.ink), inkFrom = inkNow, inkTo = inkNow, inkAt = 0;
     var tintNow = tintFor(colors), tintFrom = tintNow, tintTo = tintNow;
+    // how much of the cloud bank is drawn: all of it in Gear Two, none on light and dark paper
+    var bankNow = colors.gear ? 1 : 0;
     var yaw = { x: 0, v: 0 }, pitch = { x: 0, v: 0 }, pushK = { x: 0, v: 0 };
     var pointer = { x: -1e4, y: -1e4, inside: false, tx: 0, ty: 0 };
     var touch = null;
@@ -1082,7 +1088,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_core", "u_sky", "u_tiles", "u_wind"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_core", "u_sky", "u_tiles", "u_wind", "u_bank"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1142,6 +1148,10 @@
       if (!sky) sky = skyStars(relief.data, relief.width);
       var g = stars.length / 3, k = sky.length / 3, total = n + g + k;
       var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
+      // the cloud bank is drawn in Gear Two alone: a dot that the figure would not hold without it (its ink, less the
+      // bank's share there, the color map's blue, no longer beats its cell's threshold) is flagged, so on light and
+      // dark paper the figure is the statue and its modest base cloud, stippled exactly as if the bank had never been
+      var cells = fine ? res * 2 : res, kept = fine ? meta.density * FINE_INK : meta.density, banked = 0;
       for (var i = 0; i < n; i++) {
         floats[i * f] = spots[i * 3];
         floats[i * f + 1] = spots[i * 3 + 1];
@@ -1155,6 +1165,10 @@
         bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
         bytes[o + 2] = details[i * 4 + 1];
         bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
+        if (tints && tints[i * 4 + 2]) {
+          var gx = Math.floor(spots[i * 3] * cells), gy = Math.floor(spots[i * 3 + 1] * cells);
+          if (spots[i * 3 + 2] * (1 - tints[i * 4 + 2] / 255) * kept <= noise.data[(gy % noise.width) * noise.width + (gx % noise.width)] / 255) { bytes[o + 4] = 255; banked++; }
+        }
         // how much smaller the dot is drawn on the fine grid
         bytes[o + 6] = Math.round(fineScale(fine, spots[i * 3 + 2]) * 255);
         // which way is out of the figure from the dot, and how far in it lies (255 for a tenth of the figure or more)
@@ -1173,6 +1187,7 @@
         floats[at + 2] = inside ? deep[j * 3 + 2] : 0.45;
         floats[at + 3] = stars[j * 3 + 2];
         bytes[(n + j) * VERTEX + 24] = MARBLE;
+        bytes[(n + j) * VERTEX + 28] = bankAt(stars[j * 3], stars[j * 3 + 1]) > 127 ? 255 : 0;
         bytes[(n + j) * VERTEX + 31] = 255;
       }
       // and the stars of the sky, far behind the figure, flagged in the material's weight (a_c.g), which a glint has
@@ -1188,7 +1203,7 @@
         bytes[(n + g + q) * VERTEX + 31] = 255;
       }
       var lit = Math.max(1, litDots(normals));
-      return { vertices: bytes, count: total, dots: n, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
+      return { vertices: bytes, count: total, dots: n, banked: banked, stars: [Math.min(1, STARS / lit), Math.min(1, STARS_BRIGHT / lit)] };
     }
 
     function size() {
@@ -1230,8 +1245,8 @@
         vertices = shapes[set].vertices;
         count = shapes[set].count;
         starChance = shapes[set].stars;
-        if (opts.onCount) opts.onCount(shapes[set].dots);
       }
+      announce();
       if (!count) throw new Error("hero data is empty");
       gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
       gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
@@ -1240,6 +1255,22 @@
       ringFont = clamp(Math.round(s / 56), 10, 12);
       ring = null;
       return true;
+    }
+
+    // How many dots the figure draws: the cloud bank's own only in Gear Two.
+    var announced = -1;
+    function announce() {
+      var shown = shapes[set] ? shapes[set].dots - (colors.gear ? 0 : shapes[set].banked) : -1;
+      if (shown < 0 || shown === announced) return;
+      announced = shown;
+      if (opts.onCount) opts.onCount(shown);
+    }
+
+    // The cloud bank's share of the figure at a point (figure units): the color map's blue, 0..255.
+    function bankAt(fx, fy) {
+      if (!palette) return 0;
+      var last = palette.width - 1;
+      return palette.data[(Math.round(clamp(fy, 0, 1) * last) * palette.width + Math.round(clamp(fx, 0, 1) * last)) * 4 + 2];
     }
 
     // The dots follow the paper (dotMap): when it turns between light and dark, the figure is drawn from the other
@@ -1296,7 +1327,7 @@
       var u = (sx - box.x - place.x) / place.scale, v = (sy - box.y - place.y) / place.scale;
       if (u < 0 || v < 0 || u >= 1 || v >= 1) return 0;
       var n = relief.width, i = (Math.floor(v * n) * n + Math.floor(u * n)) * 4;
-      return relief.data[i] > 0 ? 1 : 0;
+      return relief.data[i] > 0 && (bankNow >= 0.5 || bankAt(u, v) < 128) ? 1 : 0;
     }
 
     // Gear Two glitch tiles on the overlay: a thin accent frame around each torn-out block, drawn where it lands.
@@ -1557,6 +1588,9 @@
         pitch.x = swayPitch;
         yaw.v = pitch.v = pushK.x = pushK.v = 0;
       }
+      // the cloud bank comes in under Gear Two's switch and leaves over 0.3 s as it ends
+      var bankTo = gear ? 1 : 0;
+      bankNow = live ? (bankNow < bankTo ? Math.min(bankTo, bankNow + dt / 0.3) : Math.max(bankTo, bankNow - dt / 0.3)) : bankTo;
       if (inkAt) {
         var q = clamp((now - inkAt) / 320, 0, 1);
         inkNow = [0, 1, 2].map(function (c) { return inkFrom[c] + (inkTo[c] - inkFrom[c]) * q; });
@@ -1687,6 +1721,7 @@
       // the breeze as it blows now, which a drifting dot follows (the shader's breeze(), worked out once a frame)
       var wx = Math.sin(t * 0.26) + 0.35 * Math.sin(t * 0.61 + 1.3), wy = 0.25 * Math.sin(t * 0.37 + 0.6), wl = Math.hypot(wx, wy) || 1;
       gl.uniform2f(U.u_wind, wx / wl, wy / wl);
+      gl.uniform1f(U.u_bank, bankNow);
       // the dots stand for light on dark paper; while the paper's turn swaps them, the new map's appear behind a band
       // of light and the old map's give way ahead of it
       var swapAge = swap ? Math.max(0, now - swap.at) / 1000 : 0;
@@ -1768,7 +1803,7 @@
       if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
       // leaving Gear Two: the tearing stops just after the palette comes back
       if (was.gear && !colors.gear) { glitchUntil = Math.min(glitchUntil, performance.now() + 140); tear = null; }
-      if (was.gear !== colors.gear) ring = null;
+      if (was.gear !== colors.gear) { ring = null; announce(); }
       // when the opening turns the page red, one bolt of lightning strikes the figure: the only lightning there is
       if (!was.gear && colors.gear && intro && intro.stage === "red" && canInteract()) strike(box.x + box.size / 2, box.y + box.size / 2);
       follow();

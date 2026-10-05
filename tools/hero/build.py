@@ -9,7 +9,8 @@ Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at 
   assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), G = detail,
                              B = the sky's stars (0, or 1 + 254 x a star's strength)
   assets/hero/color.webp     448x448, lossless RGBA: R = material (gold, marble, cloud, lightning, glint) x 51,
-                             G = how strongly the pixel belongs to it, A = 128 + its sparkle highlights
+                             G = how strongly the pixel belongs to it, B = how much of the figure there is the cloud
+                             bank's alone (drawn only in Gear Two), A = 128 + its sparkle highlights
   assets/hero/bluenoise.png  64x64 void-and-cluster threshold map, tiled by the engine
   assets/hero/hero.json      map sizes, figure bounds and centre of mass, used to frame the figure
   assets/hero/still.webp     transparent still frame, used before WebGL starts and without WebGL; preview.webp is
@@ -206,6 +207,10 @@ def maps():
         * (1 - smoothstep(0.56, 0.76, xx)) * (1 - smoothstep(0.83, 0.985, yy))
     mask = blurf(np.maximum(statue, bank), 1.6)
     statue = blurf(statue, 1.6)
+    # How much of the figure at each pixel is the bank's alone (0 on the statue and the modest cloud right under it, 1
+    # out in the billows): the engine draws the bank only in Gear Two, so on light and dark paper the statue rises from
+    # its own base cloud as it did before the bank came in.
+    own = np.clip(1 - statue / np.maximum(mask, 1e-3), 0, 1) * (mask > 0.02)
 
     # Shade it like an engraving. The image's own light carries the features (eye sockets, nostrils, the open
     # mouth are its local darks), so its tone and local shadows lead; the depth surface, lit from the upper left,
@@ -281,7 +286,7 @@ def maps():
     # inside the bank the depth is smoothed and drawn into a narrow range around the statue's base.
     calm = blurf(vapour, 5.0)
     relief = dep * (1 - calm) + calm * (0.64 + 0.28 * blurf(dep, 8.0))
-    return relief, ink, light, mask, statue, detail
+    return relief, ink, light, mask, statue, detail, own
 
 
 # The five materials, in index order. css/site.css gives each a base and a lit color per mode.
@@ -320,7 +325,7 @@ def clouds(size):
     return ((yy > 330) | ((xx < 165) & (yy > 280))) & ~zone(TORSO, size) & ~zone(ARM, size)
 
 
-def material_map(inside):
+def material_map(inside, own):
     """Which material each pixel of the figure is made of. Color alone cannot tell them apart in this image: gold,
     marble, cloud, and glint overlap in every CIELAB channel, and a five-way k-means over the figure splits it by
     lightness instead (shadows one cluster, highlights another). So the avatar's layout names a few zones once,
@@ -330,8 +335,9 @@ def material_map(inside):
     curls in shadow are as cool as the stone, so color alone would leave them out); below the statue the clouds are
     rose, with cyan lightning and gold rubble in them; everything else is marble.
     Writes color.webp: R = material index x 51; G = how strongly the pixel belongs to it, fading to 0 within
-    2 px of a boundary, so a dot on an edge shows ink instead of flickering between two materials; B unused;
-    A = 128 + sparkle (an opaque floor: browsers premultiply canvas pixels by alpha, so a transparent pixel would
+    2 px of a boundary, so a dot on an edge shows ink instead of flickering between two materials; B = how much of
+    the figure there is the cloud bank's alone (`own` from maps(), 0 on the statue), which the engine draws only in
+    Gear Two; A = 128 + sparkle (an opaque floor: browsers premultiply canvas pixels by alpha, so a transparent pixel would
     lose its other channels on the way to the engine)."""
     src = Image.open(AVATAR).convert('RGB').resize((M, M), Image.LANCZOS)
     rgb = np.asarray(src, np.float32) / 255
@@ -371,7 +377,7 @@ def material_map(inside):
     lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
     sparkle = np.clip((lum - blurf(lum, 2.5) - 0.10) / 0.22, 0, 1) * smoothstep(0.55, 0.85, lum)
     sparkle = np.clip(blurf(sparkle, 0.7) * 1.4, 0, 1)
-    rgba = np.dstack([index * 51, u8(weight), np.zeros((M, M)), 128 + np.round(sparkle * 127)]).astype(np.uint8)
+    rgba = np.dstack([index * 51, u8(weight), np.where(inside, u8(np.round(half(own) * 15) / 15), 0), 128 + np.round(sparkle * 127)]).astype(np.uint8)
     lossless(rgba, 'color.webp')
     return index, weight, sparkle
 
@@ -492,9 +498,9 @@ def main():
         return
     if '--upscale' in sys.argv:
         upscale()
-    dep, ink, light, mask, statue, detail = maps()
+    dep, ink, light, mask, statue, detail, own = maps()
     inside = half(mask) > 0.04
-    index, weight, sparkle = material_map(inside)
+    index, weight, sparkle = material_map(inside, own)
     if '--color' in sys.argv:
         print('wrote color.webp:', ', '.join(f'{n} {float((index[inside] == k).mean()):.1%}' for k, n in enumerate(MATERIALS)))
         return
@@ -527,8 +533,9 @@ def main():
     }
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
-    n = still(levels, bn, dep, detail, meta, '')
-    still(light_levels, bn, dep, detail, meta, '-dark')
+    # the stills cover the page on light and dark paper, where the bank is not drawn
+    n = still(levels * (1 - own), bn, dep, detail, meta, '')
+    still(light_levels * (1 - own), bn, dep, detail, meta, '-dark')
     print(json.dumps(meta), n, 'still points')
 
 
