@@ -353,6 +353,22 @@ test('the face and the hands are stippled on a grid twice as fine, fading in ove
   assert.deepEqual(Array.from(fine), Array.from(hero.stipple(rgba, size, noise, 4, 40, 0.6, 0, zones)), 'deterministic');
 });
 
+test('each pixel of the figure knows how far its outline is and which way is out', () => {
+  const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
+  for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8
+  const field = hero.outlineField(rgba, size);
+  const at = (x, y) => [field[(y * size + x) * 2], field[(y * size + x) * 2 + 1]];
+  assert.deepEqual(at(0, 0), [0, 0], 'outside the figure');
+  assert.deepEqual(at(2, 5), [1, 0.5], 'one pixel in from the left side, out is to the left');
+  assert.deepEqual(at(8, 5), [1, 0], 'and from the right side, to the right');
+  assert.deepEqual(at(5, 8), [1, 0.25], 'from the bottom, down (y down)');
+  assert.equal(at(5, 5)[0], 4, 'the middle is four pixels from every side');
+  for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) {
+    const exact = Math.min(x - 1, 9 - x, y - 1, 9 - y);
+    assert.ok(Math.abs(at(x, y)[0] - exact) < 1e-9, `distance at ${x},${y}: ${at(x, y)[0]} vs ${exact}`);
+  }
+});
+
 test('where the wind carries a dot off the figure, it knows the outline\'s normal, both ways', () => {
   const size = 11, rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 2; y <= 8; y++) for (let x = 2; x <= 8; x++) rgba[(y * size + x) * 4] = 200;   // a square, from 2 to 8

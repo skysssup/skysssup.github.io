@@ -50,7 +50,10 @@ opening under virtual time).
   gust of wind: every dot it reaches sways downwind and springs back with its neighbours, and up to a third of the
   dots near the downwind edge are blown off. They slide over the surface, leave along the outline (so the dust streams
   up the raised arm and off the wing tips), turn into the wind wavering together in the light's color, flare to a
-  bright point just before they are gone, and re-form in place once the gust has passed. On light and dark paper the
+  bright point just before they are gone, and grow back in place, each at its own moment, once the gust has passed;
+  most of that dust is the statue's own, in its own colors. Between gusts the figure is alive: every dot drifts a
+  little, and a breeze that slowly swings from side to side takes flocks of dots off the outline, which flare as they
+  cross it and go with the wind, then grow back a second or two later. On light and dark paper the
   shine is stronger: a wider band with a sharp leading edge and an afterglow, more stars, more dust, and a glow on the
   paper behind the figure; Gear Two's gust blows off far fewer dots. Opening the page plays an opening once a tab
   (again on a reload, never under reduced motion): the figure holds still in its ink for two seconds, a slower shine

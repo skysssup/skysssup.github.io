@@ -262,6 +262,8 @@ test('reduced motion cancels active mouse push and ripples, and never advances t
   assert.deepEqual(uniforms.u_rot, [0.12, 0.02]);
   for (const key of ['u_time', 'u_blink', 'u_beat', 'u_glitch']) assert.deepEqual(uniforms[key], [0], key);
   assert.deepEqual(uniforms.u_sheen, [0, 0, 0, 0], 'no sheen and no sparkle burst under reduced motion');
+  assert.deepEqual(uniforms.u_last, [0, 0, 0, 0], 'no gust growing back');
+  assert.deepEqual(uniforms.u_breeze, [0, 0, 0, 0], 'and no breeze');
   assert.equal(uniforms.u_pointer[2], 0);
   assert.deepEqual(uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.6);
@@ -413,6 +415,7 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   for (let i = 1; i < sweep.length && sweep[i][1] < 0.999; i++) assert.ok(sweep[i][1] >= sweep[i - 1][1], 'the band never runs backwards within a sweep');
   assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
   assert.equal(uniforms.u_flow[0], 0.32, 'on light paper its gust blows off up to a third of the dots near the downwind edge');
+  assert.ok(uniforms.u_breeze[0] > 0 && uniforms.u_breeze[1] > 0, 'and between gusts a breeze keeps taking dots off the outline');
 });
 
 test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {
@@ -613,6 +616,7 @@ test('the opening holds the figure still in its ink, shines its colors in, and t
   assert.deepEqual(held.u_tint, [0], 'the figure starts in its ink alone');
   assert.deepEqual(held.u_rot, [0, 0], 'facing the viewer, as the still that covered the page did');
   assert.deepEqual(held.u_blink, [0], 'and nothing blinks');
+  assert.equal(held.u_breeze[0], 0, 'and no breeze takes its dots');
   await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'turn', null, { timeout: 15000 });
   const { stages: changes, liveAt } = await page.evaluate(() => ({ stages: window.__stages, liveAt: window.__liveAt }));
   const hold = changes.find(([, stage]) => stage === 'shine')[0] - liveAt;
