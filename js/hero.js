@@ -67,6 +67,9 @@
 
   // --ease-in-out, cubic-bezier(.65, 0, .35, 1), which is the cubic in-out curve.
   function easeInOut(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2; }
+  // When, as a share of its sweep, a band on that easing reaches the point `c` of its way: easeInOut run backwards
+  // (the shader's reached()).
+  function reached(c) { var v = Math.cbrt(clamp(Math.min(c, 1 - c), 0, 0.5) * 0.25); return c < 0.5 ? v : 1 - v; }
 
   // The opening, when the page is opened (opts.intro), in seconds: the figure holds still in its ink for `hold`; a
   // slower shine crosses it and leaves its colors in its wake; the sway runs `rate` times as fast until the figure has
@@ -1345,7 +1348,9 @@
       return halos;
     }
 
-    function drawRing(yawNow, pitchNow, fade, beat, glow) {
+    // `motion` (null when still): the angle of the light that runs round the ring, and the sheen's wave while it runs
+    // ({ age, sweep, x, y, reach }: how long ago it started, how long it takes, the core it runs out of, and how far)
+    function drawRing(yawNow, pitchNow, fade, beat, glow, motion) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
       drawTiles();
@@ -1362,6 +1367,8 @@
       if (!ring) ring = ringText(line, TAU * Rpx, advance);
       var n = ring.glyphs.length;
       var accent = colors.gear ? colors.text : colors.accent;
+      // the light that runs round the ring is gold's lit colour, ember in Gear Two (the figure's key)
+      var base = rgb(accent), lamp = rgb(colors.gear ? colors.tone[1] : colors.lit[0]);
       var ct = Math.cos(tilt), st = Math.sin(tilt);
       var halo = haloAtlas(font, advance);
       ctx.textAlign = "center";
@@ -1388,18 +1395,39 @@
         var sx = pc[0] + pr[0] * place.scale, sy = pc[1] - pr[1] * place.scale;
         var front = nrm[2] > 0;
         var facing = Math.abs(nrm[2]);
+        // a light reads along the line, once every 7 s (3.5 s in Gear Two): the glyphs it has just passed take its colour
+        // and grow a little, fading behind it
+        var shine = 0, size = 1;
+        if (motion) {
+          var behind = ((motion.comet - (i / n) * TAU) % TAU + TAU) % TAU;
+          shine = Math.exp(-behind / 0.8) + Math.exp(-(TAU - behind) / 0.06) * 0.6;
+          size = 1 + 0.12 * shine;
+          // a sheen's wave, running out of the body, lifts the glyphs it passes outward and lets them settle, as it
+          // does the dots (the shader's gust(): its progress at the glyph, back through the sweep's easing)
+          var wave = motion.wave;
+          if (wave) {
+            var ox = sx - wave.x, oy = sy - wave.y, out = Math.hypot(ox, oy) || 1;
+            var since = wave.age - reached(out / wave.reach) * wave.sweep;
+            if (since > 0) {
+              var sway = Math.exp(-since * 2.5) * Math.sin(since * 5.7) / 0.55 * Rpx * 0.03;
+              sx += ox / out * sway;
+              sy += oy / out * sway;
+            }
+          }
+        }
         if (!front && maskAt(sx, sy) > 0.3) continue;
         var alpha = (front ? 1 : 0.3) * (0.35 + 0.65 * Math.pow(facing, 0.6));
         // a brighten lifts every glyph toward full strength, the dim ones behind the figure most
         alpha = (alpha + (1 - alpha) * glow) * fade;
         if (alpha < 0.02) continue;
-        var k = pr[2];
+        var k = pr[2] * size;
         var tx = tg[0] * k, ty = -tg[1] * k, ux = -up[0] * k, uy = up[1] * k;
         ctx.setTransform(tx * dpr, ty * dpr, ux * dpr, uy * dpr, sx * dpr, sy * dpr);
         ctx.globalAlpha = alpha;
         var spot = front && halo.cells[ch];
         if (spot) ctx.drawImage(halo.canvas, spot[0], spot[1], halo.w, halo.h, -halo.w / halo.scale / 2, -halo.h / halo.scale / 2, halo.w / halo.scale, halo.h / halo.scale);
-        ctx.fillStyle = accent;
+        var lit = Math.min(1, shine);
+        ctx.fillStyle = lit < 0.02 ? accent : "rgb(" + [0, 1, 2].map(function (c) { return Math.round((base[c] + (lamp[c] - base[c]) * lit) * 255); }).join(",") + ")";
         ctx.fillText(ch, 0, 0);
       }
       ctx.globalAlpha = 1;
@@ -1624,7 +1652,8 @@
       gl.uniform4f(U.u_span, left, right, box.size * (bright ? 0.05 : 0.035), starChance[bright ? 1 : 0]);
       // the core of the body, where a sheen's wave starts, as the figure is turned
       var core = meta.core || meta.center, cp = rotate([core[0] - meta.center[0], meta.center[1] - core[1], 0], yaw.x, pitch.x), ck = FOCAL / (FOCAL - cp[2]);
-      gl.uniform3f(U.u_core, box.x + place.x + (meta.center[0] + cp[0] * ck) * place.scale, box.y + place.y + (meta.center[1] - cp[1] * ck) * place.scale, reach);
+      var coreX = box.x + place.x + (meta.center[0] + cp[0] * ck) * place.scale, coreY = box.y + place.y + (meta.center[1] - cp[1] * ck) * place.scale;
+      gl.uniform3f(U.u_core, coreX, coreY, reach);
       var flare = FLARE[gear ? "gear" : colors.dark ? "dark" : "light"];
       gl.uniform4f(U.u_flow, bright ? WIND : WIND_GEAR, sheenSweep, flare, sheening && sheenWake ? 1 : 0);
       var previousAge = live && previous ? (now - previous.at) / 1000 : 0;
@@ -1680,7 +1709,11 @@
       // a theme hover brightens the ring for 400 ms: up in the first 100, back down by the end
       var lit = live && ringLitAt ? (now - ringLitAt) / 400 : 1;
       var brighten = lit < 0.25 ? smoothstep(0, 0.25, lit) : 1 - smoothstep(0.25, 1, lit);
-      drawRing(yaw.x, pitch.x, fade, beat, brighten);
+      var ringMotion = live ? {
+        comet: (now / 1000) * (gear ? 1.8 : 0.9),
+        wave: sheening ? { age: sheenAge, sweep: sheenSweep, x: coreX, y: coreY, reach: reach } : null
+      } : null;
+      drawRing(yaw.x, pitch.x, fade, beat, brighten, ringMotion);
       if (live) drawBolts(now);
       if (!drawChecked) {
         drawChecked = true;

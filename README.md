@@ -32,7 +32,9 @@ opening under virtual time).
   `switchGear(on, origin, transient)` runs the sequence towards a state; the hero's opening uses it to go to Gear Two
   and back without saving it to the session.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring that carries one line in the statue's
-  voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms). It stipples a map of
+  voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms; a light reads along the line
+  once every 7 s, 3.5 s in Gear Two, the glyphs it passes turning gold, ember in Gear Two, and a sheen's wave lifts
+  them as it passes). It stipples a map of
   where the dots go against a blue-noise tile at load (the whole figure on a grid twice as fine, with smaller dots in
   the same tone, on screens of 1.5 device pixels per CSS pixel or more), the statue and the bank of clouds it rises
   from, its hollows drawn from a normal map (`tools/hero/normals.png`, Marigold) checked against the avatar. On
