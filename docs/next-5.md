@@ -1,6 +1,9 @@
 # Handoff 5: finish the hero pass (the shine, a living figure, Tide's own entrance, the red cursor's dots, the docs)
 
-> **Status.** Live on `main`: step 6, the living figure ("Let the figure live…": part labels in byte 29, `joints` in
+> **Status.** Every step is live on `main`, CI green after each. Step 8's engine side ("In Gear Two, the dots under the
+> cursor run ember-hot": `u_ember`, eased like the bank, in `--trail-ember`'s colour, white-hot at the centre; Tide's
+> cursor stays cool, the default) and step 9 (README, design spec §5, §7, §8, §9, §14, these status lines, the final
+> reel) as briefed. Step 6, the living figure ("Let the figure live…": part labels in byte 29, `joints` in
 > `hero.json`, `life()` in JS and the parts' transforms in the shader, the currents of light with the dots riding them,
 > the curls and the snakes, the drifting key light, the drift halved). Where it departs from §3: the caduceus below the
 > fist is a part of its own in the vertex (label 8, the staff: the small wings beat about the staff's top while the
