@@ -1149,6 +1149,8 @@
 
     var prog = null, vao = null, vbo = null, query = null, U = {}, queryPending = false, rendered = false, drawChecked = false;
     var relief = null, field = null, outline = null, stars = null, sky = null, noise = null, meta = null, palette = null, vertices = null, count = 0, res = 0, fine = null;
+    // how many of the buffer's last vertices are the cloud bank's own dots, which are not drawn while the bank is away
+    var bankTail = 0;
     // the dot maps loaded so far (ink for light paper, light for dark; dotMap), the one the figure is drawn from, its
     // dots and the other map's at the current grid, and a swap from one to the other in progress
     var sources = { ink: null, light: null }, loading = {}, failed = {}, set = null, shapes = {}, swap = null;
@@ -1324,29 +1326,35 @@
       var buffer = new ArrayBuffer(total * VERTEX), floats = new Float32Array(buffer), bytes = new Uint8Array(buffer), f = VERTEX / 4;
       // the cloud bank is drawn in Gear Two alone: a dot that the figure would not hold without it (its ink, less the
       // bank's share there, the color map's blue, no longer beats its cell's threshold) is flagged, so on light and
-      // dark paper the figure is the statue and its modest base cloud, stippled exactly as if the bank had never been
-      var cells = fine ? res * 2 : res, kept = fine ? meta.density * FINE_INK : meta.density, banked = 0;
-      for (var i = 0; i < n; i++) {
-        floats[i * f] = spots[i * 3];
-        floats[i * f + 1] = spots[i * 3 + 1];
-        floats[i * f + 2] = normals[i * 3 + 2];
-        floats[i * f + 3] = spots[i * 3 + 2];
-        floats[i * f + 4] = normals[i * 3];
-        floats[i * f + 5] = normals[i * 3 + 1];
+      // dark paper the figure is the statue and its modest base cloud, stippled exactly as if the bank had never been.
+      // Those dots go last in the buffer, after the outline, so that while the bank is away they are not drawn at all
+      var cells = fine ? res * 2 : res, kept = fine ? meta.density * FINE_INK : meta.density, banked = 0, bank = new Uint8Array(n);
+      for (var b = 0; tints && b < n; b++) {
+        if (!tints[b * 4 + 2]) continue;
+        var gx = Math.floor(spots[b * 3] * cells), gy = Math.floor(spots[b * 3 + 1] * cells);
+        if (spots[b * 3 + 2] * (1 - tints[b * 4 + 2] / 255) * kept <= noise.data[(gy % noise.width) * noise.width + (gx % noise.width)] / 255) { bank[b] = 1; banked++; }
+      }
+      // where the dots end in the buffer, and where the bank's own begin
+      var m = n - banked, head = 0, tail = total - banked;
+      for (var d = 0; d < n; d++) {
+        var i = bank[d] ? tail++ : head++;
+        floats[i * f] = spots[d * 3];
+        floats[i * f + 1] = spots[d * 3 + 1];
+        floats[i * f + 2] = normals[d * 3 + 2];
+        floats[i * f + 3] = spots[d * 3 + 2];
+        floats[i * f + 4] = normals[d * 3];
+        floats[i * f + 5] = normals[d * 3 + 1];
         // material (nearest, never blended), how strongly the dot belongs to it, its detail, its sparkle
         var o = i * VERTEX + 24;
-        bytes[o] = palette ? materialAt(palette.data, palette.width, spots[i * 3], spots[i * 3 + 1]) : MARBLE;
-        bytes[o + 1] = tints ? tints[i * 4 + 1] : 0;
-        bytes[o + 2] = details[i * 4 + 1];
-        bytes[o + 3] = tints ? tints[i * 4 + 3] : 0;
-        if (tints && tints[i * 4 + 2]) {
-          var gx = Math.floor(spots[i * 3] * cells), gy = Math.floor(spots[i * 3 + 1] * cells);
-          if (spots[i * 3 + 2] * (1 - tints[i * 4 + 2] / 255) * kept <= noise.data[(gy % noise.width) * noise.width + (gx % noise.width)] / 255) { bytes[o + 4] = 255; banked++; }
-        }
+        bytes[o] = palette ? materialAt(palette.data, palette.width, spots[d * 3], spots[d * 3 + 1]) : MARBLE;
+        bytes[o + 1] = tints ? tints[d * 4 + 1] : 0;
+        bytes[o + 2] = details[d * 4 + 1];
+        bytes[o + 3] = tints ? tints[d * 4 + 3] : 0;
+        if (bank[d]) bytes[o + 4] = 255;
         // how much smaller the dot is drawn on the fine grid
-        bytes[o + 6] = Math.round(fineScale(fine, spots[i * 3 + 2]) * 255);
+        bytes[o + 6] = Math.round(fineScale(fine, spots[d * 3 + 2]) * 255);
         // which way is out of the figure from the dot, and how far in it lies (255 for a tenth of the figure or more)
-        var at = (Math.round(clamp(spots[i * 3 + 1], 0, 1) * (relief.width - 1)) * relief.width + Math.round(clamp(spots[i * 3], 0, 1) * (relief.width - 1))) * 2;
+        var at = (Math.round(clamp(spots[d * 3 + 1], 0, 1) * (relief.width - 1)) * relief.width + Math.round(clamp(spots[d * 3], 0, 1) * (relief.width - 1))) * 2;
         bytes[o + 10] = Math.round(outline[at + 1] * 255);
         bytes[o + 11] = Math.round(Math.min(1, outline[at] / (relief.width - 1) / 0.1) * 255);
       }
@@ -1354,33 +1362,33 @@
       // the figure and a little behind it in the sky
       var deep = depthNormals(field, relief.width, stars, 3, RELIEF);
       for (var j = 0; j < g; j++) {
-        var at = (n + j) * f, rw = relief.width - 1;
+        var at = (m + j) * f, rw = relief.width - 1;
         var inside = relief.data[(Math.round(stars[j * 3 + 1] * rw) * relief.width + Math.round(stars[j * 3] * rw)) * 4] > 0;
         floats[at] = stars[j * 3];
         floats[at + 1] = stars[j * 3 + 1];
         floats[at + 2] = inside ? deep[j * 3 + 2] : 0.45;
         floats[at + 3] = stars[j * 3 + 2];
-        bytes[(n + j) * VERTEX + 24] = MARBLE;
-        bytes[(n + j) * VERTEX + 28] = bankAt(stars[j * 3], stars[j * 3 + 1]) > 127 ? 255 : 0;
-        bytes[(n + j) * VERTEX + 31] = 255;
+        bytes[(m + j) * VERTEX + 24] = MARBLE;
+        bytes[(m + j) * VERTEX + 28] = bankAt(stars[j * 3], stars[j * 3 + 1]) > 127 ? 255 : 0;
+        bytes[(m + j) * VERTEX + 31] = 255;
       }
       // and the stars of the sky, far behind the figure, flagged in the material's weight (a_c.g), which a glint has
       // no use for
       for (var q = 0; q < k; q++) {
-        var sk = (n + g + q) * f;
+        var sk = (m + g + q) * f;
         floats[sk] = sky[q * 3];
         floats[sk + 1] = sky[q * 3 + 1];
         floats[sk + 2] = 0.15;
         floats[sk + 3] = sky[q * 3 + 2];
-        bytes[(n + g + q) * VERTEX + 24] = MARBLE;
-        bytes[(n + g + q) * VERTEX + 25] = 255;
-        bytes[(n + g + q) * VERTEX + 31] = 255;
+        bytes[(m + g + q) * VERTEX + 24] = MARBLE;
+        bytes[(m + g + q) * VERTEX + 25] = 255;
+        bytes[(m + g + q) * VERTEX + 31] = 255;
       }
       // and the outline, as fine lines of points flagged in a_w's spare byte, each at the relief's depth there so it turns
       // with the figure, facing out of the figure (a_w.z) and holding its own place in the wind
       var edgeNormals = depthNormals(field, relief.width, lines, 3, RELIEF), edgeTints = palette ? sampleColors(palette.data, palette.width, lines, 3) : null;
       for (var ei = 0; ei < e; ei++) {
-        var ef = (n + g + k + ei) * f, eo = (n + g + k + ei) * VERTEX + 24;
+        var ef = (m + g + k + ei) * f, eo = (m + g + k + ei) * VERTEX + 24;
         floats[ef] = lines[ei * 3];
         floats[ef + 1] = lines[ei * 3 + 1];
         floats[ef + 2] = edgeNormals[ei * 3 + 2];
@@ -1435,6 +1443,7 @@
       if (vertices !== shapes[set].vertices) {
         vertices = shapes[set].vertices;
         count = shapes[set].count;
+        bankTail = shapes[set].banked;
         starChance = shapes[set].stars;
       }
       announce();
@@ -1472,7 +1481,7 @@
       var want = dotMap(colors);
       if (!meta || want === set) return false;
       if (!sources[want]) { fetchMap(want); return false; }
-      var from = set, old = vertices, oldCount = count;
+      var from = set, old = vertices, oldCount = count, oldTail = bankTail;
       set = want;
       swap = null;
       if (!prog || !ready || gl.isContextLost()) return true;
@@ -1483,7 +1492,7 @@
         both.set(vertices);
         both.set(old, vertices.length);
         gl.bufferData(gl.ARRAY_BUFFER, both, gl.STATIC_DRAW);
-        swap = { at: now, count: oldCount, positive: from === "light" ? 1 : 0 };
+        swap = { at: now, count: oldCount, tail: oldTail, positive: from === "light" ? 1 : 0 };
       }
       return true;
     }
@@ -1597,6 +1606,7 @@
       var halo = haloAtlas(font, advance);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+      var filled = null;
       for (var i = 0; i < n; i++) {
         var ch = ring.glyphs[i];
         if (ch === " ") continue;
@@ -1648,10 +1658,15 @@
         var tx = tg[0] * k, ty = -tg[1] * k, ux = -up[0] * k, uy = up[1] * k;
         ctx.setTransform(tx * dpr, ty * dpr, ux * dpr, uy * dpr, sx * dpr, sy * dpr);
         ctx.globalAlpha = alpha;
-        var spot = front && halo.cells[ch];
-        if (spot) ctx.drawImage(halo.canvas, spot[0], spot[1], halo.w, halo.h, -halo.w / halo.scale / 2, -halo.h / halo.scale / 2, halo.w / halo.scale, halo.h / halo.scale);
-        var lit = Math.min(1, shine);
-        ctx.fillStyle = lit < 0.02 ? accent : "rgb(" + [0, 1, 2].map(function (c) { return Math.round((base[c] + (lamp[c] - base[c]) * lit) * 255); }).join(",") + ")";
+        // (a halo is drawn only where it hides something: over the figure, or near the ring's ends, where the glyphs
+        // behind come close; over bare paper a paper-coloured halo shows nothing, and each draw costs as much as a glyph)
+        var spot = front && halo.cells[ch], hw = halo.w / halo.scale / 2, hh = halo.h / halo.scale / 2;
+        if (spot && facing > 0.5 && !(maskAt(sx, sy) || maskAt(sx + tx * hw + ux * hh, sy + ty * hw + uy * hh) || maskAt(sx - tx * hw + ux * hh, sy - ty * hw + uy * hh) ||
+            maskAt(sx + tx * hw - ux * hh, sy + ty * hw - uy * hh) || maskAt(sx - tx * hw - ux * hh, sy - ty * hw - uy * hh))) spot = null;
+        if (spot) ctx.drawImage(halo.canvas, spot[0], spot[1], halo.w, halo.h, -hw, -hh, hw * 2, hh * 2);
+        var lit = Math.min(1, shine), fill = lit < 0.02 ? accent : "rgb(" + [0, 1, 2].map(function (c) { return Math.round((base[c] + (lamp[c] - base[c]) * lit) * 255); }).join(",") + ")";
+        // (the colour is set only when it changes)
+        if (fill !== filled) ctx.fillStyle = filled = fill;
         ctx.fillText(ch, 0, 0);
       }
       ctx.globalAlpha = 1;
@@ -1922,14 +1937,16 @@
       gl.uniform1f(U.u_positive, set === "light" ? 1 : 0);
       gl.uniform4f(U.u_swap, swept, swap ? -1 : 0, 1, 0);
       gl.bindVertexArray(vao);
+      // (while the cloud bank is away its own dots, last in the buffer, are not drawn: the shader would only cull them)
+      var drawn = bankNow > 0 ? count : count - bankTail;
       // while the switch glitches, two faint afterimages sit 2 px either side of the figure; a long tear leaves one
       if (switching || (tearing && tear.after)) {
         gl.uniform1f(U.u_alpha, 0.3);
         gl.uniform2f(U.u_offset, switching ? -2 : tear.after, 0);
-        gl.drawArrays(gl.POINTS, 0, count);
+        gl.drawArrays(gl.POINTS, 0, drawn);
         if (switching) {
           gl.uniform2f(U.u_offset, 2, 0);
-          gl.drawArrays(gl.POINTS, 0, count);
+          gl.drawArrays(gl.POINTS, 0, drawn);
         }
       }
       // while the other map is on its way the figure stays dimmed, as if the light had gone, until its band swaps them
@@ -1937,12 +1954,12 @@
       gl.uniform2f(U.u_offset, 0, 0);
       var measure = !rendered && !queryPending;
       if (measure) gl.beginQuery(gl.ANY_SAMPLES_PASSED, query);
-      gl.drawArrays(gl.POINTS, 0, count);
+      gl.drawArrays(gl.POINTS, 0, drawn);
       if (measure) { gl.endQuery(gl.ANY_SAMPLES_PASSED); queryPending = true; }
       if (swap) {
         gl.uniform1f(U.u_positive, swap.positive);
         gl.uniform4f(U.u_swap, swept, -1, -1, 0);
-        gl.drawArrays(gl.POINTS, count, swap.count);
+        gl.drawArrays(gl.POINTS, count, bankNow > 0 ? swap.count : swap.count - swap.tail);
       }
       var fade = live ? smoothstep(0, 0.7, (now - ringAt) / 1000) : 1;
       // a theme hover brightens the ring for 400 ms: up in the first 100, back down by the end
