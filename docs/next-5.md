@@ -1,6 +1,7 @@
 # Handoff 5: finish the hero pass (the shine, a living figure, Tide's own entrance, the red cursor's dots, the docs)
 
-> **Status.** Live on `main`: step 5, the shine ("Let the shine cross the statue…"), after a commit that finds frames for the pass
+> **Status.** Live on `main`: step 7's engine side, Tide's vortex and tide ("Bring Tide into the figure…"; as briefed),
+> and step 5, the shine (`e4383f0`), after a commit that finds frames for the pass
 > (`b153719`: the cloud bank's own dots are not drawn while it is away; the ring draws a halo only where it hides
 > something). Where it departs from §3: the sweep's progress is linear (the cubic ease rushed the light across the
 > figure's middle in 0.3 s), idle sheens take 1.4 s, and the opening keeps its 1.4 s shine and a 1.1 s red shine

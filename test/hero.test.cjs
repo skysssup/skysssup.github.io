@@ -183,6 +183,30 @@ test('a sheen sweeps the turned figure from the key light at the upper left, in 
   }
 });
 
+test('Tide comes in with a vortex that lifts and settles in about a second, and its tide rises once a period on the page\'s clock', () => {
+  const { vortex, tide, VORTEX, TIDE } = hero;
+  assert.equal(TIDE, require('../js/motion.js').TIDE, 'the figure\'s tide keeps time with the page\'s');
+  assert.equal(vortex(0), 0);
+  assert.equal(vortex(-0.5), 0);
+  assert.equal(vortex(VORTEX.rise), 1, 'the dots lift fully into the vortex');
+  assert.equal(vortex(VORTEX.rise + VORTEX.settle), 0, 'and settle back in place');
+  assert.ok(VORTEX.rise + VORTEX.settle <= 1.2, 'in about a second');
+  for (let t = 0.01; t < VORTEX.rise + VORTEX.settle; t += 0.01) {
+    const v = vortex(t), w = vortex(t + 0.01);
+    assert.ok(v >= 0 && v <= 1);
+    if (t + 0.01 <= VORTEX.rise) assert.ok(w >= v, `it only rises until ${VORTEX.rise} s`);
+    else if (t >= VORTEX.rise) assert.ok(w <= v, 'then only settles');
+  }
+  assert.ok(VORTEX.shine > VORTEX.rise && VORTEX.shine < VORTEX.rise + VORTEX.settle, 'its sheen sets off as it settles');
+  const at = f => tide(f * TIDE + 7 * TIDE);
+  assert.ok(tide(1.3).every((v, i) => Math.abs(v - tide(1.3 + 3 * TIDE)[i]) < 1e-9), 'once every period');
+  assert.ok(at(0)[0] < 0 && at(0.75)[0] > 1, 'from just below the base to just above the caduceus');
+  for (let f = 0; f < 0.75; f += 0.01) assert.ok(at(f + 0.01)[0] >= at(f)[0], 'rising, never falling back');
+  assert.equal(at(0)[1], 0);
+  assert.equal(at(0.8)[1], 0, 'and gone for the last quarter of the period');
+  assert.ok(Math.max(...Array.from({ length: 100 }, (_, i) => at(i / 100)[1])) <= 0.4, 'a soft light, never more than 0.4');
+});
+
 test('the shipped hero data matches what the engine expects', () => {
   const dir = path.join(__dirname, '..', 'assets', 'hero');
   const meta = JSON.parse(fs.readFileSync(path.join(dir, 'hero.json'), 'utf8'));

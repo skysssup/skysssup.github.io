@@ -27,7 +27,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
   t.after(() => context.close());
   if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(() => {
-    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -64,7 +64,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
         const result = original.call(this, location, ...values);
         const name = locations.get(location);
         if (hero(this)) probe.uniforms[name] = method === 'uniform4fv' ? Array.from(values[0]) : values;
-        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[3] : name === 'u_swap' ? values.slice() : values[0]]);
+        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[3] : name === 'u_swap' || name === 'u_tide' ? values.slice() : values[0]]);
         return result;
       };
     }
@@ -446,6 +446,34 @@ test('every sheen comes from the key light\'s side: its light sweeps right, down
     assert.ok(u_way[0] > 0 && u_way[1] < 0 && u_way[2] < 0, `${mode}: from the upper left, in front, to the lower right, behind (${u_way})`);
     assert.ok(u_wayk[0] > 0 && u_wayk[1] > 0, `${mode}: the figure spans the sweep, with a margin either side (${u_wayk})`);
   }
+});
+
+test('Tide comes in with a vortex that settles as a sheen crosses it, then keeps a calm tide: no heartbeat, no tears, brighter stars', async t => {
+  const { page } = await open(t, { scheme: 'dark' });
+  await live(page);
+  await page.waitForTimeout(500);
+  const clicked = await page.evaluate(() => { document.querySelector('[data-gear-blue]').click(); return performance.now(); });
+  const after = (series, at) => series.filter(([time]) => time > at);
+  await page.waitForFunction(at => { const s = window.__heroProbe.series.u_vortex.filter(([time]) => time > at); return s.some(([, v]) => v > 0.5) && s.at(-1)[1] === 0; }, clicked, { timeout: 8000 });
+  const vortex = after((await state(page)).series.u_vortex, clicked), peak = vortex.findIndex(([, v]) => v > 0.5);
+  const settled = vortex.slice(peak).find(([, v]) => v === 0);
+  assert.ok(settled[0] - clicked < 1600, `the dots lift into a vortex and settle within 1.6 s of the click (${Math.round(settled[0] - clicked)} ms)`);
+  assert.ok(after((await state(page)).series.u_sheen, clicked).some(([, x]) => x > 0.02 && x < 0.98), 'and a sheen crosses the blue figure as it settles');
+  await page.waitForTimeout(6000);
+  const { series, uniforms } = await state(page);
+  assert.ok(after(series.u_glitch, clicked).every(([, x]) => x === 0), 'Tide never glitches or tears, from the switch on');
+  assert.ok(after(series.u_beat, clicked).every(([, x]) => x === 0), 'and has no heartbeat');
+  assert.ok(after(series.u_tide, clicked + 1200).some(([, v]) => v[1] > 0.2 && v[0] > 0 && v[0] < 1), 'its tide rises through the figure instead');
+  assert.ok(uniforms.u_sky[0] > 1, `the sky's stars shine brighter in Tide (${uniforms.u_sky[0]})`);
+
+  const still = await open(t, { scheme: 'dark', reduced: true });
+  await live(still.page);
+  await still.page.evaluate(() => document.querySelector('[data-gear-blue]').click());
+  await still.page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'blue');
+  await stillDrawing(still.page);
+  const quiet = (await state(still.page)).series;
+  assert.ok(quiet.u_vortex.length > 0 && quiet.u_vortex.every(([, v]) => v === 0), 'under reduced motion Tide comes in at once, without a vortex');
+  assert.ok(quiet.u_tide.every(([, v]) => v[0] === 0 && v[1] === 0), 'and without a tide');
 });
 
 test('Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear', async t => {

@@ -35,6 +35,10 @@
   // 3 tiles, one afterimage. About 35% of the other beats get a short one: 2-4 frames, 1-2 tiles. Every tear
   // starts at its beat's first peak. Returns null for a clean beat; the same beat always gets the same plan.
   var BEAT = 0.9, TEAR_AT = 0.072, TEAR_BLOCK = 7, TEAR_CHANCE = 0.35;
+  // Tide's tide: the slow rhythm that takes the heartbeat's place in the blue gear, every TIDE seconds on the same clock
+  // as the page's tide (--tide-delay in js/motion.js and the CSS keyframes, which share the constant). VORTEX is how
+  // long its entrance takes to lift into a vortex and to settle back, and when, as it settles, its sheen sets off (s).
+  var TIDE = 4.5, VORTEX = { rise: 0.45, settle: 0.65, shine: 0.7 };
   function longTearBeat(block) { return block * TEAR_BLOCK + 2 + Math.floor(hash(block * 7 + 101) * 3); }
   function tearSchedule(beat) {
     if (beat === longTearBeat(Math.floor(beat / TEAR_BLOCK))) return { frames: 8, tiles: 3, glitch: 0.8, after: true, long: true };
@@ -67,6 +71,21 @@
 
   // --ease-in-out, cubic-bezier(.65, 0, .35, 1), which is the cubic in-out curve.
   function easeInOut(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2; }
+
+  // Tide's entrance `t` s after its surge began: the dots' vortex, 0 to 1 over VORTEX.rise and back to 0 over
+  // VORTEX.settle, on --ease-in-out (the shader's u_vortex).
+  function vortex(t) {
+    if (!(t > 0) || t >= VORTEX.rise + VORTEX.settle) return 0;
+    return t < VORTEX.rise ? easeInOut(t / VORTEX.rise) : easeInOut(1 - (t - VORTEX.rise) / VORTEX.settle);
+  }
+  // Tide's tide at `t` s on its clock (the shader's u_tide): how far up the figure its band of light has risen, as a
+  // share of the figure's height from just below the base to just above the caduceus, and how strong it is. Like the
+  // light that rises up the page's sheet lines (the CSS's tide-rise), it rises over the first three quarters of each
+  // period, strongest early on, and is gone by the end.
+  function tide(t) {
+    var at = (((t % TIDE) + TIDE) % TIDE) / TIDE;
+    return [-0.08 + 1.16 * easeInOut(clamp(at / 0.75, 0, 1)), 0.35 * smoothstep(0, 0.15, at) * (1 - smoothstep(0.55, 0.75, at))];
+  }
 
   // The opening, when the page is opened (opts.intro), in seconds: the figure holds still in its ink for `hold`; a
   // slower shine crosses it and leaves its colors in its wake; the sway runs `rate` times as fast until the figure has
@@ -671,6 +690,8 @@
     "uniform vec2 u_wind;",
     "uniform vec2 u_drift;",
     "uniform float u_bank;",
+    "uniform float u_vortex;",
+    "uniform vec2 u_tide;",
     "flat out float v_alpha;",
     "flat out float v_size;",
     "flat out float v_star;",
@@ -745,11 +766,18 @@
     "  float th = s1 * 6.2831853, cz = 2.0 * s2 - 1.0, sz = sqrt(1.0 - cz * cz);",
     "  vec3 shell = vec3(sz * cos(th), cz, sz * sin(th)) * (0.9 + s3 * 0.6);",
     "  p = mix(shell, p, k);",
+    // Tide's entrance (u_vortex, 0 to 1 and back over about a second): the dots lift off into a slow vortex round the
+    // body's upright axis, each carried its own way round, and drawn in towards the axis the further out they lie, so
+    // the figure swirls without flying apart, then settle back in place as the palette turns
+    "  float swirl = u_vortex * (0.6 + 0.8 * s1) * 3.14159265, cw = cos(swirl), sw = sin(swirl);",
+    "  p.xz = vec2(p.x * cw + p.z * sw, p.z * cw - p.x * sw) * (1.0 - 0.35 * u_vortex * smoothstep(0.0, 0.5, length(p.xz)));",
+    "  p.y += 0.04 * u_vortex * s2;",
     // yaw then pitch, for the point and for its surface normal
     "  float cy = cos(u_rot.x), sy = sin(u_rot.x), cp = cos(u_rot.y), sp = sin(u_rot.y);",
     "  p = vec3(p.x * cy + p.z * sy, p.y, -p.x * sy + p.z * cy);",
     "  p = vec3(p.x, p.y * cp - p.z * sp, p.y * sp + p.z * cp);",
     "  vec3 n = vec3(a_n, sqrt(max(0.0, 1.0 - dot(a_n, a_n))));",
+    "  n.xz = vec2(n.x * cw + n.z * sw, n.z * cw - n.x * sw);",
     "  n = vec3(n.x * cy + n.z * sy, n.y, -n.x * sy + n.z * cy);",
     "  n = vec3(n.x, n.y * cp - n.z * sp, n.y * sp + n.z * cp);",
     // light from the upper left, in front. Where the dots are ink, lit stone gets smaller, fainter dots and grazing
@@ -955,6 +983,11 @@
     "  col = mix(col, u_light[0], max(wash * (0.25 + 0.75 * lam * lam) * 0.85, trail * 0.35));",
     "  col = mix(col, mix(u_light[0], u_light[1], smoothstep(0.55, 1.0, band)), band * 0.95);",
     "  col = mix(col, u_light[3], fringe * 0.7);",
+    // while Tide is on, every 4.5 s a soft band of its light rises through the figure from the base to the caduceus
+    // (u_tide: how far up it has risen, as a share of the figure's height, and how strong it is), and the dots it passes
+    // swell a little
+    "  float tide = (1.0 - smoothstep(0.0, 0.07, abs(1.0 - a_p.y - u_tide.x))) * u_tide.y * k;",
+    "  col = mix(col, u_light[0], tide * min(1.0, u_tint * 2.5));",
     "  col = mix(col, u_light[1], min(1.0, flash) * 0.85);",
     // the dust takes the light's colour for a moment as it leaves
     "  col = mix(col, u_light[0], dusk * blown * 0.7 * min(1.0, u_tint * 2.5));",
@@ -980,7 +1013,7 @@
     "    }",
     "  }",
     "  px += (glint || edge ? vec2(0.0) : flow) + u_offset;",
-    "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
+    "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift) * (1.0 + 0.3 * tide);",
     "  size *= shade * (1.0 + 0.4 * tw) * (1.0 + mix(0.25, 0.6, u_positive) * band + 0.6 * swell + 0.3 * flash + 0.25 * wash * (1.0 - lam) * (1.0 - u_positive)) * (1.0 + 0.6 * star) * (1.0 - 0.3 * blown) * (1.0 + 0.2 * regrow) * (1.0 + 0.35 * strike);",
     // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones, on screens with the pixels
     // for it: below 1.5 device pixels per CSS pixel a smaller dot is smaller than a pixel, and as the figure turns it
@@ -1017,7 +1050,7 @@
     "  if (glint) {",
     "    float wave = 0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), twinkle = wave * wave * wave;",
     // a star of the sky (a_c.g) is smaller, and shows only where the paper is dark (u_sky), as the avatar's sky is
-    "    v_glint = clamp((0.55 + 0.45 * twinkle + mix(0.25, 1.2, u_positive) * band) * min(1.0, tint * 2.0) * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g);",
+    "    v_glint = min(1.0, clamp((0.55 + 0.45 * twinkle + mix(0.25, 1.2, u_positive) * band) * min(1.0, tint * 2.0) * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g));",
     "    v_size = u_dot * mix(3.5 + 8.0 * a_p.w * a_p.w, 1.6 + 3.5 * a_p.w * a_p.w, a_c.g) * (0.8 + 0.2 * twinkle + mix(0.12, 0.7, u_positive) * band) * persp * u_dpr;",
     // a handful of the strongest (one in five, chosen by where they are) carry longer spikes than the rest
     "    float spiked = step(0.85, a_p.w) * step(r01(uint(a_p.x * 4096.0) * 73u + uint(a_p.y * 4096.0) * 151u), 0.2) * (1.0 - a_c.g);",
@@ -1227,6 +1260,8 @@
     if (intro) { sheenIndex = 0; el.setAttribute("data-intro", "hold"); }
     var materials = new Float32Array(15), materialsLit = new Float32Array(15), tones = new Float32Array(6), glintColors = new Float32Array(6);
     var cpuMs = 0, telemetryAt = 0;
+    // Tide's entrance: when its surge began (0 when none runs), whether its sheen is still to come, and the page's phase
+    var vortexAt = 0, vortexShine = false, phaseNow = null;
 
     function paintLights() {
       colors.light.forEach(function (css, i) { lights.set(rgb(css), i * 3); });
@@ -1293,7 +1328,7 @@
         gl.linkProgram(prog);
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
         gl.useProgram(prog);
-        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_way", "u_wayk", "u_drift", "u_sky", "u_tiles", "u_wind", "u_bank"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+        ["u_res", "u_box", "u_pivot", "u_depth", "u_rot", "u_time", "u_build", "u_pointer", "u_rip", "u_blink", "u_beat", "u_dot", "u_dpr", "u_glitch", "u_tile", "u_shift", "u_offset", "u_alpha", "u_color", "u_tint", "u_palette", "u_lit", "u_deep", "u_hot", "u_sheen", "u_span", "u_flow", "u_light", "u_positive", "u_swap", "u_last", "u_breeze", "u_tone", "u_glint", "u_stir", "u_puff", "u_puffv", "u_blast", "u_gusts", "u_way", "u_wayk", "u_drift", "u_sky", "u_tiles", "u_wind", "u_bank", "u_vortex", "u_tide"].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
         vao = gl.createVertexArray();
         vbo = gl.createBuffer();
         query = gl.createQuery();
@@ -1965,12 +2000,20 @@
       gl.uniform3fv(U.u_light, lights);
       gl.uniform3fv(U.u_tone, tones);
       gl.uniform3fv(U.u_glint, glintColors);
-      // the sky's stars come out on dark paper, Gear Two's included
-      gl.uniform1f(U.u_sky, colors.dark ? 1 : 0);
+      // the sky's stars come out on dark paper, Gear Two's included, and brighter in Tide
+      gl.uniform1f(U.u_sky, colors.blue ? 1.5 : colors.dark ? 1 : 0);
       // the breeze as it blows now, which a drifting dot follows (the shader's breeze(), worked out once a frame)
       var wx = Math.sin(t * 0.26) + 0.35 * Math.sin(t * 0.61 + 1.3), wy = 0.25 * Math.sin(t * 0.37 + 0.6), wl = Math.hypot(wx, wy) || 1;
       gl.uniform2f(U.u_wind, wx / wl, wy / wl);
       gl.uniform1f(U.u_bank, bankNow);
+      // Tide's entrance (vortex()), and as it settles a sheen crosses the blue figure
+      var va = vortexAt && live ? (now - vortexAt) / 1000 : 0;
+      if (vortexShine && va >= VORTEX.shine) { vortexShine = false; shine(now, 1, SHEEN_SWEEP, false, ++bursts + 200); }
+      if (va >= VORTEX.rise + VORTEX.settle || !live) vortexAt = 0;
+      gl.uniform1f(U.u_vortex, vortex(va));
+      // while Tide is on, its tide (tide()) rises through the figure on the page's clock
+      var tideNow = colors.blue && live && !still ? tide(now / 1000) : [0, 0];
+      gl.uniform2f(U.u_tide, tideNow[0], tideNow[1]);
       // the dots stand for light on dark paper; while the paper's turn swaps them, the new map's appear behind a band
       // of light and the old map's give way ahead of it
       var swapAge = swap ? Math.max(0, now - swap.at) / 1000 : 0;
@@ -2052,6 +2095,10 @@
       else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
       if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
+      // Tide's surge lifts the dots into a vortex that settles as the palette turns (never under reduced motion, where
+      // the switch has no phases)
+      if (phase === "surge" && phaseNow !== "surge" && canInteract()) { vortexAt = performance.now(); vortexShine = true; }
+      phaseNow = phase;
       // leaving Gear Two: the tearing stops just after the palette comes back
       if (was.gear && !colors.gear) { glitchUntil = Math.min(glitchUntil, performance.now() + 140); tear = null; }
       if (was.gear !== colors.gear) { ring = null; announce(); }
@@ -2260,6 +2307,10 @@
     introStep: introStep,
     INTRO: INTRO,
     easeInOut: easeInOut,
+    vortex: vortex,
+    tide: tide,
+    VORTEX: VORTEX,
+    TIDE: TIDE,
     spring: spring,
     rippleWeight: rippleWeight,
     fadeAway: fadeAway,
