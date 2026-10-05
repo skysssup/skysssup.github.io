@@ -49,9 +49,7 @@ opening under virtual time).
   star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load) twinkle
   over it as eight-point stars, brighter as a shine passes. The cursor stirs the dots like a hand through dust: they
   turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
-  passes. A click or tap (or the caption's button) calls down lightning: a bolt from above lands there, the figure
-  flashes around it, the dots close by burst outward in sparks and grow back, and a ring runs out through the rest.
-  Sway, lighting, blinking, the cursor's stir, the strikes, and Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
+  passes. Sway, lighting, blinking, the cursor's stir, and Gear Two all run in the vertex shader. At each turn of the sway a band of light crosses the figure and a burst of
   dots flares into four-point stars, in blue on light paper, cyan on dark, and warm white in Gear Two. The band is a
   gust of wind: every dot it reaches sways downwind and springs back with its neighbours, and up to a third of the
   dots near the downwind edge are blown off. They slide over the surface, leave along the outline (so the dust streams
@@ -64,7 +62,8 @@ opening under virtual time).
   paper behind the figure; Gear Two's gust blows off far fewer dots. Opening the page plays an opening once a tab
   (again on a reload, never under reduced motion): the figure holds still in its ink for two seconds, a slower shine
   crosses it and leaves its colors behind, it turns once and comes back, the page goes to Gear Two with the shockwave
-  leaving the figure, a red shine crosses it as it turns once more, and the page comes back; Gear Two is never saved
+  leaving the figure and one bolt of lightning striking it (the only lightning there is: nothing calls it down by hand),
+  a red shine crosses it as it turns once more, and the page comes back; Gear Two is never saved
   for the next page, and any press, key, or scroll ends the opening. In Gear Two the dots turn red, a heartbeat pulses
   their size and sets a few of them white-hot, the ring breathes, and the glitch tears tiles out of the figure with
   two faint afterimages; while Gear Two stays on, about a third of the heartbeats tear it again for a few frames, with
@@ -74,8 +73,9 @@ opening under virtual time).
   comes from the same stipple render as the dots, framed and foreshortened as the engine draws the figure facing the
   viewer, so in the opening the still fades into the first drawn frame in place. Context
   restoration rebuilds GPU resources from cached geometry without fetching the assets again. Horizontal touch drags
-  turn the figure without blocking vertical scrolling; the caption's ripple button works by keyboard, and a readout
-  under the caption shows yaw, pitch, and the engine's JS time per frame.
+  turn the figure without blocking vertical scrolling, and a readout under the caption shows yaw, pitch, and the
+  engine's JS time per frame. CI renders with SwiftShader, which runs every branch of a shader whether it is taken or
+  not, so the shaders loop only over what is live and share what their shapes can.
 - `js/page.js` — local time, copy-to-clipboard with a selectable-email fallback, the searchable site index,
   /work search and views, the sticky case-study section index and reading progress, video play/pause,
   the reveals (`[data-reveal]`: section rules draw in and media wipes in, once, when first seen, never under

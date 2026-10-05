@@ -211,33 +211,32 @@ test('printing from an open index restores the complete page and hides navigatio
   await page.emulateMedia({ media: 'print' });
   assert.equal(await page.locator('dialog').isVisible(), false);
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
-  assert.equal(await page.locator('.figure-ripple').isVisible(), false);
   assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'visible');
   assert.equal(await page.locator('.contact-lines').isVisible(), true);
   await context.close();
 });
 
-test('the caption ripple button works by keyboard and follows motion and graphics availability', async () => {
+test('the caption offers no lightning to call down, and the still covers the figure while graphics are lost', async () => {
   const { page, context, errors } = await open('/', { reduced: false });
-  const button = page.locator('[data-hero-ripple]');
-  await page.waitForFunction(() => !document.querySelector('[data-hero-ripple]').disabled);
-  await button.focus();
-  await page.keyboard.press('Enter');
-  await page.waitForFunction(() => {
+  await page.waitForFunction(() => document.querySelector('#figure').classList.contains('is-live'));
+  assert.equal(await page.locator('[data-hero-ripple]').count(), 0);
+  assert.doesNotMatch(await page.locator('.fig-note').textContent(), /lightning/i);
+  const box = await page.locator('#figure').boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(300);
+  assert.ok(await page.evaluate(() => {
     const gl = document.querySelector('.hero-dots').getContext('webgl2');
     const program = gl.getParameter(gl.CURRENT_PROGRAM);
     const waves = gl.getUniform(program, gl.getUniformLocation(program, 'u_rip'));
-    return waves.some((n, i) => i % 4 === 3 && n > 0);
-  });
+    return waves.every((n, i) => i % 4 !== 3 || n === 0);
+  }), 'a click calls down no lightning');
   await page.locator('[data-motion-toggle]').click();
-  assert.equal(await button.isDisabled(), true);
   await page.evaluate(() => {
     const gl = document.querySelector('.hero-dots').getContext('webgl2');
     window.restoreHero = gl.getExtension('WEBGL_lose_context');
     window.restoreHero.loseContext();
   });
   await page.waitForFunction(() => document.querySelector('#figure').classList.contains('is-fallback'));
-  assert.equal(await button.isDisabled(), true);
   assert.match(await page.locator('#figure .still').evaluate(el => getComputedStyle(el).maskImage), /still\.webp/);
   await page.evaluate(() => { window.restoreHero.restoreContext(); scrollTo(0, 0); });
   await page.waitForFunction(() => document.querySelector('#figure').classList.contains('is-live'));

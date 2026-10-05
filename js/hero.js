@@ -389,8 +389,9 @@
   var BREEZE = 0.55, BREEZE_GEAR = 0.3, BREEZE_FLARE = [0.8, 0.5];
   // GLINTS is how many of the avatar's star glints the figure draws at most, strongest first.
   var GLINTS = 260;
-  // BLAST is how long a strike or a puff of the cursor goes on blasting dots off the figure, in seconds (the shader's 2.6).
-  var BLAST = 2.6;
+  // STRIKE is how long the opening's strike of lightning lights the figure and runs its ring through it, and PUFF how long
+  // a puff of the cursor goes on blowing dots off it, in seconds (the shader's 1.3 and 2.6).
+  var STRIKE = 1.3, PUFF = 2.6;
   function litDots(normals) {
     var l = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2]), lit = 0;
     for (var i = 0; i < normals.length; i += 3) {
@@ -645,10 +646,10 @@
     "    px += u_stir.xy * 0.05 * push;",
     "  }",
     "  float lift = push;",
-    // a strike of lightning (u_rip: where, when, how strong) sends a ring out through the figure and lights it up. The
-    // strikes and the cursor's puffs still under way come first in their arrays (u_blast: how many of each), and the
-    // loops run over those alone: a renderer without a GPU runs every line of a shader for every dot, taken or not, and
-    // skips only the turns of a loop that no dot needs
+    // the opening's strike of lightning (u_rip: where, when, how strong) sends a ring out through the figure and lights it
+    // up. The strikes and the cursor's puffs still under way come first in their arrays (u_blast: how many of each), and
+    // the loops run over those alone: a renderer without a GPU runs every line of a shader for every dot, taken or not,
+    // and skips only the turns of a loop that no dot needs
     "  float strike = 0.0;",
     "  for (int i = 0; i < u_blast.x; i++) {",
     "    vec4 r = u_rip[i];",
@@ -759,24 +760,22 @@
     "      }",
     "    }",
     "  }",
-    // A strike blasts the dots near where it lands outward (most of them close in, fewer further out), and a quick sweep
-    // of the cursor across the figure blows off the dots it passes (u_puff: where and when, how hard; u_puffv: which
-    // way): each flies off decelerating, flaring as it goes, and grows back in place a second or so later.
-    "  for (int i = 0; i < u_blast.x + u_blast.y; i++) {",
-    "    bool bolt = i < u_blast.x;",
-    "    vec4 r = bolt ? u_rip[min(i, 3)] : u_puff[clamp(i - u_blast.x, 0, 7)];",
-    "    float age = u_time - r.z, R = bolt ? 70.0 + 30.0 * r.w : 26.0 + 24.0 * r.w;",
+    // A quick sweep of the cursor across the figure blows off the dots it passes (u_puff: where and when, how hard;
+    // u_puffv: which way): each flies off decelerating, flaring as it goes, and grows back in place a second or so later.
+    "  for (int i = 0; i < u_blast.y; i++) {",
+    "    vec4 r = u_puff[i];",
+    "    float age = u_time - r.z, R = 26.0 + 24.0 * r.w;",
     "    if (r.w <= 0.0 || age < 0.0 || age > 2.6) continue;",
     "    vec2 e = px - r.xy;",
     "    float de = length(e) + 0.001;",
     "    if (de > R) continue;",
     "    float struck = 1.0 - de / R;",
-    // which dots a blast takes is chosen by the blast itself (when it began, and whether it is a strike), never by its
-    // place in the arrays, which shifts as older blasts end
-    "    uint ev = uint(r.z * 64.0) * 2u + (bolt ? 0u : 1u);",
-    "    if (r01(id * 43u + ev * 7919u) > (bolt ? 0.12 + 0.38 * struck : 0.06 + 0.24 * struck)) continue;",
-    "    vec2 way = bolt ? normalize(e / de + vec2((s1 - 0.5) * 0.6, -0.25 - 0.3 * s2)) : normalize(u_puffv[clamp(i - u_blast.x, 0, 7)] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, -0.2));",
-    "    float v = (bolt ? 420.0 + 520.0 * r01(id * 47u + 5u) : 260.0 + 360.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
+    // which dots a puff takes is chosen by the puff itself (when it began), never by its place in the array, which
+    // shifts as older puffs end
+    "    uint ev = uint(r.z * 64.0);",
+    "    if (r01(id * 43u + ev * 7919u) > 0.06 + 0.24 * struck) continue;",
+    "    vec2 way = normalize(u_puffv[i] + (e / de) * 0.35 + vec2((s1 - 0.5) * 0.5, -0.2));",
+    "    float v = (260.0 + 360.0 * r01(id * 47u + 5u)) * (0.5 + 0.5 * struck) * r.w;",
     "    float reachS = v * 0.3, s = reachS * (1.0 - exp(-age / 0.3)), fly = reachS * (0.5 + 0.4 * s3);",
     "    if (s < fly) {",
     "      float q = s / fly;",
@@ -1031,7 +1030,7 @@
     if (!gl || !ctx) {
       el.classList.remove("is-live");
       el.classList.add("is-fallback");
-      return { highlight: function () {}, count: function () { return 0; }, ripple: function () {}, skipIntro: function () {} };
+      return { highlight: function () {}, count: function () { return 0; }, skipIntro: function () {} };
     }
     el.appendChild(glow);
     el.appendChild(canvas);
@@ -1078,17 +1077,16 @@
     }
     paintLights();
 
-    function releaseTouch(event, cancelled) {
+    function releaseTouch(event) {
       if (!touch || (event && event.pointerId !== touch.id)) return;
       var id = touch.id;
-      if (cancelled) touch.ripple[3] = 0;
       touch = null;
       pointer.tx = pointer.ty = 0;
       if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
     }
 
     function cancelInteractions() {
-      releaseTouch(null, true);
+      releaseTouch(null);
       pointer.inside = false;
       pointer.x = pointer.y = -1e4;
       pointer.tx = pointer.ty = 0;
@@ -1578,10 +1576,10 @@
       puffFlat.fill(0);
       puffDirFlat.fill(0);
       for (var i = 0; live && i < ripples.length; i++) {
-        if (ripples[i][3] > 0 && t - ripples[i][2] <= BLAST) ripFlat.set(ripples[i], strikes++ * 4);
+        if (ripples[i][3] > 0 && t - ripples[i][2] <= STRIKE) ripFlat.set(ripples[i], strikes++ * 4);
       }
       for (var pi = 0; live && pi < puffs.length; pi++) {
-        if (!(puffs[pi][3] > 0 && t - puffs[pi][2] <= BLAST)) continue;
+        if (!(puffs[pi][3] > 0 && t - puffs[pi][2] <= PUFF)) continue;
         puffFlat.set(puffs[pi].slice(0, 4), puffing * 4);
         puffDirFlat.set(puffs[pi].slice(4, 6), puffing * 2);
         puffing++;
@@ -1771,24 +1769,21 @@
       // leaving Gear Two: the tearing stops just after the palette comes back
       if (was.gear && !colors.gear) { glitchUntil = Math.min(glitchUntil, performance.now() + 140); tear = null; }
       if (was.gear !== colors.gear) ring = null;
-      // the palette turning red rolls through the figure as a ripple from its centre
-      if (!was.gear && colors.gear && canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2);
+      // when the opening turns the page red, one bolt of lightning strikes the figure: the only lightning there is
+      if (!was.gear && colors.gear && intro && intro.stage === "red" && canInteract()) strike(box.x + box.size / 2, box.y + box.size / 2);
       follow();
       sync();
     }
 
     function canInteract() { return ready && visible && !document.hidden && !motion.reduced(); }
 
-    // A strike of lightning where the figure is clicked or tapped (the caption's button strikes its middle): a bolt
-    // from above lands there, the figure flashes around it, the dots close by are blasted out and grow back, and a ring
-    // runs out through the rest.
-    function ripple(x, y) {
-      var now = performance.now(), wave = [x, y, now / 1000, colors.gear ? 1.4 : 1];
-      ripples[nextRipple] = wave;
-      nextRipple = (nextRipple + 1) % 4;
+    // A strike of lightning, once, as the opening turns the page red: a bolt from above lands on the figure, the stone
+    // flashes around it, and a ring runs out through the dots.
+    function strike(x, y) {
+      var now = performance.now();
+      ripples[nextRipple] = [x, y, now / 1000, colors.gear ? 1.4 : 1];
+      nextRipple = (nextRipple + 1) % ripples.length;
       bolts.push({ at: now, path: boltPath(x, y, Math.floor(now)) });
-      if (bolts.length > 3) bolts.shift();
-      return wave;
     }
 
     // The bolt: from above the figure down to (x, y), split six times at jittered midpoints, with two short branches.
@@ -1850,7 +1845,7 @@
         var dx = e.clientX - touch.x, dy = e.clientY - touch.y;
         if (!touch.dragging) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
-          if (Math.abs(dy) >= Math.abs(dx)) { releaseTouch(e, true); return; }
+          if (Math.abs(dy) >= Math.abs(dx)) { releaseTouch(e); return; }
           touch.dragging = true;
           el.setPointerCapture(e.pointerId);
         }
@@ -1881,22 +1876,21 @@
     });
     el.addEventListener("pointerleave", function (e) {
       if (e.pointerType === "touch") {
-        if (!el.hasPointerCapture(e.pointerId)) releaseTouch(e, true);
+        if (!el.hasPointerCapture(e.pointerId)) releaseTouch(e);
       } else pointer.inside = false;
     });
     el.addEventListener("pointerdown", function (e) {
       if (!canInteract() || touch || (e.pointerType === "touch" && !e.isPrimary)) return;
       setPointer(e);
-      var wave = ripple(pointer.x, pointer.y);
       if (e.pointerType === "touch") {
         pointer.inside = false;
         pointer.tx = pointer.ty = pushK.x = pushK.v = 0;
-        touch = { id: e.pointerId, x: e.clientX, y: e.clientY, dragging: false, ripple: wave };
+        touch = { id: e.pointerId, x: e.clientX, y: e.clientY, dragging: false };
       } else pointer.inside = true;
     });
-    el.addEventListener("pointerup", function (e) { releaseTouch(e, false); });
-    el.addEventListener("pointercancel", function (e) { releaseTouch(e, true); pointer.inside = false; });
-    el.addEventListener("lostpointercapture", function (e) { releaseTouch(e, true); });
+    el.addEventListener("pointerup", function (e) { releaseTouch(e); });
+    el.addEventListener("pointercancel", function (e) { releaseTouch(e); pointer.inside = false; });
+    el.addEventListener("lostpointercapture", function (e) { releaseTouch(e); });
     canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); fallback(); });
     canvas.addEventListener("webglcontextrestored", initialize);
     new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-gear", "data-phase"] });
@@ -1967,7 +1961,6 @@
       // brighten the ring once (nothing moves under reduced motion; the still is simply redrawn)
       highlight: function () { if (canInteract()) ringLitAt = performance.now(); else if (motion.reduced()) sync(); },
       count: function () { return count; },
-      ripple: function () { if (canInteract()) ripple(box.x + box.size / 2, box.y + box.size / 2); },
       // ends the opening at once; `keepGear` leaves Gear Two as it is, for a visitor who has just pressed a switch
       skipIntro: function (keepGear) { endIntro(!!keepGear); }
     };

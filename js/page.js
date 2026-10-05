@@ -387,14 +387,6 @@
         }
       });
       if (opening) interrupts.forEach(function (type) { doc.addEventListener(type, interrupt, { capture: true, passive: true }); });
-      var ripple = doc.querySelector("[data-hero-ripple]");
-      if (ripple && hero.ripple) {
-        var syncRipple = function () { ripple.hidden = false; ripple.disabled = motion.reduced() || figure.classList.contains("is-fallback") || !figure.classList.contains("is-live"); };
-        ripple.addEventListener("click", function () { hero.ripple(); });
-        new win.MutationObserver(syncRipple).observe(figure, { attributes: true, attributeFilter: ["class"] });
-        motion.subscribe(syncRipple);
-        syncRipple();
-      }
       // hovering or focusing a theme brightens the ring for a moment
       Array.prototype.forEach.call(doc.querySelectorAll("[data-theme-link]"), function (link) {
         link.addEventListener("mouseenter", function () { hero.highlight(); });

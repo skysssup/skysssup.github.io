@@ -422,9 +422,6 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
 .themes { grid-column: 1; grid-row: 3; align-self: end; }
 .fig-note { grid-column: 4; grid-row: 3; align-self: end; display: grid; gap: 4px; }
 .fig-note .t-small { color: var(--muted); max-width: 34ch; }
-.figure-ripple { justify-self: start; margin-top: 8px; min-height: 32px; display: inline-flex; align-items: center; gap: 12px; }
-.figure-ripple:disabled { color: var(--muted); }
-.figure-ripple:not(:disabled):hover { color: var(--accent); }
 
 .themes h2 { margin-bottom: 8px; }
 .themes ol { border-top: 1px solid var(--line); }
@@ -1167,7 +1164,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .crosshair, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .hero-glow, .fig-telemetry, .site-index, .intro-actions, .case-actions, .figure-ripple, .work-toolbar { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .crosshair, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .hero-glow, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

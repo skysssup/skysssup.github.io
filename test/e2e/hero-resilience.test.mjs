@@ -184,7 +184,7 @@ test('loading waits for data and the first drawn figure before announcing a live
   await page.waitForFunction(() => !!window.__heroApi);
   assert.equal((await state(page)).draws, 0);
   assert.equal(await page.locator('#figure').evaluate(el => el.classList.contains('is-live')), false);
-  await page.evaluate(() => window.__heroApi.ripple());
+  await page.evaluate(() => window.__heroApi.highlight());
   release();
   await live(page);
   const result = await state(page);
@@ -202,7 +202,7 @@ test('real context loss pauses rendering and repeated restoration rebuilds cache
   for (let cycle = 1; cycle <= 2; cycle++) {
     await lose(page);
     await stillDrawing(page);
-    await page.evaluate(() => window.__heroApi.ripple());
+    await page.evaluate(() => window.__heroApi.highlight());
     await page.evaluate(() => window.__loseHero.restoreContext());
     await live(page);
     const restored = await state(page);
@@ -240,14 +240,15 @@ test('assets finishing during context loss are retained for restoration', async 
   assert.equal(assets.length, 4);
 });
 
-test('reduced motion cancels active mouse push and ripples, and never advances the still', async t => {
+test('reduced motion cancels active mouse push, and never advances the still', async t => {
   const { page } = await open(t);
   await live(page);
   const box = await page.locator('#figure').boundingBox();
   await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.up();
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_pointer[2] > 0.1 && window.__heroProbe.uniforms.u_rip.some((n, i) => i % 4 === 3 && n > 0));
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_pointer[2] > 0.1);
+  assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0], 'a click calls down no lightning');
   await page.evaluate(() => document.fonts.ready);
   const movingDraws = await page.evaluate(() => {
     const draws = window.__heroProbe.draws;
@@ -270,7 +271,6 @@ test('reduced motion cancels active mouse push and ripples, and never advances t
   assert.deepEqual(uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.6);
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  await page.evaluate(() => window.__heroApi.ripple());
   await stillDrawing(page);
   const after = await capture(page, () => window.__heroApi.highlight(null));
   assert.equal(after.hash, before.hash, 'redrawing the reduced-motion frame must produce the same pixels');
@@ -331,7 +331,7 @@ test('visibilitychange pauses all drawing, including reduced-motion and theme up
     document.dispatchEvent(new Event('visibilitychange'));
   });
   const paused = (await state(page)).draws;
-  await page.evaluate(() => { window.SkyMotion.set('reduced'); document.documentElement.setAttribute('data-theme', 'dark'); window.__heroApi.ripple(); });
+  await page.evaluate(() => { window.SkyMotion.set('reduced'); document.documentElement.setAttribute('data-theme', 'dark'); window.__heroApi.highlight(); });
   assert.equal((await state(page)).draws, paused);
   await stillDrawing(page);
   await page.evaluate(() => {
@@ -368,7 +368,7 @@ test('horizontal touch drags rotate through the springs and cancellation release
   assert.equal((await state(page)).uniforms.u_pointer[2], 0);
 });
 
-test('native vertical touch scrolling cancels hero interaction and allows the next tap', async t => {
+test('native vertical touch scrolling cancels hero interaction and allows the next touch', async t => {
   const { page, context } = await open(t, { touch: true });
   await live(page);
   const touch = await touchAt(context, page);
@@ -376,18 +376,22 @@ test('native vertical touch scrolling cancels hero interaction and allows the ne
   for (let step = 1; step <= 5; step++) await touch.send('touchMove', touch.x + 2, touch.y - step * 26);
   await touch.send('touchEnd');
   await page.waitForFunction(() => scrollY > 20 && window.__heroProbe.touches.some(e => e.type === 'pointercancel'));
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.every((n, i) => i % 4 !== 3 || n === 0));
   assert.equal((await state(page)).uniforms.u_pointer[2], 0);
   await page.evaluate(() => scrollTo(0, 0));
   await page.waitForTimeout(250);
-  const tap = await touchAt(context, page);
-  await tap.send('touchStart');
-  await tap.send('touchEnd');
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.some((n, i) => i % 4 === 3 && n > 0));
+  const next = await touchAt(context, page);
+  const before = (await state(page)).touches.filter(e => e.type === 'pointerdown').length;
+  await next.send('touchStart');
+  await next.send('touchMove', next.x + 60, next.y);
+  await page.waitForFunction(n => window.__heroProbe.touches.filter(e => e.type === 'pointerdown').length > n, before);
+  const id = (await state(page)).touches.filter(e => e.type === 'pointerdown').at(-1).id;
+  assert.equal(await page.locator('#figure').evaluate((el, id) => el.hasPointerCapture(id), id), true, 'the next horizontal drag takes the figure');
+  await next.send('touchEnd');
   assert.equal((await state(page)).uniforms.u_pointer[2], 0);
+  assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0], 'a touch calls down no lightning');
 });
 
-test('enabling reduced motion during a captured touch cancels the drag and its ripple', async t => {
+test('enabling reduced motion during a captured touch cancels the drag', async t => {
   const { page, context } = await open(t, { touch: true });
   await live(page);
   const touch = await touchAt(context, page);
@@ -490,15 +494,15 @@ test('a quick sweep of the cursor across the figure blows dust off it, and a slo
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_puff.some((n, i) => i % 4 === 3 && n > 0));
 });
 
-test('the public ripple API emits at the center without adding control semantics to the image', async t => {
+test('a click on the figure calls down no lightning and adds no control semantics to the image', async t => {
   const { page } = await open(t);
   await live(page);
-  await page.evaluate(() => window.__heroApi.ripple());
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.some((n, i) => i % 4 === 3 && n > 0));
+  assert.equal(await page.evaluate(() => typeof window.__heroApi.ripple), 'undefined', 'there is no way to call lightning down');
+  const box = await page.locator('#figure').boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(400);
   const uniforms = (await state(page)).uniforms;
-  assert.ok(Math.abs(uniforms.u_rip[0] - uniforms.u_res[0] / 2) < 1);
-  assert.ok(Math.abs(uniforms.u_rip[1] - uniforms.u_res[1] / 2) < 1);
-  assert.equal(uniforms.u_pointer[2], 0);
+  assert.deepEqual(uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
   assert.equal(await page.locator('#figure').getAttribute('role'), 'img');
   assert.equal(await page.locator('#figure').getAttribute('tabindex'), null);
 });
@@ -512,6 +516,7 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
   await page.evaluate(() => window.skyGear.setGear(true));
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
+  assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0], 'Gear Two switched on by hand calls down no lightning');
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
   assert.ok((await state(page)).uniforms.u_flow[0] < 0.2, 'Gear Two\'s gust is quieter than the blue one');
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
@@ -577,7 +582,7 @@ for (const [name, asset, response] of [
   test(`the static fallback survives ${name}`, async t => {
     const { page } = await open(t, { setup: page => page.route(`**/assets/hero/${asset}`, route => response ? route.fulfill(response) : route.abort('failed')) });
     await fallback(page);
-    await page.evaluate(() => window.__heroApi.ripple());
+    await page.evaluate(() => window.__heroApi.highlight());
     await stillDrawing(page);
     assert.equal((await state(page)).draws, 0);
   });
@@ -603,7 +608,7 @@ for (const failure of ['unavailable context', 'throwing context', 'shader compil
       }
     }, failure) });
     await fallback(page);
-    await page.evaluate(() => window.__heroApi.ripple());
+    await page.evaluate(() => window.__heroApi.highlight());
     await stillDrawing(page);
     assert.equal((await state(page)).draws, 0);
   });
@@ -641,6 +646,7 @@ test('the opening holds the figure still in its ink, shines its colors in, and t
   assert.ok(series.u_sheen.some(([, x]) => x > 0.02 && x < 0.98), 'and crosses the figure');
   assert.deepEqual((await state(page)).uniforms.u_tint, [1], 'after the shine the figure wears its colors');
   await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two', null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.filter((n, i) => i % 4 === 3 && n > 0).length === 1, null, { timeout: 3000 });
   assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), null, 'Gear Two is not saved for the next page');
   await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'done', null, { timeout: 30000 });
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the page comes back');
