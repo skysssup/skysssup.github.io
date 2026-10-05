@@ -1,10 +1,10 @@
 // Visual QA helper, used while designing: screenshots, full-page captures after every reveal has fired,
 // and a recording of the Gear Two switch. Needs the dev dependencies (`npm ci`) and Chrome for Playwright.
 //
-//   node tools/qa/shots.mjs shot  <url> <width> <height> <light|dark|gear> <out.png> [scrollY] [reduced=0|1]
-//   node tools/qa/shots.mjs full  <url> <width> <height> <light|dark|gear> <out.png>
-//   node tools/qa/shots.mjs video <out-dir> [light|dark|gear] [width] [height] [url]
-//   node tools/qa/shots.mjs film  <out-dir> [light|dark|gear] [seconds] [width] [height] [fps]
+//   node tools/qa/shots.mjs shot  <url> <width> <height> <light|dark|gear|blue> <out.png> [scrollY] [reduced=0|1]
+//   node tools/qa/shots.mjs full  <url> <width> <height> <light|dark|gear|blue> <out.png>
+//   node tools/qa/shots.mjs video <out-dir> [light|dark|gear|blue] [width] [height] [url]
+//   node tools/qa/shots.mjs film  <out-dir> [light|dark|gear|blue] [seconds] [width] [height] [fps]
 //
 // `film` plays the home page's opening under virtual time: performance.now, requestAnimationFrame, and setTimeout
 // advance one frame per screenshot, so software rendering cannot drop frames (CSS animations still run in real
@@ -36,6 +36,7 @@ async function open(url, { width = 1440, height = 900, theme = 'light', reduced 
         if (!intro) sessionStorage.setItem('sky-intro', 'seen');
         localStorage.setItem('sky-theme', m === 'light' ? 'light' : 'dark');
         if (m === 'gear') sessionStorage.setItem('sky-gear', 'two');
+        if (m === 'blue') sessionStorage.setItem('sky-gear', 'blue');
       }
     } catch (e) {}
   }, { m: theme, intro });

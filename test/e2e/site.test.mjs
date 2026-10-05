@@ -1,4 +1,4 @@
-// End-to-end checks in Chromium: every page at four widths in light, dark, and Gear Two, with axe-core,
+// End-to-end checks in Chromium: every page at four widths in light, dark, Gear Two, and Tide, with axe-core,
 // plus the interactions. Run with `npm run test:e2e` (CHROME_PATH may point at a local Chrome).
 // SHOTS=<dir> also saves a screenshot of every page/width/mode; LINKS=1 checks external links too.
 import { test, before, after } from 'node:test';
@@ -13,7 +13,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..',
 const slugs = fs.readdirSync(path.join(root, 'work')).filter(d => fs.existsSync(path.join(root, 'work', d, 'index.html')));
 const PAGES = (process.env.PAGES ? process.env.PAGES.split(',') : ['/', '/work/', ...slugs.map(s => `/work/${s}/`), '/missing-page']);
 const WIDTHS = [[1440, 900], [1280, 800], [768, 1024], [390, 844]];
-const MODES = ['light', 'dark', 'gear'];
+const MODES = ['light', 'dark', 'gear', 'blue'];
 const SHOTS = process.env.SHOTS;
 let browser, site;
 
@@ -36,6 +36,7 @@ async function open(url, { width = 1440, height = 900, mode = 'light', reduced =
         sessionStorage.setItem('sky-intro', 'seen');
         localStorage.setItem('sky-theme', m === 'light' ? 'light' : 'dark');
         if (m === 'gear') sessionStorage.setItem('sky-gear', 'two');
+        if (m === 'blue') sessionStorage.setItem('sky-gear', 'blue');
       }
     } catch (e) {}
   }, mode);
@@ -49,7 +50,7 @@ async function open(url, { width = 1440, height = 900, mode = 'light', reduced =
   return { page, context, problems };
 }
 
-test('every page loads cleanly at every width in light, dark, and Gear Two', async () => {
+test('every page loads cleanly at every width in light, dark, Gear Two, and Tide', async () => {
   for (const url of PAGES) for (const [width, height] of WIDTHS) for (const mode of MODES) {
     const { page, context, problems } = await open(url, { width, height, mode, touch: width < 768 });
     await page.waitForTimeout(url === '/' ? 1800 : 300);
@@ -57,7 +58,7 @@ test('every page loads cleanly at every width in light, dark, and Gear Two', asy
     assert.equal(overflow, 0, `${url} ${width} ${mode} overflows by ${overflow}px`);
     const unexpected = url === '/missing-page' ? problems.filter(p => !/status of 404/.test(p)) : problems;
     assert.deepEqual(unexpected, [], `${url} ${width} ${mode}`);
-    assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), mode === 'gear' ? 'two' : null);
+    assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), { gear: 'two', blue: 'blue' }[mode] || null);
     if (SHOTS) {
       fs.mkdirSync(SHOTS, { recursive: true });
       await page.screenshot({ path: path.join(SHOTS, `${url.replace(/\//g, '_').replace(/^_|_$/g, '') || 'home'}-${width}-${mode}.png`), fullPage: true });
@@ -214,6 +215,62 @@ test('Gear Two flashes, glitches, settles, turns the page red, and survives navi
   await page.waitForFunction(() => !document.documentElement.hasAttribute('data-gear'));
   assert.deepEqual(problems, []);
   await context.close();
+});
+
+test('Tide is reached from the gear shift: it surges, turns the page blue, survives navigation, gives way to the lights, and is instant under reduced motion', async () => {
+  const { page, context, problems } = await open('/');
+  await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
+  await page.waitForTimeout(1500);
+  const tide = page.locator('[data-gear-blue]'), two = page.locator('[data-gear-toggle]');
+  assert.equal(await tide.getAttribute('aria-pressed'), 'false');
+  await page.evaluate(() => {
+    const root = document.documentElement;
+    window.phases = [];
+    window.ringSeen = false;
+    new MutationObserver(() => window.phases.push([root.getAttribute('data-phase'), root.getAttribute('data-gear')])).observe(root, { attributes: true, attributeFilter: ['data-phase', 'data-gear'] });
+    new MutationObserver(records => { for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains('fx-tide')) window.ringSeen = true; }).observe(document.body, { childList: true });
+  });
+  await tide.click();
+  assert.equal(await tide.getAttribute('aria-pressed'), 'true', 'the knob moves to Tide as it is pressed');
+  assert.equal(await two.getAttribute('aria-pressed'), 'false');
+  await page.waitForFunction(() => window.phases.length >= 3);
+  assert.deepEqual(await page.evaluate(() => window.phases), [['surge', null], ['surge', 'blue'], [null, 'blue']], 'the palette turns during the surge, then the surge clears');
+  assert.equal(await page.evaluate(() => window.ringSeen), true, 'a ring of light leaves the gear shift');
+  await page.waitForFunction(() => !document.querySelector('.fx-tide'), null, { timeout: 3000 });
+  assert.match(await page.evaluate(() => document.documentElement.style.getPropertyValue('--tide-delay')), /^-\d\.\d{3}s$/, 'CSS pulses are phased to the tide\'s clock');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().toLowerCase()), '#3d8bff');
+  assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#060a14');
+  assert.equal(await page.getAttribute('[data-lamp]', 'aria-pressed'), 'false', 'Tide reads as lights off');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.gear')).animationName), 'gear-tide', 'the gear shift breathes with the tide');
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), 'blue');
+  assert.equal(await page.evaluate(() => document.getElementById('figure').classList.contains('is-live')), true, 'the hero keeps drawing');
+  await page.click('a[href="/work/"]');
+  await page.waitForLoadState('networkidle');
+  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'blue', 'it lasts for the session');
+  assert.equal(await page.getAttribute('[data-gear-blue]', 'aria-pressed'), 'true');
+  await page.locator('[data-lamp]').click();
+  await page.waitForTimeout(950);
+  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the lights leave Tide');
+  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'light');
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), null);
+  assert.deepEqual(problems, []);
+  await context.close();
+
+  const still = await open('/work/', { reduced: true });
+  await still.page.locator('[data-gear-blue]').focus();
+  await still.page.keyboard.press('Enter');
+  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'blue', 'reached by keyboard, at once');
+  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-phase')), null);
+  assert.equal(await still.page.locator('.fx-tide').count(), 0);
+  assert.match(await still.page.evaluate(() => { const s = getComputedStyle(document.activeElement); return s.outlineStyle + ' ' + s.outlineWidth; }), /solid 2px/);
+  await still.page.keyboard.press('Space');
+  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the engaged gear pressed again is neutral');
+  await still.page.locator('[data-gear-toggle]').click();
+  await still.page.locator('[data-gear-blue]').click();
+  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'blue', 'straight from Gear Two to Tide');
+  assert.deepEqual(await still.page.$$eval('.gear-pos', bs => bs.map(b => b.getAttribute('aria-pressed'))), ['false', 'true']);
+  assert.deepEqual(still.problems, []);
+  await still.context.close();
 });
 
 test('the light switch flips and saves the theme, and turning the lights on leaves Gear Two', async () => {

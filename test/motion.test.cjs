@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { init, GEAR } = require('../js/motion.js');
+const { init, GEAR, BLUE, BEAT, TIDE } = require('../js/motion.js');
 
 function element(rect) {
   const attrs = new Map();
@@ -18,10 +18,11 @@ function element(rect) {
 
 function page({ osReduced = false, saved = null, transitions = false, gear = false } = {}) {
   const root = element();
-  if (gear) root.setAttribute('data-gear', 'two');
+  if (gear) root.setAttribute('data-gear', gear === true ? 'two' : gear);
   const animations = [];
   root.animate = (keyframes, options) => { animations.push({ keyframes, options }); return {}; };
   const gearButton = element();
+  const blueButton = element();
   const toggle = element();
   const state = { textContent: 'Off' };
   toggle.querySelector = () => state;
@@ -36,7 +37,7 @@ function page({ osReduced = false, saved = null, transitions = false, gear = fal
   const doc = {
     documentElement: root,
     querySelector: () => null,
-    querySelectorAll: sel => (sel === '[data-gear-toggle]' ? [gearButton] : sel === '[data-motion-toggle]' ? [toggle] : []),
+    querySelectorAll: sel => (sel === '[data-gear-toggle]' ? [gearButton] : sel === '[data-gear-blue]' ? [blueButton] : sel === '[data-motion-toggle]' ? [toggle] : []),
     addEventListener: (k, f) => { listeners[k] = f; },
   };
   const started = [];
@@ -55,8 +56,9 @@ function page({ osReduced = false, saved = null, transitions = false, gear = fal
     clearTimeout: t => timers.delete(t),
   });
   const run = ms => [...timers.entries()].filter(([, t]) => t.ms === ms).forEach(([k, t]) => { timers.delete(k); t.fn(); });
-  const click = el => listeners.click({ target: { closest: sel => (sel === '[data-gear-toggle]' && el === gearButton) || (sel === '[data-motion-toggle]' && el === toggle) ? el : null } });
-  return { api, root, gearButton, toggle, state, timers, run, click, win, doc, animations, started, session, mq, getSaved: () => saved_ };
+  const click = el => listeners.click({ target: { closest: sel => (sel === '[data-gear-toggle]' && el === gearButton) || (sel === '[data-gear-blue]' && el === blueButton) || (sel === '[data-motion-toggle]' && el === toggle) ? el : null } });
+  const pressed = () => [gearButton.getAttribute('aria-pressed'), blueButton.getAttribute('aria-pressed')];
+  return { api, root, gearButton, blueButton, pressed, toggle, state, timers, run, click, win, doc, animations, started, session, mq, getSaved: () => saved_ };
 }
 
 test('Gear Two flashes, switches to red while glitching, settles, then clears', () => {
@@ -209,4 +211,215 @@ test('the opening can take Gear Two on and back off without saving it to the ses
   p.click(p.gearButton);
   p.run(GEAR.flash);
   assert.equal(p.session.get('sky-gear'), 'two', 'a visitor\'s own switch is saved as before');
+});
+
+// Tide, the blue gear: reached only from its position in the gear shift, never by the opening.
+function clocked(p, now = 1234) {
+  p.root.style = { props: new Map(), setProperty(k, v) { this.props.set(k, v); } };
+  p.win.performance = { now: () => now };
+  return p;
+}
+
+test('Tide surges from neutral: the knob moves at once, the palette turns at 120 ms with the tide phased to the clock, and the surge clears', () => {
+  const p = clocked(page());
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'surge');
+  assert.equal(p.root.getAttribute('data-gear'), null, 'the palette waits for the surge');
+  assert.deepEqual(p.pressed(), ['false', 'true'], 'the position is pressed at once, so the knob moves as it is pressed');
+  p.run(BLUE.palette);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
+  assert.equal(p.root.getAttribute('data-phase'), 'surge', 'the surge runs on after the palette turns');
+  assert.equal(p.session.get('sky-gear'), 'blue');
+  assert.equal(p.root.style.props.get('--tide-delay'), '-1.234s', '1234 ms into the clock, the tide is 1.234 s along its 4.5 s cycle');
+  assert.equal(p.root.style.props.has('--beat-delay'), false, 'no heartbeat in Tide');
+  assert.equal(p.api.isGear(), true);
+  assert.equal(p.api.mode(), 'blue');
+  p.run(BLUE.done);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.timers.size, 0);
+  assert.equal(TIDE, 4.5);
+  assert.equal(p.api.TIDE, TIDE);
+  assert.ok(BLUE.palette < BLUE.done && BLUE.exit < BLUE.done, 'leaving is quicker than arriving');
+});
+
+test('leaving Tide ebbs quietly, then the page comes back and forgets the session flag', () => {
+  const p = page({ gear: 'blue' });
+  assert.deepEqual(p.pressed(), ['false', 'true']);
+  assert.equal(p.session.get('sky-gear'), 'blue');
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'ebb');
+  assert.equal(p.root.getAttribute('data-gear'), 'blue', 'the gear clears after the ebb');
+  assert.deepEqual(p.pressed(), ['false', 'false'], 'the knob goes back to neutral at once');
+  p.run(BLUE.exit);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.session.has('sky-gear'), false);
+  assert.equal(p.timers.size, 0);
+  assert.equal(p.api.isGear(), false);
+});
+
+test('the gears run none, Gear Two, Tide, none; switching straight between them runs the new gear\'s entrance', () => {
+  const p = page();
+  p.click(p.gearButton);
+  p.run(GEAR.flash);
+  p.run(GEAR.settle);
+  p.run(GEAR.done);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.session.get('sky-gear'), 'two');
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'surge', 'red to blue surges, without Gear Two\'s glitch');
+  assert.deepEqual(p.pressed(), ['false', 'true']);
+  p.run(BLUE.palette);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
+  assert.equal(p.session.get('sky-gear'), 'blue');
+  p.run(BLUE.done);
+  p.click(p.gearButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'flash', 'blue to red flashes and glitches like Gear Two from neutral');
+  p.run(GEAR.flash);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.root.getAttribute('data-phase'), 'glitch');
+  p.run(GEAR.settle);
+  p.run(GEAR.done);
+  p.click(p.blueButton);
+  p.run(BLUE.palette);
+  p.run(BLUE.done);
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'ebb');
+  p.run(BLUE.exit);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.session.has('sky-gear'), false);
+  assert.equal(p.timers.size, 0);
+});
+
+test('a press on Tide while its surge runs returns to neutral before the palette turns', () => {
+  const p = page();
+  p.click(p.blueButton);
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.timers.size, 0, 'the palette never turns');
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.deepEqual(p.pressed(), ['false', 'false']);
+  assert.equal(p.session.has('sky-gear'), false);
+});
+
+test('a transient switch is never saved, and leaves the gear chosen by hand in the session', () => {
+  const p = page({ gear: 'blue' });
+  p.api.switchGear(true, p.gearButton, true);
+  p.run(GEAR.flash);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.session.get('sky-gear'), 'blue');
+  p.api.switchGear(false, null, true);
+  p.run(GEAR.exit);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.session.get('sky-gear'), 'blue', 'the opening\'s way back does not forget the visitor\'s gear either');
+  const q = page();
+  q.api.switchGear('blue', q.blueButton, true);
+  q.run(BLUE.palette);
+  assert.equal(q.root.getAttribute('data-gear'), 'blue');
+  assert.equal(q.session.has('sky-gear'), false);
+});
+
+test('with reduced motion every switch between the gears is instant, with no phases and no rings', () => {
+  const p = clocked(page({ osReduced: true }));
+  let created = 0;
+  p.doc.createElement = () => { created++; return {}; };
+  p.doc.body = { appendChild() {} };
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.root.style.props.get('--tide-delay'), '-1.234s');
+  p.click(p.gearButton);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  p.click(p.blueButton);
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.timers.size, 0);
+  assert.equal(created, 0);
+});
+
+test('the lights leave either gear, also in the middle of a surge', () => {
+  const p = page({ gear: 'blue' });
+  const applied = [];
+  p.win.skyThemeTransition(t => applied.push(t), 'dark', null);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.deepEqual(p.pressed(), ['false', 'false']);
+  assert.equal(p.session.has('sky-gear'), false);
+  p.click(p.blueButton);
+  p.win.skyThemeTransition(t => applied.push(t), 'dark', null);
+  assert.equal(p.timers.size, 0, 'the surge is cancelled before its palette turns');
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.deepEqual(p.pressed(), ['false', 'false']);
+  p.api.setGear('two');
+  p.win.skyThemeTransition(t => applied.push(t), 'light', null);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.deepEqual(applied, ['light', 'light', 'light'], 'leaving a gear turns the lights on');
+});
+
+test('true and false still mean Gear Two and none, so the opening and the hero\'s tests switch as before', () => {
+  const p = page();
+  p.api.setGear(true);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.api.mode(), 'two');
+  assert.equal(p.api.isGear(), true);
+  p.api.setGear(false);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.api.mode(), null);
+  p.api.switchGear(true, p.gearButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'flash');
+  p.run(GEAR.flash);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  p.api.switchGear(null);
+  p.run(GEAR.exit);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  p.api.setGear('sideways');
+  assert.equal(p.root.getAttribute('data-gear'), null, 'an unknown gear is neutral');
+  assert.equal(BEAT, 0.9);
+});
+
+test('with View Transitions Tide floods out from its position behind a ring of light, and a late callback never undoes a newer switch', async () => {
+  const p = page({ transitions: true });
+  const rings = [];
+  p.doc.createElement = () => ({ className: '', style: { setProperty() {} }, setAttribute() {}, addEventListener() {} });
+  p.doc.body = { appendChild(el) { rings.push(el.className); } };
+  p.blueButton.getBoundingClientRect = () => ({ left: 680, top: 14, width: 54, height: 28 });
+  p.click(p.blueButton);
+  p.run(BLUE.palette);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
+  assert.equal(p.root.classList.contains('tide-reveal'), true, 'a sharper circle than the lights\'');
+  await Promise.all(p.started);
+  await new Promise(r => setImmediate(r));
+  const { keyframes, options } = p.animations[0];
+  assert.equal(options.pseudoElement, '::view-transition-new(root)');
+  assert.equal(options.duration, BLUE.flood);
+  assert.equal(keyframes.maskPosition[0], '707px 28px', 'the circle grows from the middle of Tide\'s position');
+  assert.deepEqual(rings, ['fx-tide'], 'a ring of light rides its edge');
+  assert.equal(p.root.classList.contains('tide-reveal'), false);
+  assert.equal(p.root.classList.contains('theme-reveal'), false);
+
+  const q = page({ transitions: true });
+  let update = null;
+  q.doc.startViewTransition = fn => { update = fn; return { ready: new Promise(() => {}), finished: Promise.resolve() }; };
+  q.blueButton.getBoundingClientRect = () => ({ left: 680, top: 14, width: 54, height: 28 });
+  q.click(q.blueButton);
+  q.run(BLUE.palette);
+  q.click(q.blueButton);
+  update();
+  assert.equal(q.root.getAttribute('data-gear'), null, 'the visitor went back to neutral before the transition called back');
+});
+
+test('with View Transitions leaving Tide cross-fades the page back once the ebb is over', async () => {
+  const p = page({ gear: 'blue', transitions: true });
+  p.click(p.blueButton);
+  assert.equal(p.root.classList.contains('tide-ebb'), false, 'nothing fades during the ebb');
+  p.run(BLUE.exit);
+  assert.equal(p.root.getAttribute('data-gear'), null);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.root.classList.contains('tide-ebb'), true);
+  assert.equal(p.started.length, 1);
+  await new Promise(r => setImmediate(r));
+  assert.equal(p.root.classList.contains('tide-ebb'), false);
+  assert.equal(p.animations.length, 0, 'a plain cross-fade, no circle');
 });
