@@ -48,6 +48,10 @@
   --figure-still: url("/assets/hero/still.webp");
   --split-a: #ff3b30;
   --split-b: #00c2ff;
+  /* Tide's light: its rings, the ripple on the gear shift, and its tide on the sheet lines (the surge starts on the
+     paper the page was on, so these do not change with the mode) */
+  --tide-a: #3d8bff;
+  --tide-b: #cdeeff;
 
   --sans: "Instrument Sans", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
   --mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -144,6 +148,38 @@
   --mat-lightning-lit: #ff3b30;
   --mat-glint: #ff3b30;
   --mat-glint-lit: #ff3b30;
+  --figure-preview: url("/assets/hero/preview-dark.webp");
+  --figure-still: url("/assets/hero/still-dark.webp");
+}
+
+:root[data-gear="blue"] {
+  color-scheme: dark;
+  --paper: #060a14;
+  --ink: #e4eeff;
+  --muted: #8fa3c4;
+  --accent: #3d8bff;
+  --line: rgba(61, 139, 255, 0.2);
+  --line-strong: rgba(61, 139, 255, 0.42);
+  --wash: rgba(61, 139, 255, 0.07);
+  /* the figure is drawn from the light map, as on dark paper: a statue lit in blue, ultramarine in its shadows and ice
+     where it faces the light; the materials go blue but for the gold, which turns champagne, a trace of gold that
+     reads as metal under the blue light and, worn at less than full strength, pales into the blue instead of greying */
+  --figure-ink: #4f9bff;
+  --figure-sheen: #45d4ff;
+  --figure-sheen-core: #eafcff;
+  --figure-star: #9feaff;
+  --figure-fill: #1f3fbf;
+  --figure-key: #c9efff;
+  --figure-glint: #f2fbff;
+  --figure-glint-edge: #b8e4ff;
+  --mat-gold: #dcc89a;
+  --mat-gold-lit: #fff4dc;
+  --mat-cloud: #5b7fe0;
+  --mat-cloud-lit: #a9c2ff;
+  --mat-lightning: #3fd2ff;
+  --mat-lightning-lit: #c2f4ff;
+  --mat-glint: #7fb2ff;
+  --mat-glint-lit: #d2e4ff;
   --figure-preview: url("/assets/hero/preview-dark.webp");
   --figure-still: url("/assets/hero/still-dark.webp");
 }
@@ -318,8 +354,45 @@ html.lenis, html.lenis body { height: auto; }
   transition: background-color .2s, color .2s, border-color .2s;
 }
 .btn:hover { background: var(--ink); color: var(--paper); }
-.gear[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--paper); }
-.gear[aria-pressed="true"]:hover { background: var(--paper); color: var(--accent); }
+/* The gear shift: Gear Two and Tide either side of a gate, where a cog sits in the engaged gear's notch (neutral in
+   the middle) and rolls a quarter turn, two teeth, to the next as the gear changes. Each position is a toggle; the
+   gate's halves belong to the positions beside them. Before js/motion.js has pressed a position, the cog follows the
+   gear the boot script restored. */
+.gear {
+  display: inline-grid;
+  grid-template-columns: auto 18px 18px auto;
+  height: 28px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+html:not(.js) .gear { display: none; }
+.gear-pos {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  font: 400 11px/16px var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  transition: color .2s;
+}
+[data-gear-toggle] { grid-column: 1 / 3; padding: 0 22px 0 10px; }
+[data-gear-blue] { grid-column: 3 / 5; justify-content: flex-end; padding: 0 10px 0 22px; }
+.gear-pos:hover { color: var(--accent); }
+.gear-pos:focus-visible { outline-offset: -4px; }
+.gear-pos[aria-pressed="true"],
+:root[data-gear="two"] [data-gear-toggle]:not([aria-pressed]),
+:root[data-gear="blue"] [data-gear-blue]:not([aria-pressed]) { color: var(--accent); text-decoration: underline 1px; }
+.gear-gate { grid-column: 2 / 4; grid-row: 1; position: relative; display: grid; place-items: center; pointer-events: none; }
+/* the gate's three notches: Gear Two, neutral, Tide */
+.gear-gate::after { content: ""; position: absolute; left: calc(50% - .5px); bottom: 3px; width: 1px; height: 2px; background: var(--line-strong); box-shadow: -8px 0 var(--line-strong), 8px 0 var(--line-strong); }
+.gear-cog { display: block; width: 14px; height: 14px; fill: currentColor; transition: transform .3s var(--ease-in-out), color .2s; }
+:root[data-gear="two"] .gear-cog { transform: translateX(-8px) rotate(-90deg); color: var(--accent); }
+:root[data-gear="blue"] .gear-cog { transform: translateX(8px) rotate(90deg); color: var(--accent); }
+.gear-pos[aria-pressed] ~ .gear-gate .gear-cog { transform: none; color: inherit; }
+[data-gear-toggle][aria-pressed="true"] ~ .gear-gate .gear-cog { transform: translateX(-8px) rotate(-90deg); color: var(--accent); }
+[data-gear-blue][aria-pressed="true"] ~ .gear-gate .gear-cog { transform: translateX(8px) rotate(90deg); color: var(--accent); }
 
 .lamp { display: inline-flex; align-items: center; gap: 8px; height: 28px; font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); transition: color .2s; }
 .lamp:hover { color: var(--ink); }
@@ -358,6 +431,13 @@ html:not(.js) .index-open { display: none; }
 @media (max-width: 419px) {
   html.js .nav > a:not(.home) { display: none; }
   .nav { padding-right: 0; }
+  .gear { grid-template-columns: auto 15px 15px auto; }
+  [data-gear-toggle] { padding: 0 18px 0 6px; }
+  [data-gear-blue] { padding: 0 6px 0 18px; }
+}
+@media (max-width: 359px) {
+  [data-gear-toggle] { padding-left: 5px; }
+  [data-gear-blue] { padding-right: 5px; }
 }
 
 /* ── panels ─────────────────────────────────────────────── */
@@ -1008,7 +1088,7 @@ html.index-is-open { scrollbar-gutter: stable; }
 }
 
 /* While it is on: the figure glows and the switch pulses with the heartbeat (lub-dub every 0.9 s). */
-:root[data-gear="two"] .gear[aria-pressed="true"] { animation: gear-beat .9s linear infinite; animation-delay: var(--beat-delay, 0s); }
+:root[data-gear="two"] .gear { animation: gear-beat .9s linear infinite; animation-delay: var(--beat-delay, 0s); }
 @keyframes gear-beat {
   0%, 42%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
   8% { box-shadow: 0 0 0 5px rgba(255, 59, 48, .3); }
@@ -1085,6 +1165,86 @@ body > .lines span { position: relative; }
   30% { transform: scale(1.5); }
 }
 
+/* ── Tide (the blue gear) ───────────────────────────────── */
+/* Turning it on (js/motion.js, data-phase="surge" for 1.2 s): the gear shift ripples, and at 120 ms the page turns
+   blue inside a circle that floods out from the control (View Transitions, a sharper edge than the lights' circle), a
+   ring of light riding its edge with a fainter one behind. No flash, no glitch. Leaving it (data-phase="ebb", 300 ms)
+   the tide stops, then the page cross-fades back over 300 ms. */
+html.theme-reveal.tide-reveal::view-transition-new(root) {
+  -webkit-mask-image: radial-gradient(closest-side, #000 96%, transparent);
+  mask-image: radial-gradient(closest-side, #000 96%, transparent);
+}
+/* its band ends where the circle's soft edge begins, and grows with it (both 1 s on the same ease, BLUE in js/motion.js) */
+.fx-tide {
+  position: fixed;
+  z-index: 901;
+  width: var(--reach);
+  height: var(--reach);
+  margin: calc(var(--reach) / -2) 0 0 calc(var(--reach) / -2);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, transparent 80%, color-mix(in srgb, var(--tide-a) 16%, transparent) 92%, color-mix(in srgb, var(--tide-b) 75%, transparent) 98.5%, transparent 100%);
+  transform: scale(0);
+  will-change: transform, opacity;
+  animation: tide-wave 1s cubic-bezier(.22, .61, .36, 1) 1 forwards;
+}
+.fx-tide::after {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border: 1px solid color-mix(in srgb, var(--tide-b) 55%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: tide-echo 1s linear 1 forwards;
+}
+@keyframes tide-wave {
+  0% { transform: scale(0); opacity: 1; }
+  65% { opacity: .9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes tide-echo {
+  0%, 12% { opacity: 0; }
+  35% { opacity: .7; }
+  100% { opacity: 0; }
+}
+html.tide-ebb::view-transition-old(root), html.tide-ebb::view-transition-new(root) { animation-duration: .3s; animation-timing-function: var(--ease-in-out); }
+
+/* While it is on, the tide takes the heartbeat's place, once every 4.5 s on the hero's clock (--tide-delay): the gear
+   shift breathes, and a light rises up each sheet line, a little later on each line to the right. */
+:root[data-gear="blue"]:not([data-motion="reduced"]) .gear { animation: gear-tide 4.5s var(--ease-in-out) infinite; animation-delay: var(--tide-delay, 0s); }
+@keyframes gear-tide {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tide-a) 0%, transparent); }
+  45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--tide-a) 24%, transparent); }
+}
+:root[data-gear="blue"]:not([data-motion="reduced"]) body > .lines span::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 1px;
+  height: 40vh;
+  background: linear-gradient(to top, transparent, var(--tide-a) 55%, var(--tide-b) 80%, transparent);
+  opacity: 0;
+  animation: tide-rise 4.5s var(--ease-in-out) infinite;
+  animation-delay: var(--tide-delay, 0s);
+}
+:root[data-gear="blue"] body > .lines span:nth-child(2)::after { animation-delay: calc(var(--tide-delay, 0s) - 4.2s); }
+:root[data-gear="blue"] body > .lines span:nth-child(3)::after { animation-delay: calc(var(--tide-delay, 0s) - 3.9s); }
+:root[data-gear="blue"] body > .lines span:nth-child(4)::after { animation-delay: calc(var(--tide-delay, 0s) - 3.6s); }
+@keyframes tide-rise {
+  0% { opacity: 0; transform: translateY(100vh); }
+  15% { opacity: .7; }
+  55% { opacity: .45; }
+  75%, 100% { opacity: 0; transform: translateY(-40vh); }
+}
+/* the ripple of the surge outlasts the palette's turn, and the ebb stills the tide */
+:root[data-phase="surge"]:not([data-motion="reduced"]) .gear { animation: gear-surge .9s var(--ease-out) 1; }
+@keyframes gear-surge {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tide-a) 60%, transparent); }
+  100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--tide-a) 0%, transparent); }
+}
+:root[data-phase="ebb"] .gear, :root[data-phase="ebb"] body > .lines span::after { animation: none !important; }
+
 /* ── theme reveal (View Transitions) ───────────────────── */
 html.theme-reveal::view-transition-new(root) {
   z-index: 9999;
@@ -1106,6 +1266,7 @@ html.theme-reveal::view-transition-new(root) {
 }
 @media (prefers-contrast: more) {
   :root[data-gear="two"] { --muted: #cdc5c3; --line: rgba(255, 59, 48, 0.5); --line-strong: rgba(255, 59, 48, 0.75); }
+  :root[data-gear="blue"] { --muted: #c3d0e6; --line: rgba(61, 139, 255, 0.5); --line-strong: rgba(61, 139, 255, 0.75); }
 }
 
 /* ── reduced motion ─────────────────────────────────────── */
@@ -1122,8 +1283,8 @@ html.theme-reveal::view-transition-new(root) {
   @view-transition { navigation: auto; }
 }
 .site-header { view-transition-name: site-header; }
-html.theme-reveal .site-header { view-transition-name: none; }
-html.theme-reveal .vt { view-transition-name: none !important; }
+html.theme-reveal .site-header, html.tide-ebb .site-header { view-transition-name: none; }
+html.theme-reveal .vt, html.tide-ebb .vt { view-transition-name: none !important; }
 ::view-transition-group(*) { animation-duration: .25s; animation-timing-function: var(--ease-out); }
 html.theme-reveal::view-transition-old(root),
 html.theme-reveal::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
@@ -1153,7 +1314,7 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
     --wash: transparent;
     --figure-ink: #000;
   }
-  .lines, .fx-flash, .fx-ring, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
+  .lines, .fx-flash, .fx-ring, .fx-tide, .skip, .header-mid, .header-end, .sign-toggles, .sign-links, .inspect, .stipple, .toc, .fig-ctrl, .copy, .hero-figure canvas, .hero-figure::before, .fig-telemetry, .site-index, .intro-actions, .case-actions, .work-toolbar { display: none !important; }
   .site-header { position: static; }
   .hero .row { min-height: 0; }
   .hero-figure { width: min(100%, 480px); }

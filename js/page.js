@@ -349,7 +349,7 @@
       var degrees = function (rad) { var d = rad * 180 / Math.PI; return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + "°"; };
       // The opening (js/hero.js INTRO) plays when the page is opened: once a tab, again on a reload, never under
       // reduced motion. It takes the page into Gear Two and back without saving it, and any press, key, or scroll
-      // ends it; a press on Gear Two or the lights then acts on the page as it is.
+      // ends it; a press on a gear or the lights then acts on the page as it is.
       var opening = false;
       if (!motion.reduced()) {
         try {
@@ -361,7 +361,7 @@
       var interrupts = ["pointerdown", "keydown", "wheel"];
       var interrupt = function (event) {
         var target = event.target;
-        if (hero) hero.skipIntro(!!(target && target.closest && target.closest("[data-gear-toggle], [data-lamp]")));
+        if (hero) hero.skipIntro(!!(target && target.closest && target.closest("[data-gear-toggle], [data-gear-blue], [data-lamp]")));
       };
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",

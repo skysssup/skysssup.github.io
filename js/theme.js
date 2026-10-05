@@ -1,10 +1,10 @@
 /* Light switch: a saved light/dark choice that follows the OS until set, syncs across tabs,
-   and reads as "lights off" while Gear Two is on. The switch's aria-pressed means "lights on". */
+   and reads as "lights off" while a gear (Gear Two or Tide) is on. The switch's aria-pressed means "lights on". */
 (function (global) {
   "use strict";
 
   var KEY = "sky-theme";
-  var COLORS = { light: "#ffffff", dark: "#0b0b0c", gear: "#080707" };
+  var COLORS = { light: "#ffffff", dark: "#0b0b0c", gear: "#080707", blue: "#060a14" };
 
   function init(doc, win, storage) {
     var root = doc.documentElement;
@@ -25,12 +25,13 @@
     }
 
     function paint() {
-      var gear = root.getAttribute("data-gear") === "two";
-      var on = !gear && current() === "light";
+      var gear = root.getAttribute("data-gear");
+      var paper = gear === "two" ? COLORS.gear : gear === "blue" ? COLORS.blue : null;
+      var on = !paper && current() === "light";
       var lamps = doc.querySelectorAll("[data-lamp]");
       for (var i = 0; i < lamps.length; i++) lamps[i].setAttribute("aria-pressed", on ? "true" : "false");
       var meta = doc.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", gear ? COLORS.gear : on ? COLORS.light : COLORS.dark);
+      if (meta) meta.setAttribute("content", paper || (on ? COLORS.light : COLORS.dark));
     }
 
     function set(theme) {

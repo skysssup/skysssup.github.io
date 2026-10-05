@@ -24,15 +24,18 @@ in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the openi
 
 ## How it works
 
-- `css/site.css` — tokens for light, dark, and Gear Two (including the figure's material palette and sheen); the
-  sheet grid; every component; the Gear Two choreography (flash, shockwave ring, text split, media slices, settle)
-  and its heartbeat keyframes.
-- `js/theme.js` — the light switch: saved choice, OS sync, cross-tab sync.
-- `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), Gear Two's flash → glitch → settle
-  with the red ring that leaves the switch and the `--beat-delay` that phases every CSS pulse to the hero's 0.9 s
-  heartbeat, the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
-  `switchGear(on, origin, transient)` runs the sequence towards a state; the hero's opening uses it to go to Gear Two
-  and back without saving it to the session.
+- `css/site.css` — tokens for light, dark, Gear Two, and Tide (including the figure's material palette and sheen);
+  the sheet grid; every component, the gear shift among them; the Gear Two choreography (flash, shockwave ring, text
+  split, media slices, settle) and its heartbeat keyframes; Tide's flood of light and its tide.
+- `js/theme.js` — the light switch: saved choice, OS sync, cross-tab sync; it reads as lights off in either gear.
+- `js/motion.js` — the site-wide reduced-motion setting (OS or the footer toggle), and the gears behind the header's
+  gear shift: Gear Two's flash → glitch → settle with the red ring that leaves the switch and the `--beat-delay` that
+  phases every CSS pulse to the hero's 0.9 s heartbeat, and Tide (the blue gear, reached only by hand), whose surge
+  floods the blue page out from the control behind a ring of light and whose `--tide-delay` phases its pulses to a
+  4.5 s tide; the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
+  `switchGear(gear, origin, transient)` runs the sequence towards a gear (`"two"`, `"blue"`, or none; `true` and
+  `false` still mean Gear Two and none); the hero's opening uses it to go to Gear Two and back without saving it to
+  the session.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring that carries one line in the statue's
   voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms; a light reads along the line
   once every 7 s, 3.5 s in Gear Two, the glyphs it passes turning gold, ember in Gear Two, and a sheen's wave lifts
@@ -105,7 +108,7 @@ python3 -m http.server 8080   # then open http://localhost:8080
 ```sh
 npm test                      # unit and content tests, no dependencies needed
 npm ci && npx playwright install chrome
-npm run test:e2e              # every page at 1440/1280/768/390 in light, dark, and Gear Two:
+npm run test:e2e              # every page at 1440/1280/768/390 in light, dark, Gear Two, and Tide:
                               # console errors, overflow, axe-core, interactions, links
 ```
 

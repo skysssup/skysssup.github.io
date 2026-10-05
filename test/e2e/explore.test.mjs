@@ -25,6 +25,7 @@ async function open(url = '/work/', { width = 1440, mode = 'light', reduced = tr
   });
   await context.addInitScript(() => sessionStorage.setItem('sky-intro', 'seen'));
   if (mode === 'gear') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'two'));
+  if (mode === 'blue') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'blue'));
   if (seed) await context.addInitScript(seed);
   const page = await context.newPage();
   const errors = [];
@@ -144,7 +145,7 @@ test('browser history restores filters and saved views keep matching rows', asyn
 });
 
 test('the site index and grid view stay accessible across themes and screen sizes', async () => {
-  for (const width of [1440, 768, 390, 320]) for (const mode of ['light', 'dark', 'gear']) {
+  for (const width of [1440, 768, 390, 320]) for (const mode of ['light', 'dark', 'gear', 'blue']) {
     const { page, context, errors } = await open('/work/', { width, mode });
     await page.locator('button[data-work-view="grid"]').click();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, `grid ${width} ${mode}`);

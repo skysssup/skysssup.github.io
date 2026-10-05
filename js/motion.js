@@ -1,12 +1,21 @@
-/* Motion: the site-wide reduced-motion preference, Gear Two, the circle theme reveal,
+/* Motion: the site-wide reduced-motion preference, the gears (Gear Two and Tide), the circle theme reveal,
    smooth scrolling, and cross-page transitions. */
 (function (global) {
   "use strict";
 
   // Gear Two timing (ms): flash, then the palette switches and glitches, then it settles.
   var GEAR = { flash: 90, settle: 650, done: 1050, exit: 300 };
+  // Tide timing (ms): the surge, in which the palette turns at `palette` and floods out from the control for `flood`
+  // (on `ease`, which the ring riding the flood's edge shares in css/site.css), and the ebb, after which the page
+  // cross-fades back.
+  var BLUE = { palette: 120, flood: 1000, ease: "cubic-bezier(.22, .61, .36, 1)", done: 1200, exit: 300 };
   // Gear Two heartbeat period (s); the same constant lives in the hero's heartbeat() and in the CSS keyframes.
   var BEAT = 0.9;
+  // Tide's period (s): the slow tide that takes the heartbeat's place in the blue gear, in CSS and in the hero.
+  var TIDE = 4.5;
+
+  // A gear is "two" (Gear Two, red), "blue" (Tide), or null; true and false still mean Gear Two and none.
+  function modeOf(value) { return value === true || value === "two" ? "two" : value === "blue" ? "blue" : null; }
 
   function init(env) {
     var doc = env.document, win = env.window, storage = env.storage, session = env.session;
@@ -15,7 +24,9 @@
     var osReduced = win.matchMedia("(prefers-reduced-motion: reduce)");
     var subscribers = [];
     var timers = [];
-    var gearOn = root.getAttribute("data-gear") === "two";
+    // the gear the page is in, the one a running switch is heading for, and which switch that is (a view
+    // transition's callback runs late, and does nothing once another switch has started)
+    var mode = modeOf(root.getAttribute("data-gear")), heading = mode, seq = 0;
     var smoother = null;
     var scrollLocked = false;
 
@@ -78,100 +89,157 @@
       }
     }
 
-    /* Gear Two */
+    /* the gears: Gear Two (red) and Tide (blue) */
     function clearPhases() {
       timers.forEach(cancel);
       timers = [];
       root.removeAttribute("data-phase");
     }
-    // Gear Two's heartbeat beats every 0.9 s on the hero's clock (performance.now). CSS animations that
-    // pulse with it start from the same phase through --beat-delay, so the glow, the button, and the dots agree.
-    function syncBeat() {
+    // Gear Two's heartbeat (0.9 s) and Tide's tide (4.5 s) run on the hero's clock (performance.now). CSS animations
+    // that pulse with them start from the same phase through --beat-delay and --tide-delay, so the page and the dots agree.
+    function syncClock(name, period) {
       if (!root.style || typeof root.style.setProperty !== "function" || !win.performance) return;
-      root.style.setProperty("--beat-delay", (-((win.performance.now() / 1000) % BEAT)).toFixed(3) + "s");
+      root.style.setProperty(name, (-((win.performance.now() / 1000) % period)).toFixed(3) + "s");
     }
-    // `transient` keeps Gear Two out of the session: the hero's opening switches it on and back off by itself, so a
-    // visitor who leaves in the middle does not carry it to the next page.
-    function setGear(on, transient) {
-      gearOn = on;
-      if (on) { root.setAttribute("data-gear", "two"); syncBeat(); }
+    // The positions in the header show the gear a switch is heading for at once, so the knob moves as it is pressed.
+    function press(gear) {
+      [["[data-gear-toggle]", "two"], ["[data-gear-blue]", "blue"]].forEach(function (position) {
+        var buttons = doc.querySelectorAll(position[0]);
+        for (var i = 0; i < buttons.length; i++) buttons[i].setAttribute("aria-pressed", gear === position[1] ? "true" : "false");
+      });
+    }
+    // `transient` keeps the switch out of the session: the hero's opening switches Gear Two on and back off by itself,
+    // so a visitor who leaves in the middle does not carry it to the next page, and a gear chosen by hand stays saved.
+    function setGear(gear, transient) {
+      mode = heading = modeOf(gear);
+      if (mode) root.setAttribute("data-gear", mode);
       else root.removeAttribute("data-gear");
-      try {
-        if (!on) session.removeItem("sky-gear");
-        else if (!transient) session.setItem("sky-gear", "two");
-      } catch (e) {}
-      var buttons = doc.querySelectorAll("[data-gear-toggle]");
-      for (var i = 0; i < buttons.length; i++) buttons[i].setAttribute("aria-pressed", on ? "true" : "false");
+      if (mode === "two") syncClock("--beat-delay", BEAT);
+      if (mode === "blue") syncClock("--tide-delay", TIDE);
+      if (!transient) {
+        try {
+          if (mode) session.setItem("sky-gear", mode);
+          else session.removeItem("sky-gear");
+        } catch (e) {}
+      }
+      press(mode);
       if (win.skyTheme) win.skyTheme.paint();
     }
     function at(ms, fn) { timers.push(later(fn, ms)); }
+    function canDraw() { return !!doc.body && typeof doc.createElement === "function"; }
+    function centre(origin) {
+      if (!origin || typeof origin.getBoundingClientRect !== "function") return null;
+      var rect = origin.getBoundingClientRect(), x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+      return { x: x, y: y, far: Math.hypot(Math.max(x, win.innerWidth - x), Math.max(y, win.innerHeight - y)) };
+    }
+    // A ring `reach` across, centred on the control: Gear Two's red shockwave, or Tide's light.
+    function ring(c, reach, name) {
+      var el = doc.createElement("span");
+      el.className = name;
+      el.setAttribute("aria-hidden", "true");
+      el.style.left = c.x + "px";
+      el.style.top = c.y + "px";
+      el.style.setProperty("--reach", Math.round(reach) + "px");
+      var done = function () { if (el.parentNode) el.parentNode.removeChild(el); };
+      el.addEventListener("animationend", done);
+      later(done, 1400);
+      doc.body.appendChild(el);
+    }
     // A red ring expands from the control that switched Gear Two on and fades as it leaves the viewport.
     function shockwave(origin) {
-      if (!origin || !doc.body || typeof doc.createElement !== "function" || typeof origin.getBoundingClientRect !== "function") return;
-      var rect = origin.getBoundingClientRect();
-      var x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
-      var reach = Math.hypot(Math.max(x, win.innerWidth - x), Math.max(y, win.innerHeight - y)) * 2 + 48;
-      var ring = doc.createElement("span");
-      ring.className = "fx-ring";
-      ring.setAttribute("aria-hidden", "true");
-      ring.style.left = x + "px";
-      ring.style.top = y + "px";
-      ring.style.setProperty("--reach", Math.round(reach) + "px");
-      var done = function () { if (ring.parentNode) ring.parentNode.removeChild(ring); };
-      ring.addEventListener("animationend", done);
-      later(done, 1400);
-      doc.body.appendChild(ring);
+      var c = centre(origin);
+      if (c && canDraw()) ring(c, c.far * 2 + 48, "fx-ring");
     }
-    // Runs the sequence towards `on` from `origin` (the ring leaves it); a sequence still running is cancelled first,
-    // and nothing more happens when Gear Two is already where it is asked to be.
-    function switchGear(on, origin, transient) {
-      clearPhases();
-      if (on === gearOn) return;
-      if (reduced()) { setGear(on, transient); return; }
-      if (on) {
-        shockwave(origin);
-        root.setAttribute("data-phase", "flash");
-        at(GEAR.flash, function () { setGear(true, transient); root.setAttribute("data-phase", "glitch"); });
-        at(GEAR.settle, function () { root.setAttribute("data-phase", "settle"); });
-        at(GEAR.done, clearPhases);
-      } else {
-        root.setAttribute("data-phase", "glitch");
-        at(GEAR.exit, function () { setGear(false); clearPhases(); });
-      }
-    }
-    function toggleGear(origin) { switchGear(!gearOn, origin); }
-
-    /* light switch: a soft circle grows from the switch (View Transitions where available) */
-    win.skyThemeTransition = function (apply, current, origin) {
-      var target = gearOn ? "light" : current === "dark" ? "light" : "dark";
-      var run = function () {
-        clearPhases();
-        if (gearOn) setGear(false);
-        apply(target);
-      };
-      if (reduced() || typeof doc.startViewTransition !== "function" || !origin) { run(); return; }
-      var rect = origin.getBoundingClientRect();
-      var x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
-      var w = win.innerWidth, h = win.innerHeight;
-      var reach = Math.hypot(Math.max(x, w - x), Math.max(y, h - y)) * 2.6;
+    // A circle of the new page grows from `origin` while `apply` makes the change (View Transitions): the lights' soft
+    // circle, or Tide's flood with its sharper edge (`tide`). `then` runs as the circle starts to grow.
+    function reveal(origin, apply, ms, tide, then) {
+      var c = centre(origin);
+      if (reduced() || typeof doc.startViewTransition !== "function" || !c) { apply(); return false; }
+      var reach = c.far * 2.6;
       root.classList.add("theme-reveal");
-      var transition = doc.startViewTransition(run);
+      if (tide) root.classList.add("tide-reveal");
+      var transition = doc.startViewTransition(apply);
       transition.ready.then(function () {
         root.animate({
           maskSize: ["0px 0px", reach + "px " + reach + "px"],
-          maskPosition: [x + "px " + y + "px", (x - reach / 2) + "px " + (y - reach / 2) + "px"]
-        }, { duration: 850, easing: "cubic-bezier(.16, 1, .3, 1)", fill: "forwards", pseudoElement: "::view-transition-new(root)" });
+          maskPosition: [c.x + "px " + c.y + "px", (c.x - reach / 2) + "px " + (c.y - reach / 2) + "px"]
+        }, { duration: ms, easing: tide ? BLUE.ease : "cubic-bezier(.16, 1, .3, 1)", fill: "forwards", pseudoElement: "::view-transition-new(root)" });
+        if (then) then(c, reach);
       }).catch(function () {});
-      var done = function () { root.classList.remove("theme-reveal"); };
+      var done = function () { root.classList.remove("theme-reveal"); root.classList.remove("tide-reveal"); };
       if (transition.finished && transition.finished.then) transition.finished.then(done, done);
       else done();
+      return true;
+    }
+    // Tide's palette floods out from the control: the page turns blue inside a circle that grows from it, a ring of
+    // light riding the circle's edge (its band ends where the circle's thin soft edge begins, 96% of the way out) and
+    // a fainter one behind it. Without View Transitions the palette turns at once and the light runs out over it.
+    function flood(origin, apply, run) {
+      var light = function (c, reach) { if (run === seq && c && canDraw()) ring(c, reach * 0.96, "fx-tide"); };
+      if (!reveal(origin, apply, BLUE.flood, true, light)) { var c = centre(origin); if (c) light(c, c.far * 2.6); }
+    }
+    // Leaving Tide the page cross-fades back, quieter than it came.
+    function fade(apply) {
+      if (reduced() || typeof doc.startViewTransition !== "function") { apply(); return; }
+      root.classList.add("tide-ebb");
+      var transition = doc.startViewTransition(apply);
+      var done = function () { root.classList.remove("tide-ebb"); };
+      if (transition.finished && transition.finished.then) transition.finished.then(done, done);
+      else done();
+    }
+    // Runs the sequence towards `gear` from `origin` (the control pressed; its rings leave it): Gear Two's flash and
+    // glitch, Tide's surge, or the way out of the gear that is on (the glitch, or Tide's ebb). Switching straight
+    // between the gears runs the new gear's entrance. A sequence still running is cancelled first, and nothing more
+    // happens when the page is already in the gear it is asked for.
+    function switchGear(gear, origin, transient) {
+      var next = modeOf(gear), run = ++seq;
+      clearPhases();
+      heading = next;
+      press(next);
+      if (next === mode) return;
+      if (reduced()) { setGear(next, transient); return; }
+      if (next === "two") {
+        shockwave(origin);
+        root.setAttribute("data-phase", "flash");
+        at(GEAR.flash, function () { setGear("two", transient); root.setAttribute("data-phase", "glitch"); });
+        at(GEAR.settle, function () { root.setAttribute("data-phase", "settle"); });
+        at(GEAR.done, clearPhases);
+      } else if (next === "blue") {
+        root.setAttribute("data-phase", "surge");
+        at(BLUE.palette, function () { flood(origin, function () { if (run === seq) setGear("blue", transient); }, run); });
+        at(BLUE.done, clearPhases);
+      } else if (mode === "blue") {
+        root.setAttribute("data-phase", "ebb");
+        at(BLUE.exit, function () { fade(function () { if (run === seq) { setGear(null, transient); clearPhases(); } }); });
+      } else {
+        root.setAttribute("data-phase", "glitch");
+        at(GEAR.exit, function () { setGear(null, transient); clearPhases(); });
+      }
+    }
+    // A press on a gear's position engages that gear, and a press on the engaged one (or on the one a switch is
+    // heading for) returns to neutral. Without a gear named, it is Gear Two's.
+    function toggleGear(origin, which) {
+      var gear = which ? modeOf(which) : "two";
+      switchGear(heading === gear ? null : gear, origin);
+    }
+
+    /* light switch: a soft circle grows from the switch (View Transitions where available); it leaves either gear */
+    win.skyThemeTransition = function (apply, current, origin) {
+      var target = mode || heading ? "light" : current === "dark" ? "light" : "dark";
+      reveal(origin, function () {
+        clearPhases();
+        seq++;
+        if (mode || heading) setGear(null);
+        apply(target);
+      }, 850);
     };
 
     doc.addEventListener("click", function (event) {
       var t = event.target;
       if (!t || !t.closest) return;
-      var gearButton = t.closest("[data-gear-toggle]");
-      if (gearButton) toggleGear(gearButton);
+      var two = t.closest("[data-gear-toggle]"), blue = !two && t.closest("[data-gear-blue]");
+      if (two) toggleGear(two, "two");
+      else if (blue) toggleGear(blue, "blue");
       else if (t.closest("[data-motion-toggle]")) setMotion(reduced() ? "full" : "reduced");
     });
 
@@ -182,15 +250,19 @@
     win.addEventListener("pageswap", skip);
     win.addEventListener("pagereveal", skip);
 
-    setGear(gearOn);
+    setGear(mode);
     applyMotion();
 
-    var api = { motion: motion, setGear: setGear, toggleGear: toggleGear, switchGear: switchGear, isGear: function () { return gearOn; }, GEAR: GEAR, BEAT: BEAT };
+    var api = {
+      motion: motion, setGear: setGear, toggleGear: toggleGear, switchGear: switchGear,
+      isGear: function () { return !!mode; }, mode: function () { return mode; },
+      GEAR: GEAR, BLUE: BLUE, BEAT: BEAT, TIDE: TIDE
+    };
     win.SkyMotion = motion;
     win.skyGear = api;
     return api;
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BEAT: BEAT };
+  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BLUE: BLUE, BEAT: BEAT, TIDE: TIDE };
   else init({ document: document, window: global, storage: global.localStorage, session: global.sessionStorage, setTimeout: global.setTimeout.bind(global), clearTimeout: global.clearTimeout.bind(global) });
 })(typeof window !== "undefined" ? window : globalThis);

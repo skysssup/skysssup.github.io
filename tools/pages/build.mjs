@@ -64,14 +64,24 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 ${extra}</head>`;
 }
 
-const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);if(sessionStorage.getItem("sky-gear")==="two")r.setAttribute("data-gear","two");if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
+const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
 
 // The home page preloads the still that covers the figure until it is drawn, for the paper the page opens on (the
-// boot script has just set the theme and Gear Two): it is stippled from the ink map on light paper and from the light
-// map on dark, like the figure's dots (css/site.css --figure-preview).
-const PREVIEW = `(function(r,d){var t=r.getAttribute("data-theme"),dark=r.getAttribute("data-gear")==="two"||t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches),u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);`;
+// boot script has just set the theme and the gear): it is stippled from the ink map on light paper and from the light
+// map on dark, Gear Two's and Tide's included, like the figure's dots (css/site.css --figure-preview).
+const PREVIEW = `(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches),u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);`;
 
 const LINES = '<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
+
+// The gear shift's knob: a cog of eight teeth, which rolls a quarter turn (two teeth) between the gate's positions.
+function cog(n = 8, tip = 6.5, root = 4.7, tipHalf = 9.5, rootHalf = 14, hub = 1.9) {
+  const at = (r, deg) => { const a = deg * Math.PI / 180; return `${+(r * Math.sin(a)).toFixed(2)} ${+(-r * Math.cos(a)).toFixed(2)}`; };
+  const teeth = Array.from({ length: n }, (_, i) => {
+    const a = i * 360 / n;
+    return `${i ? '' : `M${at(root, a - rootHalf)}`}L${at(tip, a - tipHalf)}L${at(tip, a + tipHalf)}L${at(root, a + rootHalf)}A${root} ${root} 0 0 1 ${at(root, a + 360 / n - rootHalf)}`;
+  }).join('');
+  return `<svg class="gear-cog" viewBox="-7 -7 14 14" width="14" height="14"><path fill-rule="evenodd" d="${teeth}ZM${hub} 0A${hub} ${hub} 0 1 0 -${hub} 0A${hub} ${hub} 0 1 0 ${hub} 0Z"/></svg>`;
+}
 
 function header(active) {
   const cur = name => (active === name ? ' aria-current="page"' : '');
@@ -87,7 +97,11 @@ ${LINES}
       <a class="contact-link" href="/#contact">Contact</a>
     </nav>
     <div class="header-mid">
-      <button class="btn gear glitch-text" type="button" aria-pressed="false" data-gear-toggle>Gear Two</button>
+      <div class="gear" role="group" aria-label="Gear shift">
+        <button class="gear-pos glitch-text" type="button" data-gear-toggle><span class="vh">Gear </span>Two</button>
+        <button class="gear-pos glitch-text" type="button" data-gear-blue>Tide</button>
+        <span class="gear-gate" aria-hidden="true">${cog()}</span>
+      </div>
       <button class="grid-switch" type="button" aria-pressed="false" aria-keyshortcuts="g" data-grid-toggle>Grid</button>
       <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
