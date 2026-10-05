@@ -796,8 +796,10 @@
     "  px += (glint ? vec2(0.0) : flow) + u_offset;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift);",
     "  size *= shade * (1.0 + 0.4 * tw) * (1.0 + 0.25 * band) * (1.0 + 0.6 * star) * (1.0 - 0.3 * blown) * (1.0 + 0.2 * regrow) * (1.0 + 0.35 * strike);",
-    // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones
-    "  size *= mix(1.0, 0.82, a_c.b);",
+    // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones, on screens with the pixels
+    // for it: below 1.5 device pixels per CSS pixel a smaller dot is smaller than a pixel, and as the figure turns it
+    // flickers in and out of the pixels it crosses
+    "  size *= mix(1.0, 0.82, a_c.b * step(1.5, u_dpr));",
     // the face and the hands sit on a grid twice as fine: four dots, each 62% the size, where one would be
     "  size *= mix(1.0, 0.62, a_e.z);",
     "  size = mix(size * 0.7, size, k);",

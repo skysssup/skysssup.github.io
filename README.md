@@ -20,7 +20,9 @@ one-sided shine in each mode's colour, a figure that breathes and flows, the clo
 a blue gear reached by hand with a control that reads as a gear shift, and a new cursor in red) is
 [docs/next-4.md](docs/next-4.md); the earlier ones are `docs/next.md`, `next-2.md`, and `next-3.md`. Its QA tools are
 in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the opening under virtual time), `reel.mjs`,
-`fps.mjs`, `holdframe.mjs`, `margins.mjs`, `shadercheck.mjs`, and `counts.mjs`.
+`fps.mjs`, `holdframe.mjs`, `margins.mjs`, `shadercheck.mjs`, `counts.mjs`, `slide.mjs` (how unevenly the dots slide as
+the figure turns), and `poses.mjs` with `crops.py` (the figure at rest, mid-turn, and at both extremes, cropped beside the
+avatar).
 
 ## How it works
 
@@ -46,7 +48,7 @@ in `tools/qa/`: `shots.mjs` (screenshots, and a `film` mode that plays the openi
   map for the paper it opens on; when the lights or Gear Two change the paper, the other map is fetched, the figure
   dims until it arrives, and a band of light crosses it and swaps the dots behind it (at once under Gear Two's flash
   and glitch, and under reduced motion). It takes each dot's depth, surface normal, distance to the figure's edge, and detail from
-  `assets/hero/depth.webp` (the depth smoothed inside the figure first, so the lighting never bands), and its material
+  `assets/hero/depth.webp` (laid out as rigid parts, so the figure turns as a solid statue instead of its edges spraying apart, and smoothed inside the figure first, so the lighting never bands), and its material
   from `assets/hero/color.webp` (gold, marble, cloud, lightning, or glint), colored from a palette designed per mode
   in `css/site.css` that moves each material from its base to its lit color as the figure turns (marble stays ink; the
   map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the

@@ -6,7 +6,8 @@ Turns assets/avatar.jpg into the data the WebGL engine (js/hero.js) stipples at 
                              in 64 levels (dense where the statue is dark)
   assets/hero/light.webp     896x896, lossless, gray: where the dots go on dark paper, where they stand for light
                              (dense where the statue is lit), in 64 levels
-  assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), G = detail,
+  assets/hero/depth.webp     448x448, lossless: R = depth (near = bright, 0 = outside the figure), as rigid parts
+                             (rigid()), G = detail,
                              B = the sky's stars (0, or 1 + 254 x a star's strength)
   assets/hero/color.webp     448x448, lossless RGBA: R = material (gold, marble, cloud, lightning, glint) x 51,
                              G = how strongly the pixel belongs to it, B = how much of the figure there is the cloud
@@ -41,6 +42,7 @@ NORMALS_INPUT = 768
 INK_LEVELS = 64
 DENSITY = 0.85
 SHARPEN = 0.7                          # the unsharp mask over the whole figure
+STILL_GAIN = (0.965, 1.02)                # how wide the stills' dots are drawn, for the ink map and the light map
 CAVITY_INK, CAVITY_LIGHT = 0.35, 0.45  # how much a hollow darkens the ink, and takes from the light
 CLOUD_INK, CLOUD_LIGHT = 0.62, 0.6     # the clouds' darkest ink on light paper, and their brightest light on dark
 # The core of the body, in the chest (figure units): a sheen's wave of light runs out of the body from here.
@@ -286,7 +288,95 @@ def maps():
     # inside the bank the depth is smoothed and drawn into a narrow range around the statue's base.
     calm = blurf(vapour, 5.0)
     relief = dep * (1 - calm) + calm * (0.64 + 0.28 * blurf(dep, 8.0))
+    relief = rigid(relief, parts(relief, mask, statue))
     return relief, ink, light, mask, statue, detail, own
+
+
+# The figure's rigid parts, each of which turns as one body (labels 1-7 in PARTS order, 0 outside the figure):
+PARTS = ['wing', 'caduceus', 'arm', 'head', 'torso', 'reach', 'base']
+# drawn as polygons in the 424 px avatar's coordinates. The caduceus: its wings and the snakes' heads above the fist,
+# and below it the staff and the coils, which cross the wing in front of it (CADUCEUS_NEAR); the fist; the big wing,
+# up under the raised arm; the raised arm from the wrist to the shoulder; the head and its curls; the outstretched arm
+# and its open hand; the torso, from the neck and the shoulders down into the clouds. The base is the clouds, the rubble,
+# and the lightning.
+CADUCEUS_TOP = [(0, 0), (200, 0), (200, 92), (138, 92), (132, 106), (60, 106), (58, 92), (0, 92)]
+CADUCEUS_LOW = [(86, 104), (130, 104), (128, 150), (130, 200), (127, 250), (98, 256), (84, 200), (82, 150)]
+CADUCEUS_NEAR = 0.69
+FIST = [(84, 100), (126, 97), (133, 142), (90, 147)]
+WING = [(26, 155), (80, 176), (118, 190), (140, 196), (165, 214), (184, 232), (182, 272), (122, 270), (72, 244), (36, 207)]
+RAISED = [(106, 138), (132, 132), (160, 162), (178, 180), (190, 198), (196, 214), (192, 240), (178, 246), (160, 226),
+          (140, 204), (118, 172)]
+HEAD = [(166, 204), (170, 182), (182, 168), (203, 161), (224, 166), (237, 184), (238, 210), (232, 228), (213, 234),
+        (194, 232), (178, 224)]
+REACH = [(246, 270), (276, 282), (304, 304), (338, 328), (372, 332), (390, 346), (384, 374), (350, 378), (322, 362),
+         (292, 348), (262, 326), (238, 302)]
+CHEST = [(176, 212), (205, 236), (232, 232), (250, 250), (268, 268), (280, 300), (276, 345), (240, 355), (196, 355),
+         (165, 338), (160, 300), (168, 262), (172, 240)]
+# Each part's depth is smoothed over SIGMA px (at N; the base keeps the bank's own calm relief) and squeezed towards its
+# mean by SQUASH (the wing is thin and flat; the caduceus nearly so), and keeps KEEP of the depth's own detail within
+# +-DETAIL of that surface.
+SIGMA = {'wing': 12.0, 'caduceus': 7.0, 'arm': 6.0, 'head': 5.0, 'torso': 9.0, 'reach': 7.0, 'base': 0.0}
+SQUASH = {'wing': 0.55, 'caduceus': 0.8, 'arm': 1.0, 'head': 0.9, 'torso': 1.0, 'reach': 0.9, 'base': 1.0}
+KEEP, DETAIL = 0.35, 0.03
+
+
+def parts(relief, mask, statue):
+    """Which part each pixel of the figure belongs to (labels in PARTS order, 1-7; 0 outside): the polygons, painted
+    back to front, the caduceus below the fist only where it lies nearer than the wing it crosses, and whatever is left
+    taking its nearest part."""
+    inside = mask > 0.04
+    solid = statue > 0.3
+    label = np.zeros((N, N), np.int32)
+    paint = lambda area, name: label.__setitem__(inside & area, PARTS.index(name) + 1)
+    paint(solid & zone(CHEST, N), 'torso')
+    paint(clouds(N) & ~(solid & zone(TORSO, N)), 'base')
+    paint(zone(WING, N), 'wing')
+    paint(zone(REACH, N) | (zone(ARM, N) & solid), 'reach')
+    paint(zone(RAISED, N), 'arm')
+    paint(zone(HEAD, N), 'head')
+    paint(zone(CADUCEUS_TOP, N), 'caduceus')
+    paint(zone(CADUCEUS_LOW, N) & (relief > CADUCEUS_NEAR), 'caduceus')
+    paint(zone(RAISED, N) & ~zone(CADUCEUS_TOP, N), 'arm')
+    paint(zone(FIST, N), 'arm')
+    for _ in range(N):
+        empty = inside & (label == 0)
+        if not empty.any():
+            break
+        for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            near = np.roll(np.roll(label, dy, 0), dx, 1)
+            take = empty & (label == 0) & (near > 0)
+            label[take] = near[take]
+    label[~inside] = 0
+    return label
+
+
+def rigid(relief, label):
+    """The relief as rigid parts: each part's own smooth surface, so that as the figure turns its dots move together
+    instead of some sliding against their neighbours. The depth model's surface is noisy on thin forms (the feathers,
+    the coils, the fingers), and at every outline it falls away towards the sky over a few pixels, so the dots along an
+    edge sprayed apart as the figure turned. Each part's depth is smoothed inside its solid core only (not its fringe)
+    and carried out to its outline, keeps a little of its own detail, and the thin parts are squeezed into a narrower
+    range; then the parts are blended over a few pixels where they meet, so neighbours stretch a little rather than
+    tear, while each keeps its own surface right up to the figure's edge."""
+    out, total = np.zeros_like(relief), np.zeros_like(relief)
+    for k, name in enumerate(PARTS, 1):
+        part = (label == k).astype(np.float32)
+        if not part.any():
+            continue
+        surface = relief
+        if SIGMA[name]:
+            core = part * smoothstep(0.30, 0.45, relief) * (blurf(part, 2.0) > 0.9)
+            reach = blurf(core, SIGMA[name])
+            surface = blurf(relief * core, SIGMA[name]) / np.maximum(reach, 1e-6)
+            wide = blurf(relief * core, SIGMA[name] * 4) / np.maximum(blurf(core, SIGMA[name] * 4), 1e-9)
+            surface = np.where(reach < 1e-3, wide, surface)
+            mean = (surface * part).sum() / part.sum()
+            surface = mean + SQUASH[name] * (surface - mean)
+            surface = surface + KEEP * np.clip(relief - surface, -DETAIL, DETAIL) * smoothstep(0.5, 1.0, blurf(core, 2.0))
+        soft = blurf(part, 3.0)
+        out += soft * surface
+        total += soft
+    return np.where(total > 1e-6, out / np.maximum(total, 1e-6), relief)
 
 
 # The five materials, in index order. css/site.css gives each a base and a lit color per mode.
@@ -429,8 +519,8 @@ def lossless(a, name):
     Image.fromarray(a).save(os.path.join(OUT, name), 'WEBP', lossless=True, quality=100, method=6, exact=True)
 
 
-def still(levels, bn, dep, detail, meta, suffix):
-    """Still frame: the same threshold stipple at 1000px with round dots, smaller where detail is high, placed the way
+def still(levels, bn, dep, meta, suffix, gain):
+    """Still frame: the same threshold stipple at 1000px with round dots (`gain` times as wide), placed the way
     the engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in js/hero.js) and
     each dot is foreshortened by its depth around the centre of mass. The still covers the page until the first frame
     is drawn, so in the opening, where that frame is the figure held still in its ink, one turns into the other in
@@ -439,7 +529,7 @@ def still(levels, bn, dep, detail, meta, suffix):
     res = 860
     sx, sy, sv = stipple(levels, bn, res)
     iy, ix = np.minimum((sy + 0.5) / res * N, N - 1).astype(int), np.minimum((sx + 0.5) / res * N, N - 1).astype(int)
-    sd, sz = detail[iy, ix], dep[iy, ix]
+    sz = dep[iy, ix]
     (x0, y0, x1, y1), (px, py) = meta['bounds'], meta['center']
     k = 0.96 / max(x1 - x0, y1 - y0)
     ox, oy = (1 - (x1 - x0) * k) / 2 - x0 * k, (1 - (y1 - y0) * k) / 2 - y0 * k
@@ -449,8 +539,8 @@ def still(levels, bn, dep, detail, meta, suffix):
     u, v_ = (ox + (px + (fx - px) * persp) * k) * 2 * S, (oy + (py + (fy - py) * persp) * k) * 2 * S
     im = Image.new('L', (S * 2, S * 2), 0)
     dr = ImageDraw.Draw(im)
-    for cx, cy, v, dd, f in zip(u, v_, sv, sd, persp):
-        r = (0.9 + 0.55 * v) * 1.2 * (1 - 0.3 * dd) * k * f
+    for cx, cy, v, f in zip(u, v_, sv, persp):
+        r = (0.9 + 0.55 * v) * 1.2 * gain * k * f
         dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(160 + 95 * min(1, v * 1.4)))
     im = im.resize((S, S), Image.LANCZOS)
     rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])
@@ -534,8 +624,8 @@ def main():
     json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
     # the stills cover the page on light and dark paper, where the bank is not drawn
-    n = still(levels * (1 - own), bn, dep, detail, meta, '')
-    still(light_levels * (1 - own), bn, dep, detail, meta, '-dark')
+    n = still(levels * (1 - own), bn, dep, meta, '', STILL_GAIN[0])
+    still(light_levels * (1 - own), bn, dep, meta, '-dark', STILL_GAIN[1])
     print(json.dumps(meta), n, 'still points')
 
 
