@@ -32,7 +32,7 @@
   --figure-fill: #0b1a33;
   --figure-key: #3a2a1c;
   --figure-glint: #ffffff;
-  --figure-glint-edge: #b08d4a;
+  --figure-glint-edge: #2e2010;
   /* the figure's materials, base and lit (marble is --figure-ink); see docs/design-spec.md §5 */
   --mat-gold: #b8860b;
   --mat-gold-lit: #d4a017;
@@ -135,7 +135,7 @@
   --figure-fill: #b3122a;
   --figure-key: #ffb36b;
   --figure-glint: #fff1e6;
-  --figure-glint-edge: #ff8a7a;
+  --figure-glint-edge: #ffc4b4;
   --mat-gold: #ff9e80;
   --mat-gold-lit: #ffc9b8;
   --mat-cloud: #ff3b30;

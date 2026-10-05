@@ -821,9 +821,11 @@
     "  if (glint) {",
     "    float wave = 0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), twinkle = wave * wave * wave;",
     // a star of the sky (a_c.g) is smaller, and shows only where the paper is dark (u_sky), as the avatar's sky is
-    "    v_glint = clamp((0.15 + 0.35 * twinkle + 0.4 * band) * tint * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g);",
-    "    v_size = u_dot * mix(2.5 + 5.0 * a_p.w * a_p.w, 1.6 + 3.5 * a_p.w * a_p.w, a_c.g) * (0.7 + 0.3 * twinkle + 0.3 * band) * persp * u_dpr;",
-    "    v_sprite = v_size + 0.5;",
+    "    v_glint = clamp((0.55 + 0.45 * twinkle + 0.6 * band) * min(1.0, tint * 2.0) * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g);",
+    "    v_size = u_dot * mix(3.5 + 8.0 * a_p.w * a_p.w, 1.6 + 3.5 * a_p.w * a_p.w, a_c.g) * (0.8 + 0.2 * twinkle + 0.25 * band) * persp * u_dpr;",
+    // a handful of the strongest (one in five, chosen by where they are) carry longer spikes than the rest
+    "    float spiked = step(0.85, a_p.w) * step(r01(uint(a_p.x * 4096.0) * 73u + uint(a_p.y * 4096.0) * 151u), 0.2) * (1.0 - a_c.g);",
+    "    v_sprite = v_size * (1.0 + 0.8 * spiked) + 0.5;",
     // (a glint has no dot of its own: before the colours arrive it draws nothing, not a disc of its size)
     "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow * (1.0 - hidden) : 0.0;",
     "    v_star = v_blown = v_flare = 0.0;",
@@ -852,7 +854,7 @@
     "out vec4 o;",
     // an arm of a star along x: as thick as `t` at the centre, tapering to nothing at the sprite's edge (`ir`: one over
     // its half-width)
-    "float arm(vec2 m, float t, float ir) { float f = max(0.0, 1.0 - m.x * ir); return clamp(max(0.45, t * f) - m.y + 0.5, 0.0, 1.0) * f; }",
+    "float arm(vec2 m, float t, float ir, float least) { float f = max(0.0, 1.0 - m.x * ir); return clamp(max(least, t * f) - m.y + 0.5, 0.0, 1.0) * f; }",
     // A renderer without a GPU runs every branch of this shader for every pixel, taken or not, so the shapes share what
     // they can: the distance from the centre, the arms (a burst's star and a glint both have four long ones), and one
     // soft halo (a flare's wide one or a glint's tight glow), and none of them calls pow or a second exp.
@@ -863,8 +865,9 @@
     "  bool glint = v_glint > 0.0;",
     "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0);",
     "  vec3 c = v_color;",
-    "  float t = v_size * (glint ? 0.09 : 0.16), spikes = max(arm(m, t, ir), arm(m.yx, t, ir));",
-    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.03 : 1.2)));",
+    // (a glint's rays on white paper are drawn a little bolder, since a dark line half a pixel wide fades to nothing)
+    "  float t = v_size * (glint ? 0.09 : 0.16), least = glint ? mix(0.9, 0.45, u_positive) : 0.45, spikes = max(arm(m, t, ir, least), arm(m.yx, t, ir, least));",
+    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.04 : 1.2)));",
     // a star is a four-point cross over its disc: two thin arms that taper to the sprite's edge; its middle burns in
     // the sheen's core colour
     "  if (v_star > 0.0) {",
@@ -892,9 +895,12 @@
     // spark in a star of the sheen's blue on white paper, where white alone would not show
     "  if (glint) {",
     "    vec2 dg = vec2(m.x + m.y, abs(m.x - m.y)) * 0.70710678;",
-    "    float heart = clamp(v_size * 0.12 - d + 0.5, 0.0, 1.0);",
-    "    a = max(max(max(spikes, arm(dg, v_size * 0.07, ir * 1.8181818) * 0.8), heart), halo * 0.7) * v_glint;",
-    "    c = mix(u_glint[1], u_glint[0], heart);",
+    "    float heart = clamp(v_size * 0.15 - d + 0.5, 0.0, 1.0);",
+    "    float rays = max(min(1.0, spikes * 2.0), min(1.0, arm(dg, v_size * 0.07, ir * 1.8181818, least) * 1.2)), glow = halo * 0.75;",
+    "    a = max(max(rays, heart), glow) * v_glint;",
+    // the rays in the edge colour and the heart in its own; the glow around the heart is the edge colour's on dark
+    // paper and the heart's on white, where it lights the dots around it instead of darkening them
+    "    c = mix(u_glint[1], u_glint[0], max(heart, (1.0 - u_positive) * clamp((glow - rays) * 3.0, 0.0, 1.0)));",
     "  }",
     "  a *= v_alpha;",
     "  if (a <= 0.0) discard;",
