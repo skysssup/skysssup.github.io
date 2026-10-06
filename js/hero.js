@@ -38,7 +38,7 @@
   // Tide's tide: the slow rhythm that takes the heartbeat's place in the blue gear, every TIDE seconds on the same clock
   // as the page's tide (--tide-delay in js/motion.js and the CSS keyframes, which share the constant). VORTEX is how
   // long its entrance takes to lift into a vortex and to settle back, and when, as it settles, its sheen sets off (s).
-  var TIDE = 4.5, VORTEX = { rise: 0.22, settle: 0.26, shine: 0.34 };
+  var TIDE = 4.5, VORTEX = { rise: 0.18, settle: 0.42, shine: 0.20 };
   function longTearBeat(block) { return block * TEAR_BLOCK + 2 + Math.floor(hash(block * 7 + 101) * 3); }
   function tearSchedule(beat) {
     if (beat === longTearBeat(Math.floor(beat / TEAR_BLOCK))) return { frames: 8, tiles: 3, glitch: 0.8, after: true, long: true };
@@ -1755,8 +1755,7 @@
     function warmOther() {
       if (!meta || !set || warming) return;
       var other = set === "ink" ? "light" : "ink";
-      if (!sources[other]) { fetchMap(other); return; }
-      if (shapes[other]) return;
+      if (!sources[other] || shapes[other]) return;
       warming = true;
       var run = function () {
         warming = false;
@@ -2302,6 +2301,7 @@
       if (motion.reduced() || !ready) { inkNow = next; tintNow = tintFrom = tintTo = tint; inkAt = 0; }
       else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
+      if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
       // Tide's surge lifts the dots into a vortex that settles as the palette turns (never under reduced motion, where
       // the switch has no phases)
       if (phase === "surge" && phaseNow !== "surge" && canInteract()) { vortexAt = performance.now(); vortexShine = true; }
