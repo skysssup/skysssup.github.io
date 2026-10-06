@@ -183,14 +183,14 @@ test('a sheen sweeps the turned figure from the key light at the upper left, in 
   }
 });
 
-test('Tide comes in with a vortex that lifts and settles with the page, and its tide rises once a period on the page\'s clock', () => {
+test('Tide comes in with a vortex that lifts and settles in about a second, and its tide rises once a period on the page\'s clock', () => {
   const { vortex, tide, VORTEX, TIDE } = hero;
   assert.equal(TIDE, require('../js/motion.js').TIDE, 'the figure\'s tide keeps time with the page\'s');
   assert.equal(vortex(0), 0);
   assert.equal(vortex(-0.5), 0);
   assert.equal(vortex(VORTEX.rise), 1, 'the dots lift fully into the vortex');
   assert.equal(vortex(VORTEX.rise + VORTEX.settle), 0, 'and settle back in place');
-  assert.ok(VORTEX.rise + VORTEX.settle <= 0.6, 'the entrance settles with the page, not a second later');
+  assert.ok(VORTEX.rise + VORTEX.settle <= 1.2, 'in about a second');
   for (let t = 0.01; t < VORTEX.rise + VORTEX.settle; t += 0.01) {
     const v = vortex(t), w = vortex(t + 0.01);
     assert.ok(v >= 0 && v <= 1);

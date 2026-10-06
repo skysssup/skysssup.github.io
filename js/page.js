@@ -643,10 +643,13 @@
         canvas.className = "stipple";
         canvas.setAttribute("aria-hidden", "true");
         frame.appendChild(canvas);
+        // the frame holds its drawing from the start (so the canvas never lays out against the page and jumps in),
+        // but the photograph gives way to it only once it has actually been drawn
+        frame.classList.add("is-stippled");
         var plate = { img: img, frame: frame, canvas: canvas, drawn: false, seen: false };
         plate.draw = function () {
           plate.drawn = drawStipple(img, canvas) || plate.drawn;
-          if (plate.drawn) frame.classList.add("is-stippled");
+          if (plate.drawn) frame.classList.add("is-drawn");
           if (plate.drawn && plate.seen) frame.classList.add("is-developed");
         };
         if (!img.complete) img.addEventListener("load", plate.draw, { once: true });

@@ -42,7 +42,9 @@ paint can be checked bit for bit), `stillmatch.py` (that frame against the still
   4.5 s tide; the circle theme reveal (View Transitions), Lenis smooth scrolling, cross-page transitions.
   `switchGear(gear, origin, transient)` runs the sequence towards a gear (`"two"`, `"blue"`, or none; `true` and
   `false` still mean Gear Two and none); the hero's opening uses it to go to Gear Two and back without saving it to
-  the session.
+  the session. A new press skips the view transition, timers, and rings of the sequence it replaces; a press that
+  lands on a running transition's picture of the page goes on to the control under it; and reduced motion ends a
+  running switch at once in the gear it was heading for.
 - `js/hero.js` — the avatar as a WebGL2 stipple sculpture wrapped in a ring that carries one line in the statue's
   voice (`ringLine` in `tools/pages/site.json`; hovering a theme brightens it for 400 ms; a light reads along the line
   once every 7 s, 3.5 s in Gear Two, the glyphs it passes turning gold, ember in Gear Two, and a sheen's wave lifts
@@ -65,7 +67,7 @@ paint can be checked bit for bit), `stillmatch.py` (that frame against the still
   points, ink on white and a soft rim of light on dark, with the stipple clipped to it (the clouds keep their soft fade).
   The wing and the caduceus are drawn in strokes along their feathers and coils, an engraving's hatching, from the
   image's own local contrast. The avatar's own star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
-  in the hair or on a hand) twinkle over it as compact optical points, clearly visible and never dominant; on dark paper and in Gear Two the
+  in the hair or on a hand) twinkle over it as eight-point stars, clearly visible and never dominant; on dark paper and in Gear Two the
   stars of the avatar's sky come out around it too, far behind (read from the depth map's blue channel). The cursor stirs the dots like a hand through dust: they
   turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
   passes. Sway, lighting, the dots' drift, the cursor's stir, and Gear Two all run in the vertex shader. The figure is

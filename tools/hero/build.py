@@ -35,9 +35,6 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'assets', 'hero')
 AVATAR = os.path.join(ROOT, 'assets', 'avatar.jpg')
-SCULPTURE_PATH = os.path.join(ROOT, 'tools', 'hero', 'sculpture.json')
-with open(SCULPTURE_PATH, encoding='utf-8') as correction_file:
-    SCULPTURE = json.load(correction_file)
 N = 896          # ink map: about one map pixel per stipple cell at the largest figure
 M = 448          # depth, detail, and color maps: smooth fields, half the resolution
 DEPTH_INPUT = 1036
@@ -189,70 +186,6 @@ def u8(a):
     return np.clip(np.round(a * 255), 0, 255).astype(np.uint8)
 
 
-def local_field(spec, size=N):
-    """Authored broad relief plane, in source pixels; no invented fine anatomy.
-
-    A tapered ellipsoid keeps the palm/thenar, knuckle group, throat and pectoral
-    surfaces connected. Tilt is along the source's x axis. Corrections are applied
-    inside the accepted mask only, after part smoothing, so sky never becomes skin.
-    """
-    cx, cy, rx, ry, depth, bulge, tilt = spec
-    y, x = np.mgrid[0:size, 0:size] * 424 / (size - 1)
-    u, v = (x - cx) / rx, (y - cy) / ry
-    r2 = u * u + v * v
-    weight = 1 - smoothstep(0.45, 1.45, r2)
-    surface = depth + bulge * np.sqrt(np.clip(1 - r2 / 1.45, 0, 1)) + tilt * u * 0.025
-    return weight, surface
-
-
-def correct_relief(relief, mask):
-    out = relief.copy()
-    for spec in SCULPTURE['structuralRelief'] + SCULPTURE['bodyRelief'] + SCULPTURE['openHand']['relief'] + [SCULPTURE['support']['relief']]:
-        weight, surface = local_field(spec)
-        weight *= smoothstep(0.05, 0.65, mask) * 0.72
-        out = out * (1 - weight) + surface * weight
-    return out
-
-
-def sculpture_tone(ink, light, lum, mask, cavity):
-    """Separate broad source value from fine marks in the protected anatomy.
-
-    The original tone saturated independent depth-step, cavity, signed high-pass,
-    contrast and sharpening terms. Here source lighting leads; local marks are
-    bounded, and a highlight retains real middle-density coverage on white.
-    This is local reconstruction, not a global blur or a density multiplier.
-    """
-    for region in SCULPTURE['regions']:
-        area = blurf(zone(region['polygon'], N).astype(np.float32), 3.2)
-        weight = area * region['tone'] * (mask > 0.02)
-        # Native source pixel scale, rather than the upscale's hallucinated pores.
-        broad = blurf(lum, region['radius'] * N / 424)
-        marks = np.clip(blurf(lum, 0.8) - broad, -0.13, 0.13)
-        recess = np.minimum(cavity, 0.48)
-        mark_gain = {'raised-grip': 1.65, 'face-throat': 1.1, 'curls': 1.0}.get(region['name'], 0.65)
-        ink_plane = (0.17 + 0.55 * (1 - broad ** 0.72) - mark_gain * marks + 0.045 * recess) * mask
-        light_plane = (0.065 + 0.77 * broad ** 0.82 + mark_gain * marks - 0.055 * recess) * mask
-        ink = ink * (1 - weight) + np.clip(ink_plane, 0, 1) * weight
-        light = light * (1 - weight) + np.clip(light_plane, 0, 1) * weight
-    # Native source shows three curled finger groups and an opposing thumb.
-    # Neither the inferred normals nor a broad luminance filter retains their
-    # low-contrast planes. Authored curved ridges carry these middle forms; their
-    # soft falloff avoids reintroducing black outlined bands.
-    y, x = np.mgrid[0:N, 0:N] * 424 / (N - 1)
-    grip = zone(FIST, N) * mask
-    for curve in SCULPTURE['gripCurves']:
-        distance = np.full((N, N), np.inf)
-        for a, b in zip(curve['path'], curve['path'][1:]):
-            ax, ay = a; bx, by = b
-            t = np.clip(((x-ax)*(bx-ax)+(y-ay)*(by-ay))/((bx-ax)**2+(by-ay)**2), 0, 1)
-            distance = np.minimum(distance, (x-ax-t*(bx-ax))**2+(y-ay-t*(by-ay))**2)
-        ridge = np.exp(-distance/(2*curve['width']**2)) * grip
-        ink -= ridge * curve['light'] * 0.8
-        light += ridge * curve['light']
-    ink, light = np.clip(ink, 0, 1), np.clip(light, 0, 1)
-    return ink, light
-
-
 def maps():
     src = Image.open(AVATAR).convert('RGB').resize((N, N), Image.LANCZOS)
     rgb = np.asarray(src, np.float32) / 255
@@ -272,23 +205,7 @@ def maps():
     t = np.clip(((xx - ax) * (bx - ax) + (yy - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2), 0, 1)
     arm = 1 - smoothstep(0.06, 0.10, np.hypot(xx - (ax + t * (bx - ax)), yy - (ay + t * (by - ay))))
     statue = figure * base * sides * (1 - cloud * (1 - np.maximum(under, arm)))
-    # The depth estimate deletes the foreshortened fingertips and fills their
-    # negative space. Replace only this source-traced window, before mask blur.
-    hand = SCULPTURE['openHand']
-    window = zone(hand['window'], N)
-    traced = zone(hand['silhouette'], N).astype(np.float32)
-    hand_weight = window * smoothstep(320 / 424, 328 / 424, xx)
-    statue = statue * (1 - hand_weight) + traced * hand_weight
-    # Retain the source's ledge/contact footprint where depth alone drops it.
-    support = zone(SCULPTURE['support']['polygon'], N)
-    statue = np.maximum(statue, support * smoothstep(0.07, 0.21, lum) * 0.94)
     statue = np.where(statue < 0.08, 0, statue)
-    # Framing stays the repaired statue's. The lower world is drawn with it, but
-    # it must not move the pivot or shrink the figure by expanding the bounds.
-    frame = statue.copy()
-    cloud_l, rubble_l, energy_l, lower_relief, lower_top = lower_fields(N)
-    lower = np.maximum(np.maximum(cloud_l, rubble_l * 0.96), energy_l * 0.9)
-    statue = np.maximum(statue, lower * 0.9)
     # The cloud bank around and below him, beyond what the depth model puts in front of the sky: the avatar's billows
     # wherever they are lit against the dark sky between them, across the band below the statue, fading into the
     # paper over a long soft gradient at the bottom and both sides, and before the open hand, which reads against
@@ -299,13 +216,6 @@ def maps():
         * (1 - smoothstep(0.56, 0.76, xx)) * (1 - smoothstep(0.83, 0.985, yy))
     mask = blurf(np.maximum(statue, bank), 1.6)
     statue = blurf(statue, 1.6)
-    frame = blurf(frame, 1.6)
-    # Keep the source's narrow finger-group notch through map reduction. The
-    # generic silhouette kernel otherwise rounds it into a mitten.
-    hand_edge = blurf(traced, 0.75)
-    mask = mask * (1 - hand_weight) + hand_edge * hand_weight
-    statue = statue * (1 - hand_weight) + hand_edge * hand_weight
-    frame = frame * (1 - hand_weight) + hand_edge * hand_weight
     # How much of the figure at each pixel is the bank's alone (0 on the statue and the modest cloud right under it, 1
     # out in the billows): the engine draws the bank only in Gear Two, so on light and dark paper the statue rises from
     # its own base cloud as it did before the bank came in.
@@ -380,42 +290,15 @@ def maps():
     edge_lit = lit + (1 - lit) * (1 - smoothstep(0.6, 0.95, blurf(billow, 4.0)))
     ink = ink * (1 - vapour) + vapour * sharpen(CLOUD_INK * (1 - edge_lit) ** 1.2, whole) * mask
     light = light * (1 - vapour) + vapour * sharpen(CLOUD_LIGHT * (0.12 + 0.88 * lit), whole) * mask
-    # Break the closed oval: thin the upper-right vapour so the left rise and the
-    # foreground edge do not read as one pancake.
-    right_fade = smoothstep(0.52, 0.74, xx) * smoothstep(0.68, 0.80, yy)
-    ink = ink * (1 - vapour * right_fade * 0.72)
-    light = light * (1 - vapour * right_fade * 0.45)
-    # Authored lobes: quiet cloud with lit tops and darker interiors, rubble with a
-    # brighter top plane, and a sparse energy core that is not a vertical smudge.
-    # These replace the engraving only where the lobe is actually present.
-    if lower.max() > 0:
-        cloud_ink = np.clip(0.10 + 0.16 * (1 - lower_top), 0, 1)
-        cloud_light = np.clip(0.10 + 0.42 * lower_top + 0.08 * cloud_l, 0, 1)
-        side = np.clip(1 - lower_top, 0, 1)
-        rubble_ink = np.clip(0.22 + 0.28 * side, 0, 1)
-        rubble_light = np.clip(0.16 + 0.58 * lower_top, 0, 1)
-        energy_ink = np.clip(0.28 + 0.4 * energy_l, 0, 1)
-        energy_light = np.clip(0.55 + 0.4 * lower_top, 0, 1)
-        ink = ink * (1 - cloud_l) + cloud_ink * cloud_l
-        light = light * (1 - cloud_l) + cloud_light * cloud_l
-        ink = ink * (1 - rubble_l) + rubble_ink * rubble_l
-        light = light * (1 - rubble_l) + rubble_light * rubble_l
-        ink = ink * (1 - energy_l) + energy_ink * energy_l
-        light = light * (1 - energy_l) + energy_light * energy_l
     # The clouds lie in a shallow relief of their own. The depth model puts the far billows well behind the near bank,
     # and that step would show as a seam of tilted dots, and the billows would slide apart as the figure turns; so
     # inside the bank the depth is smoothed and drawn into a narrow range around the statue's base.
     calm = blurf(vapour, 5.0)
     relief = dep * (1 - calm) + calm * (0.64 + 0.28 * blurf(dep, 8.0))
-    if lower.max() > 0:
-        seat = blurf(lower, 3.0)
-        relief = relief * (1 - seat) + np.maximum(relief * 0.92, lower_relief) * seat
     label = parts(relief, mask, statue)
     relief = rigid(relief, label)
-    relief = correct_relief(relief, mask)
     ink, light = feathers(ink, light, lum, label, mask)
-    ink, light = sculpture_tone(ink, light, lum, mask, cavity)
-    return relief, ink, light, mask, statue, detail, own, label, frame
+    return relief, ink, light, mask, statue, detail, own, label
 
 
 def feathers(ink, light, lum, label, mask):
@@ -430,14 +313,11 @@ def feathers(ink, light, lum, label, mask):
     # left in it would punch holes in the feathers that scramble their rows)
     smooth = np.asarray(Image.fromarray(u8(lum)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5)), np.float32) / 255
     hp = blurf(smooth, 1.0) - blurf(smooth, 7.0)
-    z = np.clip(hp / (np.sqrt(blurf(hp * hp, 7.0)) + 0.07), -1.5, 1.5)
+    z = np.clip(hp / (np.sqrt(blurf(hp * hp, 7.0)) + 0.02), -2.5, 2.5)
     plumed = np.isin(label, [PARTS.index('wing') + 1, PARTS.index('caduceus') + 1]).astype(np.float32)
     w = blurf(plumed, 2.0) * (mask > 0.02)
-    # Broad tier value comes from the reference; the signed detail only names
-    # subordinate feather/coil separations instead of outlining every scallop.
-    broad = blurf(smooth, 3.2)
-    ink = ink * (1 - w) + np.clip(0.23 + 0.42 * (1 - broad ** 0.7) - 0.13 * z, 0, 1) * mask * w
-    light = light * (1 - w) + np.clip(0.07 + 0.72 * broad ** 0.75 + 0.105 * z, 0, 1) * mask * w
+    ink = ink * (1 - w) + np.clip(0.9 * blurf(ink, 5.0) - FEATHER_INK * z, 0, 1) * mask * w
+    light = light * (1 - w) + np.clip(blurf(light, 5.0) + FEATHER_LIGHT * z, 0, 1) * mask * w
     return ink, light
 
 
@@ -472,7 +352,7 @@ KEEP, DETAIL = 0.35, 0.03
 # edge against the sky): the raised arm and the caduceus over the wing, the outstretched arm before the clouds, and the
 # head over the raised arm and the chest. Elsewhere parts grow out of each other (the arms out of the shoulders) or sink
 # into the clouds, and no line is drawn.
-OVER = [['arm', 'wing'], ['caduceus', 'wing'], ['reach', 'base'], ['head', 'arm']]
+OVER = [['arm', 'wing'], ['caduceus', 'wing'], ['reach', 'base'], ['head', 'arm'], ['head', 'torso']]
 # A part's label in depth.webp's blue, inside the figure: its number in PARTS times PART_STEP, less half a step where
 # the figure is still only its soft fringe (the mask under one half), outside the statue's edge.
 PART_STEP = 32
@@ -504,18 +384,12 @@ def parts(relief, mask, statue):
     paint = lambda area, name: label.__setitem__(inside & area, PARTS.index(name) + 1)
     paint(solid & zone(CHEST, N), 'torso')
     paint(clouds(N) & ~(solid & zone(TORSO, N)), 'base')
-    # Authored lobes are base even where the source cloud polygon does not reach.
-    lobes = lower_fields(N)[:3]
-    paint(np.maximum(lobes[0], np.maximum(lobes[1], lobes[2])) > 0.22, 'base')
     paint(zone(WING, N), 'wing')
     paint(zone(REACH, N) | (zone(ARM, N) & solid), 'reach')
     paint(zone(RAISED, N), 'arm')
     paint(zone(HEAD, N), 'head')
     paint(zone(CADUCEUS_TOP, N), 'caduceus')
     paint(zone(CADUCEUS_LOW, N) & (relief > CADUCEUS_NEAR), 'caduceus')
-    # The visible shaft is not lost when an inferred depth dips behind the wing.
-    # The source-traced grip is painted over it below, preserving finger contact.
-    paint(zone(SCULPTURE['staffSilhouette'], N), 'caduceus')
     paint(zone(RAISED, N) & ~zone(CADUCEUS_TOP, N) & ~zone(HEAD, N), 'arm')
     paint(zone(FIST, N), 'arm')
     for _ in range(N):
@@ -597,47 +471,6 @@ def clouds(size):
     return ((yy > 330) | ((xx < 165) & (yy > 280))) & ~zone(TORSO, size) & ~zone(ARM, size)
 
 
-def lower_fields(size):
-    """Authored lower world: cloud lobes, rubble planes, and a small energy core.
-
-    Each entry is cx, cy, rx, ry, relief in 424-pixel source coordinates. The masks
-    only fill paper the statue does not already occupy, and they stop at the open
-    hand, the wing, and the torso, so Agent 1's anatomy is not repainted. Returns
-    cloud, rubble, energy, and a relief field, each in 0..1.
-    """
-    y, x = np.mgrid[0:size, 0:size] * (424 / max(size - 1, 1))
-    cloud = np.zeros((size, size), np.float32)
-    rubble = np.zeros((size, size), np.float32)
-    energy = np.zeros((size, size), np.float32)
-    relief = np.zeros((size, size), np.float32)
-    top = np.zeros((size, size), np.float32)
-
-    def paint(target, item, gain=1.0):
-        cx, cy, rx, ry, depth = item
-        u, v = (x - cx) / rx, (y - cy) / ry
-        r2 = u * u + v * v
-        weight = np.clip(1 - smoothstep(0.42, 1.08, r2), 0, 1)
-        # y grows downward, so a negative v is the lit top of a lobe.
-        lit = np.clip(0.35 - 0.65 * v, 0, 1)
-        target[:] = np.maximum(target, weight * gain)
-        relief[:] = np.maximum(relief, weight * depth)
-        top[:] = np.maximum(top, weight * lit)
-
-    for item in SCULPTURE['lowerWorld']['clouds']:
-        paint(cloud, item, 0.92)
-    for item in SCULPTURE['lowerWorld']['rubble']:
-        paint(rubble, item, 1.0)
-    for item in SCULPTURE['lowerWorld']['energy']:
-        paint(energy, item, 1.0)
-    hand = zone(SCULPTURE['openHand']['silhouette'], size) | zone(ARM, size) | zone(REACH, size)
-    anatomy = zone(WING, size) | zone(HEAD, size) | zone(RAISED, size) | zone(FIST, size) | zone(TORSO, size)
-    blocked = hand | anatomy
-    # A one-pixel feather keeps a lobe from slicing a hard hole against the torso.
-    blocked = blurf(blocked.astype(np.float32), 0.8 if size >= N else 0.4) > 0.35
-    keep = ~blocked
-    return cloud * keep, rubble * keep, energy * keep, relief * keep, top * keep
-
-
 def material_map(inside, own):
     """Which material each pixel of the figure is made of. Color alone cannot tell them apart in this image: gold,
     marble, cloud, and glint overlap in every CIELAB channel, and a five-way k-means over the figure splits it by
@@ -673,20 +506,11 @@ def material_map(inside, own):
     speck = smoothstep(2, 10, L - blurf(L, 4.0))
     glint = smoothstep(4, 12, -b) * smoothstep(25, 45, L) * speck
     paint((caduceus | wing) & (glint > 0.25), 'glint', glint)
-    # Curls share the stone's connected value; source warmth is reflected light,
-    # not evidence that the entire head is a separate metal cap.
-    paint(hair, 'marble', np.zeros((M, M)))
+    paint(hair, 'gold', np.ones((M, M)))
     paint(below, 'cloud', np.ones((M, M)))
-    # Pink billows fail a warmth test for gold and turn the base mauve. Metal in
-    # the lower world is the authored ledge only; the source's cyan core stays energy.
-    lightning = blue * smoothstep(55, 75, L)
-    paint(below & (lightning > 0.55), 'lightning', lightning)
-    # Authored masses win over the source's rose/cyan classification, so white and
-    # dark get rubble planes and a localized core instead of one tinted wash.
-    cloud_l, rubble_l, energy_l, _, _ = lower_fields(M)
-    paint(cloud_l > 0.28, 'cloud', np.clip(cloud_l, 0, 1))
-    paint(rubble_l > 0.3, 'gold', np.clip(0.55 + 0.45 * rubble_l, 0, 1))
-    paint(energy_l > 0.34, 'lightning', np.clip(energy_l, 0, 1))
+    paint(below & (b > 8), 'gold', warm)
+    lightning = blue * smoothstep(50, 70, L)
+    paint(below & (lightning > 0.35), 'lightning', lightning)
     edge = np.zeros((M, M))
     edge[:, 1:] += index[:, 1:] != index[:, :-1]
     edge[1:, :] += index[1:, :] != index[:-1, :]
@@ -699,9 +523,6 @@ def material_map(inside, own):
     lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
     sparkle = np.clip((lum - blurf(lum, 2.5) - 0.10) / 0.22, 0, 1) * smoothstep(0.55, 0.85, lum)
     sparkle = np.clip(blurf(sparkle, 0.7) * 1.4, 0, 1)
-    # Cloud and energy are not a field of identical glint stamps. A few rubble
-    # catches remain; the face and hands stay marble and are already excluded.
-    sparkle = sparkle * (1 - np.clip(cloud_l * 1.4 + energy_l, 0, 1))
     rgba = np.dstack([index * 51, u8(weight), np.where(inside, u8(np.round(half(own) * 15) / 15), 0), 128 + np.round(sparkle * 127)]).astype(np.uint8)
     lossless(rgba, 'color.webp')
     return index, weight, sparkle
@@ -814,11 +635,6 @@ def outline(codes, inside, spacing):
     for p in range(1, len(PARTS) + 1):
         if p == base or not (solid & (label == p)).any():
             continue
-        # Mirrors the runtime's source-feature kernel in edges().
-        sigma = min(EDGE_BLUR, 0.65) if PARTS[p - 1] == 'reach' else EDGE_BLUR
-        r = int(np.ceil(sigma * 3))
-        k = np.arange(-r, r + 1)
-        kernel = np.exp(-k * k / (2 * sigma * sigma)); kernel /= kernel.sum()
         soft = blur((solid & (label == p)).astype(np.float64))
         field = np.maximum(field, soft)
         at = lambda x, y: soft[min(max(y, 0), last), min(max(x, 0), last)]
@@ -944,7 +760,7 @@ def main():
         return
     if '--upscale' in sys.argv:
         upscale()
-    dep, ink, light, mask, statue, detail, own, label, frame = maps()
+    dep, ink, light, mask, statue, detail, own, label = maps()
     inside = half(mask) > 0.04
     index, weight, sparkle = material_map(inside, own)
     if '--color' in sys.argv:
@@ -965,8 +781,8 @@ def main():
 
     # the frame and the centre (the pivot the figure turns about) are the statue's; the cloud bank's soft edge runs
     # past them
-    ys, xs = np.nonzero(frame > 0.05)
-    w = frame[ys, xs]
+    ys, xs = np.nonzero(statue > 0.05)
+    w = statue[ys, xs]
     meta = {
         'size': N,
         'depth': M,
@@ -983,7 +799,6 @@ def main():
         'over': OVER,
         'joints': {name: list(j) for name, j in JOINTS.items()},
     }
-    # Match the repository's canonical text bytes on every build host.
     with open(os.path.join(OUT, 'hero.json'), 'w', newline='\n') as metadata_file:
         json.dump(meta, metadata_file, indent=1)
 

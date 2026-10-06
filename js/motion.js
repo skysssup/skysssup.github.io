@@ -4,14 +4,11 @@
   "use strict";
 
   // Gear Two timing (ms): flash, then the palette switches and glitches, then it settles.
-  var GEAR = { flash: 90, settle: 420, done: 720, exit: 220 };
-  // Tide timing (ms): the surge, in which the palette turns at `palette` and a non-hit-testing ring floods out
-  // from the control for `flood`. The live page changes underneath. There is no root snapshot. The entrance
-  // settles by `done` (about 600 ms), not a second later.
-  var BLUE = { palette: 120, flood: 480, ease: "cubic-bezier(.22, .61, .36, 1)", done: 600, exit: 220 };
-  // Tide ↔ Gear Two (ms): the destination is committed at once and the old ceremony is dropped. The short
-  // retarget is the only remaining phase, inside the 220–420 ms band.
-  var RETARGET = 320;
+  var GEAR = { flash: 90, settle: 650, done: 1050, exit: 300 };
+  // Tide timing (ms): the surge, in which the palette turns at `palette` and floods out from the control for `flood`
+  // (on `ease`, which the ring riding the flood's edge shares in css/site.css), and the ebb, after which the page
+  // cross-fades back.
+  var BLUE = { palette: 120, flood: 1000, ease: "cubic-bezier(.22, .61, .36, 1)", done: 1200, exit: 300 };
   // Gear Two heartbeat period (s); the same constant lives in the hero's heartbeat() and in the CSS keyframes.
   var BEAT = 0.9;
   // Tide's period (s): the slow tide that takes the heartbeat's place in the blue gear, in CSS and in the hero.
@@ -27,9 +24,12 @@
     var osReduced = win.matchMedia("(prefers-reduced-motion: reduce)");
     var subscribers = [];
     var timers = [];
-    // the gear the page is in, the one a running switch is heading for, and which switch that is (a view
-    // transition's callback runs late, and does nothing once another switch has started)
-    var mode = modeOf(root.getAttribute("data-gear")), heading = mode, seq = 0;
+    // the gear the page is in, the one a running switch is heading for, which switch that is (a view transition's
+    // callback runs late, and does nothing once another switch has started), and whether it is the opening's own
+    var mode = modeOf(root.getAttribute("data-gear")), heading = mode, seq = 0, transientRun = false;
+    // the view transition running now (the lights' circle, Tide's flood, or its cross-fade): a newer switch, or
+    // reduced motion, skips it instead of waiting on its picture of the old page
+    var active = null;
     var smoother = null;
     var scrollLocked = false;
 
@@ -50,7 +50,8 @@
       var r = reduced();
       if (r) {
         root.setAttribute("data-motion", "reduced");
-        // An already-running reveal must end. CSS duration 0 does not cancel a view-transition snapshot.
+        // a switch already running ends at once in the gear it was heading for (a CSS duration of 0 does not stop a
+        // view transition or the timers behind its phases)
         finishNow();
       } else root.removeAttribute("data-motion");
       var toggles = doc.querySelectorAll("[data-motion-toggle]");
@@ -101,20 +102,25 @@
       timers = [];
       root.removeAttribute("data-phase");
     }
+    // Ends the view transition running now and takes its classes off the root (once: a skipped one is no longer active).
+    function skipActive() {
+      var transition = active;
+      if (!transition) return;
+      active = null;
+      ["theme-reveal", "tide-reveal", "tide-ebb"].forEach(function (name) { root.classList.remove(name); });
+      if (typeof transition.skipTransition === "function") transition.skipTransition();
+    }
     function dropOverlays() {
-      if (!doc.querySelectorAll) return;
-      var nodes = doc.querySelectorAll(".fx-flood, .fx-tide, .fx-ring");
+      var nodes = doc.querySelectorAll(".fx-tide, .fx-ring");
       for (var i = 0; i < nodes.length; i++) if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
     }
-    // Commit the gear the visitor already asked for and throw away the ceremony.
+    // Commits the gear a running switch was heading for and drops the rest of its sequence.
     function finishNow() {
       clearPhases();
       seq++;
+      skipActive();
       dropOverlays();
-      root.classList.remove("theme-reveal");
-      root.classList.remove("tide-reveal");
-      root.classList.remove("tide-ebb");
-      if (heading !== mode) setGear(heading);
+      if (heading !== mode) setGear(heading, transientRun);
     }
     // Gear Two's heartbeat (0.9 s) and Tide's tide (4.5 s) run on the hero's clock (performance.now). CSS animations
     // that pulse with them start from the same phase through --beat-delay and --tide-delay, so the page and the dots agree.
@@ -158,7 +164,6 @@
       var el = doc.createElement("span");
       el.className = name;
       el.setAttribute("aria-hidden", "true");
-      el.style.pointerEvents = "none";
       el.style.left = c.x + "px";
       el.style.top = c.y + "px";
       el.style.setProperty("--reach", Math.round(reach) + "px");
@@ -172,47 +177,63 @@
       var c = centre(origin);
       if (c && canDraw()) ring(c, c.far * 2 + 48, "fx-ring");
     }
-    // The live page changes immediately. A circle of light grows from the control and does not hit-test,
-    // so a second press still reaches the real button. A root view-transition snapshot used to cover the
-    // hero and swallow that press; navigation transitions are left alone.
+    // Runs `apply` inside a view transition with the root `classes` that style it. A newer transition skips this one,
+    // and only the latest cleans up after itself.
+    function transit(apply, classes) {
+      skipActive();
+      classes.forEach(function (name) { root.classList.add(name); });
+      var transition = active = doc.startViewTransition(apply);
+      var done = function () {
+        if (active !== transition) return;
+        active = null;
+        classes.forEach(function (name) { root.classList.remove(name); });
+      };
+      if (transition.finished && transition.finished.then) transition.finished.then(done, done);
+      else done();
+      return transition;
+    }
+    // A circle of the new page grows from `origin` while `apply` makes the change (View Transitions): the lights' soft
+    // circle, or Tide's flood with its sharper edge (`tide`). `then` runs as the circle starts to grow.
     function reveal(origin, apply, ms, tide, then) {
-      apply();
       var c = centre(origin);
-      if (reduced() || !c || !canDraw()) return false;
+      if (reduced() || typeof doc.startViewTransition !== "function" || !c) { apply(); return false; }
       var reach = c.far * 2.6;
-      ring(c, tide ? reach * 0.96 : reach, tide ? "fx-tide" : "fx-flood");
-      if (then) then(c, reach);
+      var transition = transit(apply, tide ? ["theme-reveal", "tide-reveal"] : ["theme-reveal"]);
+      transition.ready.then(function () {
+        root.animate({
+          maskSize: ["0px 0px", reach + "px " + reach + "px"],
+          maskPosition: [c.x + "px " + c.y + "px", (c.x - reach / 2) + "px " + (c.y - reach / 2) + "px"]
+        }, { duration: ms, easing: tide ? BLUE.ease : "cubic-bezier(.16, 1, .3, 1)", fill: "forwards", pseudoElement: "::view-transition-new(root)" });
+        if (then) then(c, reach);
+      }).catch(function () {});
       return true;
     }
+    // Tide's palette floods out from the control: the page turns blue inside a circle that grows from it, a ring of
+    // light riding the circle's edge (its band ends where the circle's thin soft edge begins, 96% of the way out) and
+    // a fainter one behind it. Without View Transitions the palette turns at once and the light runs out over it.
     function flood(origin, apply, run) {
-      if (run !== seq) return;
-      reveal(origin, apply, BLUE.flood, true);
+      var light = function (c, reach) { if (run === seq && c && canDraw()) ring(c, reach * 0.96, "fx-tide"); };
+      if (!reveal(origin, apply, BLUE.flood, true, light)) { var c = centre(origin); if (c) light(c, c.far * 2.6); }
     }
+    // Leaving Tide the page cross-fades back, quieter than it came.
     function fade(apply) {
-      apply();
+      if (reduced() || typeof doc.startViewTransition !== "function") { apply(); return; }
+      transit(apply, ["tide-ebb"]);
     }
     // Runs the sequence towards `gear` from `origin` (the control pressed; its rings leave it): Gear Two's flash and
     // glitch, Tide's surge, or the way out of the gear that is on (the glitch, or Tide's ebb). Switching straight
-    // between the gears runs the new gear's entrance. A sequence still running is cancelled first, and nothing more
-    // happens when the page is already in the gear it is asked for.
+    // between the gears runs the new gear's entrance. A sequence still running is cancelled first (its timers, its
+    // view transition, and its rings), and nothing more happens when the page is already in the gear it is asked for.
     function switchGear(gear, origin, transient) {
-      var next = modeOf(gear), run = ++seq, from = mode;
+      var next = modeOf(gear), run = ++seq;
       clearPhases();
+      skipActive();
       dropOverlays();
       heading = next;
+      transientRun = !!transient;
       press(next);
       if (next === mode) return;
       if (reduced()) { setGear(next, transient); return; }
-      // Already in a gear: commit the other one now. Replaying its entrance from neutral stacks a flash
-      // or a surge on top of a palette the visitor has already left.
-      if (from && next) {
-        setGear(next, transient);
-        root.setAttribute("data-phase", "retarget");
-        if (next === "two") shockwave(origin);
-        else reveal(origin, function () {}, BLUE.flood, true);
-        at(RETARGET, function () { if (run === seq) clearPhases(); });
-        return;
-      }
       if (next === "two") {
         shockwave(origin);
         root.setAttribute("data-phase", "flash");
@@ -249,8 +270,30 @@
       }, 850);
     };
 
+    // While a view transition runs, the browser hit-tests its pictures, which belong to the root, so a press meant
+    // for a control lands on the root and would be lost. A press that starts there goes on to the control under it,
+    // and the transition is skipped so the press acts on the live page.
+    var covered = null;
+    function controlAt(x, y) {
+      var nodes = doc.querySelectorAll("a[href], button, summary, label, input, select, textarea");
+      for (var i = nodes.length - 1; i >= 0; i--) {
+        var r = nodes[i].getBoundingClientRect();
+        if (r.width && r.height && x >= r.left && x < r.right && y >= r.top && y < r.bottom) return nodes[i];
+      }
+      return null;
+    }
+    doc.addEventListener("pointerdown", function (event) {
+      covered = active && event.target === root ? { x: event.clientX, y: event.clientY } : null;
+    }, true);
+
     doc.addEventListener("click", function (event) {
       var t = event.target;
+      if (t === root && covered) {
+        var hit = controlAt(covered.x, covered.y);
+        covered = null;
+        if (hit) { skipActive(); hit.click(); }
+        return;
+      }
       if (!t || !t.closest) return;
       var two = t.closest("[data-gear-toggle]"), blue = !two && t.closest("[data-gear-blue]");
       if (two) toggleGear(two, "two");
@@ -271,13 +314,13 @@
     var api = {
       motion: motion, setGear: setGear, toggleGear: toggleGear, switchGear: switchGear,
       isGear: function () { return !!mode; }, mode: function () { return mode; },
-      GEAR: GEAR, BLUE: BLUE, RETARGET: RETARGET, BEAT: BEAT, TIDE: TIDE
+      GEAR: GEAR, BLUE: BLUE, BEAT: BEAT, TIDE: TIDE
     };
     win.SkyMotion = motion;
     win.skyGear = api;
     return api;
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BLUE: BLUE, RETARGET: RETARGET, BEAT: BEAT, TIDE: TIDE };
+  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BLUE: BLUE, BEAT: BEAT, TIDE: TIDE };
   else init({ document: document, window: global, storage: global.localStorage, session: global.sessionStorage, setTimeout: global.setTimeout.bind(global), clearTimeout: global.clearTimeout.bind(global) });
 })(typeof window !== "undefined" ? window : globalThis);
