@@ -1,0 +1,2 @@
+# Reproducible generators and fingerprints use the same text bytes on Windows/Linux.
+* text=auto eol=lf

@@ -7,9 +7,10 @@
 // the viewport (default 1440 x 900).
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
-const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
-const { serve } = await import(path.join(REPO, 'test/e2e/server.mjs'));
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const { serve } = await import(pathToFileURL(path.join(REPO, 'test/e2e/server.mjs')));
 const site = await serve(path.resolve(process.env.ROOT || REPO));
 const [out, scheme = 'light', dprArg = '1'] = process.argv.slice(2);
 const DPR = +dprArg, W = +(process.env.W || 1440), H = +(process.env.H || 900);

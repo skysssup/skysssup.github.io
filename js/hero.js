@@ -447,6 +447,11 @@
     for (j = -r; j <= r; j++) { kernel.push(Math.exp(-j * j / (2 * sigma * sigma))); sum += kernel[j + r]; }
     for (var p = 1; p <= Math.max(1, (parts || []).length); p++) {
       if (p === base) continue;
+      // Narrow source features need a smaller reconstruction kernel: the
+      // generic silhouette blur closes the open hand's finger-group notch.
+      var partSigma = (parts || [])[p - 1] === "reach" ? Math.min(sigma, 0.65) : sigma;
+      r = Math.ceil(partSigma * 3); kernel = []; sum = 0;
+      for (j = -r; j <= r; j++) { kernel.push(Math.exp(-j * j / (2 * partSigma * partSigma))); sum += kernel[j + r]; }
       var x0 = size, y0 = size, x1 = -1, y1 = -1, x, y;
       for (y = 0; y < size; y++) for (x = 0; x < size; x++) if (solid[y * size + x] && label[y * size + x] === p) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
       if (x1 < 0) continue;

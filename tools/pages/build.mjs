@@ -4,8 +4,9 @@
 // result; test/pages.test.cjs fails when a committed page and the generator disagree.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const SRC = path.dirname(new URL(import.meta.url).pathname);
+const SRC = path.dirname(fileURLToPath(import.meta.url));
 const BODIES = path.join(SRC, 'bodies');
 const OUT = process.argv[2] || path.resolve(SRC, '..', '..');
 const site = JSON.parse(fs.readFileSync(path.join(SRC, 'site.json'), 'utf8'));
