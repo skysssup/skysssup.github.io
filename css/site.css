@@ -23,26 +23,26 @@
   --line: rgba(12, 12, 12, 0.1);
   --line-strong: rgba(12, 12, 12, 0.22);
   --wash: rgba(12, 12, 12, 0.035);
-  --figure-ink: #0c0c0c;
-  --figure-sheen: #cf9a2e;
-  --figure-sheen-core: #f2c766;
-  --figure-star: #e6b04a;
+  --figure-ink: #1c2430;
+  --figure-sheen: #c29c55;
+  --figure-sheen-core: #f2eadf;
+  --figure-star: #e8d09a;
   --figure-sheen-fringe: #6f7df2;
-  /* once the colours arrive the ink takes the light: a cool fill where the stone turns away, a warm key where it faces
-     the light; and the avatar's star glints, a heart and the edge that shows it on this paper */
-  --figure-fill: #0b1a33;
-  --figure-key: #3a2a1c;
-  --figure-glint: #ffffff;
-  --figure-glint-edge: #2e2010;
-  /* the figure's materials, base and lit (marble is --figure-ink); see docs/design-spec.md §5 */
-  --mat-gold: #b8860b;
-  --mat-gold-lit: #d4a017;
-  --mat-cloud: #c76b6b;
-  --mat-cloud-lit: #dc9a9a;
-  --mat-lightning: #1f7fd6;
-  --mat-lightning-lit: #62adee;
-  --mat-glint: #2c62ff;
-  --mat-glint-lit: #7f9dff;
+  /* stone, not a black cut: cool fill in the turned planes, warm key on the lit ones.
+     glint heart and a short champagne support, not a dark reticle */
+  --figure-fill: #2a3443;
+  --figure-key: #8a8176;
+  --figure-glint: #fff6e8;
+  --figure-glint-edge: #b08948;
+  /* bronze / stone-gray cloud / icy energy. marble is --figure-ink; see docs/design-spec.md §5 */
+  --mat-gold: #4b3223;
+  --mat-gold-lit: #e8d09a;
+  --mat-cloud: #89919f;
+  --mat-cloud-lit: #ddd8dd;
+  --mat-lightning: #276b88;
+  --mat-lightning-lit: #ecf9fa;
+  --mat-glint: #62b5c7;
+  --mat-glint-lit: #ecf9fa;
   /* the still that stands in for the figure until it is drawn, stippled from the same map as its dots: the ink map
      on light paper, the light map on dark (docs/design-spec.md §7) */
   --figure-preview: url("/assets/hero/preview.webp");
@@ -75,23 +75,23 @@
   --line: rgba(236, 235, 232, 0.1);
   --line-strong: rgba(236, 235, 232, 0.24);
   --wash: rgba(236, 235, 232, 0.04);
-  --figure-ink: #ecebe8;
-  --figure-sheen: #f2b544;
-  --figure-sheen-core: #ffffff;
-  --figure-star: #ffe1a0;
-  --figure-sheen-fringe: #8f8cff;
-  --figure-fill: #93a9dd;
-  --figure-key: #fff2dc;
+  --figure-ink: #dcd9d0;
+  --figure-sheen: #d7ba7a;
+  --figure-sheen-core: #fff1d7;
+  --figure-star: #f3dfb2;
+  --figure-sheen-fringe: #7ddeeb;
+  --figure-fill: #253244;
+  --figure-key: #fff1d7;
   --figure-glint: #ffffff;
-  --figure-glint-edge: #ffd98a;
-  --mat-gold: #f2c14e;
-  --mat-gold-lit: #ffe08a;
-  --mat-cloud: #f0a8b8;
-  --mat-cloud-lit: #ffd3dd;
-  --mat-lightning: #55e6ff;
-  --mat-lightning-lit: #b8f5ff;
-  --mat-glint: #8ab4ff;
-  --mat-glint-lit: #c4d8ff;
+  --figure-glint-edge: #f3dfb2;
+  --mat-gold: #4c3a2f;
+  --mat-gold-lit: #f3dfb2;
+  --mat-cloud: #182230;
+  --mat-cloud-lit: #778497;
+  --mat-lightning: #277e98;
+  --mat-lightning-lit: #edfcfd;
+  --mat-glint: #7ddeeb;
+  --mat-glint-lit: #edfcfd;
   --figure-preview: url("/assets/hero/preview-dark.webp");
   --figure-still: url("/assets/hero/still-dark.webp");
 }
@@ -105,23 +105,23 @@
     --line: rgba(236, 235, 232, 0.1);
     --line-strong: rgba(236, 235, 232, 0.24);
     --wash: rgba(236, 235, 232, 0.04);
-    --figure-ink: #ecebe8;
-    --figure-sheen: #f2b544;
-    --figure-sheen-core: #ffffff;
-    --figure-star: #ffe1a0;
-    --figure-sheen-fringe: #8f8cff;
-    --figure-fill: #93a9dd;
-    --figure-key: #fff2dc;
+    --figure-ink: #dcd9d0;
+    --figure-sheen: #d7ba7a;
+    --figure-sheen-core: #fff1d7;
+    --figure-star: #f3dfb2;
+    --figure-sheen-fringe: #7ddeeb;
+    --figure-fill: #253244;
+    --figure-key: #fff1d7;
     --figure-glint: #ffffff;
-    --figure-glint-edge: #ffd98a;
-    --mat-gold: #f2c14e;
-    --mat-gold-lit: #ffe08a;
-    --mat-cloud: #f0a8b8;
-    --mat-cloud-lit: #ffd3dd;
-    --mat-lightning: #55e6ff;
-    --mat-lightning-lit: #b8f5ff;
-    --mat-glint: #8ab4ff;
-    --mat-glint-lit: #c4d8ff;
+    --figure-glint-edge: #f3dfb2;
+    --mat-gold: #4c3a2f;
+    --mat-gold-lit: #f3dfb2;
+    --mat-cloud: #182230;
+    --mat-cloud-lit: #778497;
+    --mat-lightning: #277e98;
+    --mat-lightning-lit: #edfcfd;
+    --mat-glint: #7ddeeb;
+    --mat-glint-lit: #edfcfd;
     --figure-preview: url("/assets/hero/preview-dark.webp");
     --figure-still: url("/assets/hero/still-dark.webp");
   }
@@ -135,23 +135,23 @@
   --line: rgba(255, 59, 48, 0.2);
   --line-strong: rgba(255, 59, 48, 0.42);
   --wash: rgba(255, 59, 48, 0.06);
-  --figure-ink: #ff3b30;
-  --figure-sheen: #ff7a2e;
-  --figure-sheen-core: #ffe1c2;
-  --figure-star: #ffb273;
+  --figure-ink: #a9473d;
+  --figure-sheen: #ff6046;
+  --figure-sheen-core: #ffe4c5;
+  --figure-star: #ffd3af;
   --figure-sheen-fringe: #ff3d7a;
-  --figure-fill: #b3122a;
-  --figure-key: #ffb36b;
+  --figure-fill: #3d141c;
+  --figure-key: #e7a08a;
   --figure-glint: #fff1e6;
-  --figure-glint-edge: #ffc4b4;
-  --mat-gold: #ff9e80;
-  --mat-gold-lit: #ffc9b8;
-  --mat-cloud: #ff3b30;
-  --mat-cloud-lit: #ff3b30;
-  --mat-lightning: #ff3b30;
-  --mat-lightning-lit: #ff3b30;
-  --mat-glint: #ff3b30;
-  --mat-glint-lit: #ff3b30;
+  --figure-glint-edge: #f3d7a4;
+  --mat-gold: #6a4528;
+  --mat-gold-lit: #f3d7a4;
+  --mat-cloud: #1c1218;
+  --mat-cloud-lit: #6a4550;
+  --mat-lightning: #c43832;
+  --mat-lightning-lit: #ffd0a8;
+  --mat-glint: #ff6046;
+  --mat-glint-lit: #ffe4c5;
   --figure-preview: url("/assets/hero/preview-dark.webp");
   --figure-still: url("/assets/hero/still-dark.webp");
 }
@@ -165,26 +165,24 @@
   --line: rgba(61, 139, 255, 0.2);
   --line-strong: rgba(61, 139, 255, 0.42);
   --wash: rgba(61, 139, 255, 0.07);
-  /* the figure is drawn from the light map, as on dark paper: a statue lit in blue, ultramarine in its shadows and ice
-     where it faces the light; the materials go blue but for the gold, which turns champagne, a trace of gold that
-     reads as metal under the blue light and, worn at less than full strength, pales into the blue instead of greying */
-  --figure-ink: #4f9bff;
-  --figure-sheen: #45d4ff;
+  /* marine light, not a blue filter: icy stone, a restrained warm metal, cyan energy */
+  --figure-ink: #b8d2dd;
+  --figure-sheen: #5fcfdb;
   --figure-sheen-core: #eafcff;
-  --figure-star: #9feaff;
+  --figure-star: #d8c99f;
   --figure-sheen-fringe: #b07cff;
-  --figure-fill: #1f3fbf;
-  --figure-key: #c9efff;
+  --figure-fill: #24485f;
+  --figure-key: #e1f0f2;
   --figure-glint: #f2fbff;
-  --figure-glint-edge: #b8e4ff;
-  --mat-gold: #dcc89a;
-  --mat-gold-lit: #fff4dc;
-  --mat-cloud: #5b7fe0;
-  --mat-cloud-lit: #a9c2ff;
-  --mat-lightning: #3fd2ff;
-  --mat-lightning-lit: #c2f4ff;
-  --mat-glint: #7fb2ff;
-  --mat-glint-lit: #d2e4ff;
+  --figure-glint-edge: #d8c99f;
+  --mat-gold: #66583f;
+  --mat-gold-lit: #f0e5c7;
+  --mat-cloud: #172d40;
+  --mat-cloud-lit: #7c9cac;
+  --mat-lightning: #267eab;
+  --mat-lightning-lit: #def7fa;
+  --mat-glint: #5fcfdb;
+  --mat-glint-lit: #def7fa;
   --figure-preview: url("/assets/hero/preview-dark.webp");
   --figure-still: url("/assets/hero/still-dark.webp");
 }
@@ -427,11 +425,12 @@ html:not(.js) .index-open { display: none; }
   .nav .contact-link, .clock, .lamp-label { display: none; }
   .header-mid { margin-left: auto; padding: 0; gap: 8px; }
   .header-end { padding-left: 0; gap: 8px; }
-  .index-open { width: 32px; min-height: 40px; }
+  .index-open { min-width: 44px; min-height: 44px; padding: 0 6px; }
+  .index-open svg { display: none; }
   .grid-switch { display: none; }
-  .index-open span { display: none; }
-  .lamp { height: 40px; }
-  .gear { height: 32px; }
+  .lamp { height: 44px; min-width: 44px; justify-content: center; }
+  .gear { height: 44px; }
+  .gear-pos { min-height: 44px; }
 }
 @media (max-width: 419px) {
   html.js .nav > a:not(.home) { display: none; }
@@ -447,10 +446,10 @@ html:not(.js) .index-open { display: none; }
 
 /* ── panels ─────────────────────────────────────────────── */
 /* The one bordered box on the site, kept for Essentially: a mono head on a single rule, then the body. */
-.panel { border: 1px solid var(--ink); background: var(--paper); }
+.panel { border: 1px solid var(--line-strong); background: transparent; }
 .row > .panel { padding: 0; margin: 0 var(--p); }
-.panel-head { padding: 8px 12px; border-bottom: 1px solid var(--ink); font: 400 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
-.panel-body { padding: 12px; font: 400 13px/20px var(--sans); }
+.panel-head { padding: 8px 12px; border-bottom: 1px solid var(--line); font: 400 11px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel-body { padding: 12px; font: 400 14px/22px var(--sans); color: var(--muted); max-width: 36ch; }
 
 /* ── home: hero ─────────────────────────────────────────── */
 .hero { position: relative; overflow-x: clip; }
@@ -461,7 +460,7 @@ html:not(.js) .index-open { display: none; }
   padding: 32px 0;
 }
 .intro { grid-column: 1; grid-row: 1; }
-.intro h1 { font: 500 24px/32px var(--sans); }
+.intro h1 { font: 500 40px/44px var(--sans); letter-spacing: -0.02em; }
 .intro p { margin-top: 12px; max-width: 34ch; }
 .intro .intro-label { margin: 0 0 12px; }
 .intro-actions { display: flex; align-items: flex-start; flex-direction: column; gap: 16px; margin-top: 24px; }
@@ -523,18 +522,19 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
 /* tablet: the figure gets the full width between the panels */
 @media (max-width: 1199px) and (min-width: 768px) {
   .hero .row {
-    --fig: min(100%, 560px);
+    --fig: min(54vh, 460px);
     min-height: 0;
     grid-template-rows: auto auto auto;
-    row-gap: 32px;
-    padding: 32px 0 48px;
+    row-gap: 20px;
+    padding: 20px 0 32px;
   }
-  .intro { grid-column: 1 / span 2; grid-row: 1; }
-  .essentially { grid-column: 3 / span 2; grid-row: 1; }
-  .hero-figure { grid-column: 1 / -1; grid-row: 2; }
-  .themes { grid-column: 1 / span 2; grid-row: 3; }
-  .fig-note { grid-column: 3 / span 2; grid-row: 3; }
-  .intro-actions { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .intro { grid-column: 1; grid-row: 1; align-self: center; }
+  .hero-figure { grid-column: 2 / -1; grid-row: 1; }
+  .fig-note { grid-column: 2 / -1; grid-row: 2; }
+  .essentially { grid-column: 1 / span 2; grid-row: 3; }
+  .themes { grid-column: 3 / span 2; grid-row: 3; }
+  .intro-actions { flex-direction: column; align-items: flex-start; flex-wrap: wrap; }
+  .intro h1 { font-size: 32px; line-height: 36px; }
 }
 @media (max-width: 767px) {
   .hero .row {
@@ -549,9 +549,15 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
   .fig-note { order: 2; margin-top: -8px; padding-bottom: 8px; }
   .essentially { order: 3; }
   .themes { order: 4; }
+  .intro h1 { font-size: 32px; line-height: 36px; }
   .intro-actions { flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; }
   .intro p { max-width: 40ch; }
   .fig-note .t-small { max-width: 44ch; }
+  .caption-spec { display: none; }
+  .themes ol { display: flex; border-top: 1px solid var(--line); }
+  .themes li { flex: 1; border-bottom: 0; border-right: 1px solid var(--line); }
+  .themes li:last-child { border-right: 0; }
+  .themes a { min-height: 44px; padding: 8px 8px 8px 0; }
 }
 .fig-note .coarse { display: none; }
 @media (hover: none), (pointer: coarse) {
@@ -582,8 +588,8 @@ a.link-ui { text-decoration: underline 1px var(--line-strong); }
    plate line and one block of type, the title and then the tagline. */
 .plates { row-gap: 64px; align-items: start; }
 .row > .plate { position: relative; margin: 0 var(--p); padding: 0; }
-.plate-media { border-bottom: 1px solid var(--line); }
-.plate-media img { width: 100%; }
+.plate-media { border-bottom: 1px solid var(--line); aspect-ratio: 16 / 10; overflow: hidden; background: var(--wash); }
+.plate-media img { width: 100%; height: 100%; object-fit: cover; object-position: var(--proof, 50% 42%); transform: scale(1.12); transform-origin: var(--proof, 50% 42%); }
 .plate-caption { padding-top: 16px; max-width: 44ch; font: 500 18px/24px var(--sans); }
 .plate-line { margin-bottom: 4px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .plate-caption h3 { font: inherit; transition: color .2s; }
@@ -596,13 +602,15 @@ a.link-ui { text-decoration: underline 1px var(--line-strong); }
 .plate:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 8px; }
 /* A project without a screenshot shows its stack, set between two hairlines, instead of an imitation of one. */
 .media-type { display: flex; flex-direction: column; justify-content: flex-end; aspect-ratio: 16 / 10; padding: 16px 0; border-top: 1px solid var(--line); font: 400 18px/24px var(--sans); color: var(--ink); }
+.plate-type { justify-content: space-between; border-bottom: 1px solid var(--line); }
+.plate-type .type-kicker { font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.plate-type .type-line { max-width: 28ch; font: 500 18px/24px var(--sans); color: var(--ink); }
 @media (min-width: 1200px) {
   .plates { grid-auto-flow: row dense; }
-  .plate-wide.plate-left { grid-column: 1 / span 3; }
-  .plate-narrow.plate-right { grid-column: 4; }
-  .plate-wide.plate-right { grid-column: 2 / span 3; }
-  /* 16:10 figures two majors apart differ in height by 125% of a major, the width of this plate's grid area */
-  .plate-narrow.plate-left { grid-column: 1; margin-top: 125%; }
+  .plate-wide.plate-left { grid-column: 1 / span 2; }
+  .plate-narrow.plate-right { grid-column: 3 / span 2; margin-top: 18%; }
+  .plate-wide.plate-right { grid-column: 3 / span 2; }
+  .plate-narrow.plate-left { grid-column: 1 / span 2; margin-top: 18%; }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
   .plate-wide { grid-column: 1 / -1; }
@@ -660,7 +668,7 @@ html:not([data-motion="reduced"]) .is-stippled:not(.is-developed) > img { opacit
 .contact-lines > * > :last-child { font: 500 18px/24px var(--sans); overflow-wrap: anywhere; }
 .contact-lines a { text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
 .contact-lines a:hover { color: var(--accent); text-decoration-color: currentColor; }
-.copy { margin-left: 16px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
+.copy { margin-left: 16px; min-height: 44px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
 .copy:hover { color: var(--accent); text-decoration-color: currentColor; }
 @media (max-width: 1199px) {
   .band-note { grid-column: 2 / -1; }
@@ -684,7 +692,7 @@ html:not([data-motion="reduced"]) .is-stippled:not(.is-developed) > img { opacit
 .sign-links a { text-decoration: underline 1px var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
 .sign-links a:hover { color: var(--accent); text-decoration-color: currentColor; }
 .sign-toggles { grid-column: 4; justify-self: end; display: flex; flex-wrap: wrap; gap: 8px 24px; }
-.sign-toggles button { min-height: 24px; color: var(--muted); transition: color .2s; }
+.sign-toggles button { min-height: 44px; color: var(--muted); transition: color .2s; }
 .sign-toggles button:hover { color: var(--accent); }
 .sign-toggles b { font-weight: 400; color: var(--ink); }
 html:not(.js) .grid-toggle { display: none; }
@@ -792,7 +800,7 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 .project .facts .themes-line { color: var(--ink); }
 .project .thumb { grid-column: 4; grid-row: 1; align-self: start; }
 .thumb > :not(canvas) { border-bottom: 1px solid var(--line); }
-.thumb img { width: 100%; }
+.thumb img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: var(--proof, 50% 42%); }
 .project:hover h2 { color: var(--accent); }
 .project:hover .go { transform: translateX(3px); }
 .project:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "source_sha": "31ab973f60d805a143609acd677b4073624929ba",
-  "implementation_status": "stage_1_implemented_owner_visual_review_pending",
-  "note": "Original IDs and all stage 2/3 concerns retained. Stage 1 implementation is not owner approval or final commission closure.",
+  "implementation_status": "stage_2_implemented_owner_visual_review_pending",
+  "note": "Stage 2 materials, lower world, glints, ring, and editorial page are implemented on the stage-1 branch. Owner visual review is still pending. Stage 3 owns live transitions, input, and performance. This is not owner approval.",
   "issues": [
     {
       "id": "F01",
@@ -11,8 +11,9 @@
       "contributing_owners": [
         1
       ],
-      "status": "stage_1_foundation_implemented_composition_open",
-      "evidence_status": "User-reported and visually observed; source bank restriction verified."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "User-reported and visually observed; source bank restriction verified.",
+      "implementation_evidence": "Authored cloud lobes, right-edge fade, and a finished base in every mode. Still lobe-led rather than carved architecture."
     },
     {
       "id": "F02",
@@ -28,8 +29,9 @@
       "title": "Four-mode material palette and light",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "User-reported and visible; current token/material behavior inspected."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "User-reported and visible; current token/material behavior inspected.",
+      "implementation_evidence": "Four-mode ramps and shader material responses. Gear Two separates gold, coral stone, darker cloud, and hotter energy; it remains a red family."
     },
     {
       "id": "F04",
@@ -38,8 +40,9 @@
       "contributing_owners": [
         3
       ],
-      "status": "not_implemented",
-      "evidence_status": "User-reported, visible, and shape/color source inspected."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "User-reported, visible, and shape/color source inspected.",
+      "implementation_evidence": "Persistent glints are compact optical points (limit 48). Sheen-star arms are shortened. Agent 3 still owns live sheen timing."
     },
     {
       "id": "F05",
@@ -75,8 +78,9 @@
       "contributing_owners": [
         1
       ],
-      "status": "stage_1_foundation_implemented_composition_open",
-      "evidence_status": "User-reported and visible; foundational contact/masks belong to stage 1."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "User-reported and visible; foundational contact/masks belong to stage 1.",
+      "implementation_evidence": "Support ledge, cloud lobes, and a localized energy core are in the always-on statue. Gear Two keeps the larger bank."
     },
     {
       "id": "F09",
@@ -85,8 +89,9 @@
       "contributing_owners": [
         3
       ],
-      "status": "not_implemented",
-      "evidence_status": "User-reported visual opportunity; use reference-driven depth and distribution."
+      "status": "stage_2_design_implemented_motion_open",
+      "evidence_status": "User-reported visual opportunity; use reference-driven depth and distribution.",
+      "implementation_evidence": "Stipple, dust, base motes, material glints, and sky stars have different sizes and protections. Motion envelopes remain Agent 3."
     },
     {
       "id": "F10",
@@ -106,8 +111,9 @@
       "contributing_owners": [
         2
       ],
-      "status": "stage_1_structure_implemented_material_open",
-      "evidence_status": "Matched structural/material region comparisons."
+      "status": "stage_2_material_implemented_review_pending",
+      "evidence_status": "Matched structural/material region comparisons.",
+      "implementation_evidence": "Wing and caduceus use bronze/champagne rather than flat mustard. Structure from stage 1 is unchanged."
     },
     {
       "id": "F12",
@@ -116,8 +122,9 @@
       "contributing_owners": [
         3
       ],
-      "status": "not_implemented",
-      "evidence_status": "Visible knockout treatment and source halo implementation inspected."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "Visible knockout treatment and source halo implementation inspected.",
+      "implementation_evidence": "Ring halo stroke reduced and dimmed over the torso. Wording unchanged. Depth behavior remains Agent 3."
     },
     {
       "id": "F13",
@@ -166,32 +173,36 @@
       "title": "Author and heading hierarchy",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P02",
       "title": "Supporting panel and telemetry priority",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P03",
       "title": "Mobile reading order and proof arrival",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P04",
       "title": "Tablet composition",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P05",
@@ -200,40 +211,45 @@
       "contributing_owners": [
         3
       ],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P06",
       "title": "Selected-work proportions",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P07",
       "title": "Readable truthful proof crops",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P08",
       "title": "Work-index density and hierarchy",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P09",
       "title": "Public authoring scaffolds",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P10",
@@ -242,16 +258,18 @@
       "contributing_owners": [
         3
       ],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P11",
       "title": "Material quality without contaminating real proof",
       "primary_owner": 2,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_2_implemented_review_pending",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "handoff/evidence/stage-2 page captures. Mobile selected heading is still deeper than the 900px proposal."
     },
     {
       "id": "P12",

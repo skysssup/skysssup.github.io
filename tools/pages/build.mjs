@@ -173,10 +173,20 @@ function media(m, { eager = false, cls = '' } = {}) {
   return `<img class="${cls}" src="${m.src}" alt="${esc(m.alt || '')}" width="${m.w}" height="${m.h}" loading="${load}" decoding="async"${eager ? ' fetchpriority="high"' : ''}>`;
 }
 
+const PROOF = {
+  agentcrucible: '28% 62%',
+  shipgate: '78% 46%',
+  airforge: '50% 64%',
+  spanforge: '62% 48%',
+  localpulse: '40% 42%',
+  'ghost-notetaker': '50% 40%',
+  moltdao: '55% 45%',
+};
 function cover(p, sizes, priority = '') {
-  if (!p.cover) return `<div class="media-type" aria-hidden="true">${p.stack.slice(0, 3).map(t => `<span>${esc(t)}</span>`).join('')}</div>`;
+  if (!p.cover) return `<div class="media-type plate-type" aria-hidden="true"><span class="type-kicker">Type plate</span><span class="type-line">${tie(esc(p.tagline))}</span><span>${p.stack.slice(0, 3).map(esc).join(' · ')}</span></div>`;
   const b = p.cover.src;
-  return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}>`;
+  const proof = PROOF[p.slug] ? ` style="--proof: ${PROOF[p.slug]}"` : '';
+  return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}${proof}>`;
 }
 
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
@@ -230,7 +240,7 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to stir them.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
+      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">A turning sculpture of my GitHub avatar. <span class="fine">Move the cursor to stir it.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="caption-spec t-label muted">Five materials${DOT}<span data-dot-count>${site.dots}</span> dots${DOT}depth from one photo</p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
     </div>
   </section>
 
@@ -303,7 +313,7 @@ ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join('
       <span class="idx" aria-hidden="true">${pad(i + 1)}</span>
       <div class="project-title"><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h2><p>${tie(esc(p.tagline))}</p></div>
       <p class="facts"><span class="themes-line">${themesOf(p, DOT)}</span><span>${p.stack.slice(0, 3).map(esc).join(DOT)}</span><span>${p.visibility}</span></p>
-      <div class="thumb" aria-hidden="true">${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
+      <div class="thumb" aria-hidden="true"${PROOF[p.slug] ? ` style="--proof: ${PROOF[p.slug]}"` : ''}>${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
     </li>`).join('\n')}
   </ol>
   <div class="row work-empty" data-work-empty hidden><div class="work-empty-note"><h2>No matching projects</h2><p>Try another name, technology, or theme.</p><button class="reset" type="button" data-clear-work>Reset filters</button></div></div>
@@ -326,17 +336,45 @@ const SECTIONS = [
   ['status', 'Status and next', 'What works now, its honest limits, and two or three next steps that follow from documented limitations. 60–120 words.'],
 ];
 
-function placeholder(text) {
-  return `<p class="placeholder" data-placeholder><span class="ph-tag t-label">To write</span><span class="ph-text t-small">${tie(esc(text))}</span></p>`;
-}
-
-function diagramPlaceholder() {
-  const spec = { direction: 'LR', nodes: [ { id: 'in', label: 'Input', sub: 'what comes in' }, { id: 'core', label: 'Core mechanism', sub: 'what the code does' }, { id: 'out', label: 'Result', sub: 'what comes out' } ], edges: [ { from: 'in', to: 'core' }, { from: 'core', to: 'out' } ] };
-  return `<figure class="diagram wide" data-diagram data-placeholder>
-            <script type="application/json">${JSON.stringify(spec)}</script>
-            <ol class="diagram-steps t-small">${spec.nodes.map(n => `<li>${esc(n.label)}: ${esc(n.sub)}</li>`).join('')}</ol>
-            <figcaption><span class="t-label muted">Fig. 2</span><span class="t-small">${tie('Placeholder diagram: 3–7 nodes in one direction, readable in ten seconds.')}</span></figcaption>
-          </figure>`;
+function evidenceOf(p) {
+  const repo = p.repo
+    ? `The source is <a href="${p.repo}">${esc(p.repo.replace('https://', ''))}</a>.`
+    : 'The repository is private, so this page does not link it.';
+  const recording = p.lead
+    ? `The recording on this page is the evidence: ${esc(p.lead.caption)}`
+    : 'This project has no product recording on the site. The summary, status, and source are the evidence.';
+  const stack = p.stack.map(esc).join(', ');
+  const prose = `      <section id="problem" aria-labelledby="problem-title">
+        <h2 id="problem-title">The problem</h2>
+        <p>${tie(esc(p.summary))} Status: ${esc(p.status)}. Visibility: ${esc(p.visibility)}.</p>
+      </section>
+      <section id="built" aria-labelledby="built-title">
+        <h2 id="built-title">What I built</h2>
+        <p>${tie(esc(p.description))} The stack named on this page is ${stack}.</p>
+      </section>
+      <section id="how" aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <p>${tie(recording)} I am not publishing a reconstructed architecture here. ${repo}</p>
+      </section>
+      <section id="decisions" aria-labelledby="decisions-title">
+        <h2 id="decisions-title">Key decisions</h2>
+        <p>${tie('The public evidence is the summary, the media, and the source. A longer design narrative is not written yet, and this page does not invent one.')}</p>
+      </section>
+      <section id="hard" aria-labelledby="hard-title">
+        <h2 id="hard-title">What’s hard</h2>
+        <p>${tie(esc(p.tagline))} What is hard beyond that is in the repository, not restated here as an unverified claim.</p>
+      </section>
+      <section id="status" aria-labelledby="status-title">
+        <h2 id="status-title">Status and next</h2>
+        <p>${tie(`Labeled ${p.status}. A full case narrative is in progress. This page keeps the verified summary, the real media, and the source link.`)}</p>
+      </section>`;
+  const numbers = `          <dl>
+            <div><dt>${esc(p.status)}</dt><dd>Status labeled on this page</dd></div>
+            <div><dt>${esc(p.visibility)}</dt><dd>Repository visibility</dd></div>
+            <div><dt>${p.stack.length}</dt><dd>Named parts of the stack, listed below</dd></div>
+          </dl>`;
+  const sections = [...prose.matchAll(/<section id="([a-z-]+)" aria-labelledby="\1-title">\s*<h2 id="\1-title">([^<]+)<\/h2>/g)].map(m => [m[1], m[2]]);
+  return { prose, numbers, sections };
 }
 
 // A body file holds the case study's prose sections, then a `<!-- numbers -->` line, then the numbers <dl>.
@@ -355,15 +393,20 @@ function caseStudy(p, i) {
   const prev = projects[(i - 1 + projects.length) % projects.length];
   const next = projects[(i + 1) % projects.length];
   const url = `/work/${p.slug}/`;
-  const body = bodyOf(p.slug);
-  const toc = body ? body.sections : SECTIONS;
+  const body = bodyOf(p.slug) || evidenceOf(p);
+  const toc = body.sections;
   const repoRow = p.repo
     ? `<dt class="t-label">Code</dt><dd><a href="${p.repo}">github.com/${site.github}/${p.slug}</a>${ARROW}</dd>`
     : `<dt class="t-label">Code</dt><dd>Private repository</dd>`;
   const lead = p.lead;
-  const leadFig = `<figure class="fig c2-4">
-        <div class="fig-frame${lead ? '' : ' is-empty'}" data-reveal>${lead ? media(lead, { eager: true }) : '<div class="media-empty"><span class="t-label">Visual to come</span></div>'}</div>
-        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie(lead ? esc(lead.caption) : 'To come: a screenshot, recording, or demo of the real product.')}</span></figcaption>
+  const leadFig = lead
+    ? `<figure class="fig c2-4">
+        <div class="fig-frame" data-reveal>${media(lead, { eager: true })}</div>
+        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie(esc(lead.caption))}</span></figcaption>
+      </figure>`
+    : `<figure class="fig c2-4">
+        <div class="fig-frame type-plate"><div class="media-type plate-type"><span class="type-kicker">Type plate · no screenshot</span><span class="type-line">${tie(esc(p.summary))}</span></div></div>
+        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie('Recall has no product screenshot on this site. The plate is the summary, on purpose.')}</span></figcaption>
       </figure>`;
   const preload = lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '';
   return `${head({ title: `${p.name} — Aakash Dahal`, description: p.summary, url, image: `/assets/og/${p.slug}.png`, imageAlt: `${p.name}: ${p.tagline}`, type: 'article', extra: preload })}
@@ -375,7 +418,7 @@ ${header('work')}
     <div class="case-title">
       <h1${vt(p)}>${esc(p.name)}</h1>
       <p>${esc(p.summary)}</p>
-      <p class="case-actions"><a href="#problem">Read case study${DOWN}</a>${p.repo ? `<a href="${p.repo}">View source${ARROW}</a>` : ''}</p>
+      <p class="case-actions"><a href="#problem">${p.placeholder ? 'Read the notes' : 'Read case study'}${DOWN}</a>${p.repo ? `<a href="${p.repo}">View source${ARROW}</a>` : ''}</p>
     </div>
     <div class="meta">
       <dl>
@@ -402,10 +445,7 @@ ${toc.map(([id, title]) => `        <li><a href="#${id}">${title}</a></li>`).joi
       </ol>
     </nav>
     <article class="prose">
-${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="${id}" aria-labelledby="${id}-title">
-        <h2 id="${id}-title">${title}</h2>
-        ${placeholder(guide)}${id === 'how' ? '\n          ' + diagramPlaceholder() : ''}
-      </section>`).join('\n')}
+${body.prose}
       <section id="stack" aria-labelledby="stack-title">
         <h2 id="stack-title">Stack and links</h2>
         <ul class="stack-list">${p.stack.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
@@ -413,7 +453,9 @@ ${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="$
       </section>
     </article>
     <aside class="aside" aria-label="Key numbers">
-      <div class="numbers">${body ? `\n${body.numbers}\n      ` : placeholder('Four to six verified facts from the code: counts, limits, sizes, test results.')}</div>
+      <div class="numbers">
+${body.numbers}
+      </div>
     </aside>
   </div>
 
@@ -426,7 +468,7 @@ ${body ? body.prose : SECTIONS.map(([id, title, guide]) => `      <section id="$
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', ...(body && body.prose.includes('data-demo') ? ['/js/demo.js'] : []), '/js/page.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', ...(body.prose.includes('data-demo') ? ['/js/demo.js'] : []), '/js/page.js'])}
 </body>
 </html>
 `;

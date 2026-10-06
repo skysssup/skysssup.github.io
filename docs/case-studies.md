@@ -10,7 +10,7 @@ header, lead figure, section index, stack and links, pager, footer) comes from `
 2. Run `node tools/pages/build.mjs` and commit the body file together with the regenerated pages.
    `npm test` fails when a committed page differs from the generator's output.
 
-A project without a body file gets placeholder sections, each marked `data-placeholder` with a **To write** tag.
+A project without a body file gets a concise evidence page: the verified summary, status, media, and source, with an honest in-progress note. It does not publish authoring instructions or a placeholder diagram.
 
 ## Sections
 

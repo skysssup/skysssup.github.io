@@ -582,7 +582,7 @@
   // paper, on light, and in Gear Two.
   var BREEZE = 0.08, BREEZE_GEAR = 0.05, FLARE = { dark: 0.35, light: 0.15, gear: 0.3 };
   // GLINTS is how many of the avatar's star glints the figure draws at most, strongest first.
-  var GLINTS = 260;
+  var GLINTS = 48;
   // The statue's outline (edges()): its parts blurred by EDGE_BLUR px of the depth map and traced, a point every
   // EDGE_SPACING CSS px of the drawn figure.
   var EDGE_BLUR = 1.2, EDGE_SPACING = 0.75;
@@ -959,12 +959,21 @@
     // the dot's material in the mode's designed palette (gold, marble, cloud, lightning, glint), moving from
     // its base color to its lit one as the surface turns to the light; marble carries no weight, so it stays ink
     "  int m = int(a_c.r * 5.0 + 0.5);",
-    // gold catches the light on the feathers' edges, which the dot maps draw as the sparse dots of the ink map and the
-    // dense ones of the light map, and sits in their gaps as bronze (below), as well as turning to the light
-    "  float edgeLit = m == 0 ? mix(1.0 - smoothstep(0.1, 0.45, a_p.w), smoothstep(0.45, 0.9, a_p.w), u_positive) : 0.0;",
-    "  vec3 mat = mix(u_palette[m], u_lit[m], max(smoothstep(0.15, 0.9, lam), 0.8 * edgeLit));",
-    // on light paper the densest dots of a material lean toward the ink, so gold has bronze in its crevices
-    "  mat = mix(mat, u_color, u_deep * smoothstep(0.45, 0.95, a_p.w));",
+    // gold catches the light on the feathers' edges; stone turns broadly; cloud stays quiet;
+    // energy emits locally instead of sharing the stone's ramp
+    "  float edgeLit = m == 0 ? mix(1.0 - smoothstep(0.15, 0.5, a_p.w), smoothstep(0.55, 0.92, a_p.w), u_positive) : 0.0;",
+    "  float turn = smoothstep(0.12, 0.82, lam);",
+    "  float spec = max(dot(n, vec3(-0.2472, 0.3295, 0.9112)), 0.0);",
+    "  spec *= spec; spec *= spec; spec *= spec;",
+    "  vec3 mat = u_palette[m];",
+    "  if (m == 0) mat = mix(u_palette[0], u_lit[0], max(smoothstep(0.32, 0.84, lam), 0.55 * edgeLit));",
+    "  else if (m == 2) mat = mix(u_palette[2], u_lit[2], smoothstep(0.18, 0.72, lam) * 0.7);",
+    "  else if (m == 3) mat = mix(u_palette[3], u_lit[3], 0.55 + 0.45 * turn);",
+    "  else if (m == 4) mat = mix(u_palette[4], u_lit[4], 0.7);",
+    "  else mat = mix(u_palette[1], u_lit[1], turn);",
+    "  if (m == 0) mat = mix(mat, u_lit[0], spec * 0.8);",
+    // bronze crevices stay bronze; stone recesses stay the cool fill, not a black cut
+    "  mat = mix(mat, m == 0 ? u_palette[0] : u_tone[0], u_deep * smoothstep(0.45, 0.95, a_p.w));",
     // at each turn of the sway a sheet of light sweeps the statue from the key light's side, the upper left, to the
     // lower right, through its depth (way(); u_sheen: its progress, whether it runs, its burst's number, and its age;
     // u_span.z the line's width as a share of the sweep). Where it cuts the surface it draws a bright line in the light's
@@ -978,18 +987,20 @@
     // appear only behind the line, as in the opening)
     "  float c = way(p), passed = clamp(c, 0.0, 1.0);",
     "  float band = 0.0, wash = 0.0, trail = 0.0, star = 0.0, wake = 1.0, fringe = 0.0, flash = 0.0, swell = 0.0;",
+    // head, open hand, and the raised grip: no false eyes, no bleached palm, no finger-like sheen stars
+    "  float delicate = (part == 4 || part == 6 || (part == 3 && a_p.y < 0.40)) ? 1.0 : 0.0;",
     "  if (u_sheen.y != 0.0) {",
     "    float e = (u_sheen.x - c) / u_span.z, behind = max(u_sheen.x - c, 0.0) * step(0.0, e), face = (0.35 + 0.65 * lam) * k;",
-    "    band = exp(-e * e * (e < 0.0 ? 1.5 : 0.6)) * face;",
+    "    band = exp(-e * e * (e < 0.0 ? 1.5 : 0.6)) * face * mix(1.0, 0.42, delicate);",
     "    wash = exp(-behind * 5.0) * step(0.0, e) * k;",
     "    fringe = exp(-(e + 1.8) * (e + 1.8) * 2.0) * face * (1.0 - a_c.g * u_tint) * smoothstep(0.0, 0.1, u_sheen.x);",
-    "    float spec = max(dot(n, vec3(-0.2472, 0.3295, 0.9112)), 0.0);",
-    "    spec *= spec; spec *= spec; spec *= spec; spec *= spec; spec *= spec;",
-    "    flash = spec * exp(-e * e * 0.3) * k;",
+    "    float sheenSpec = max(dot(n, vec3(-0.2472, 0.3295, 0.9112)), 0.0);",
+    "    sheenSpec *= sheenSpec; sheenSpec *= sheenSpec; sheenSpec *= sheenSpec;",
+    "    flash = sheenSpec * exp(-e * e * 0.3) * k * mix(1.0, 0.22, delicate);",
     "    swell = band * smoothstep(0.6, 1.0, mix(lam, a_p.w, u_positive));",
     "    trail = exp(-behind * 2.5) * step(0.0, e) * smoothstep(0.4, 0.9, lam) * face * (1.0 - smoothstep(u_flow.y, u_flow.y + 1.4, u_sheen.w));",
     "    if (u_flow.w > 0.0) wake = smoothstep(-0.6, 1.6, e);",
-    "    if (!edge && r01(id * 11u + uint(u_sheen.z)) < u_span.w && n.z > 0.3 && lam > 0.5) {",
+    "    if (!edge && delicate < 0.5 && r01(id * 11u + uint(u_sheen.z)) < u_span.w && n.z > 0.3 && lam > 0.5) {",
     "      float a = u_sheen.w - passed * u_flow.y - r01(id * 13u + 5u) * 0.15;",
     "      float f = clamp(1.0 - max(a - 0.1, 0.0) / (0.5 + r01(id * 17u + 9u) * 0.3), 0.0, 1.0);",
     "      star = smoothstep(0.0, 0.1, a) * f * f * k;",
@@ -1022,7 +1033,7 @@
     "    float W = u_span.y - u_span.x, inside = a_w.w * 0.1 * u_box.z;",
     "    flow += vec2(sin(u_time * 1.6 + a_p.y * 31.0 + a_p.x * 7.0), cos(u_time * 1.2 + a_p.x * 23.0 - a_p.y * 5.0)) * 0.45 * u_breeze.x * k;",
     "    float near = 1.0 - smoothstep(0.0, 0.03 * u_box.z, inside);",
-    "    if (!edge && near > 0.0 && blown == 0.0 && show >= 1.0) {",
+    "    if (!edge && delicate < 0.5 && near > 0.0 && blown == 0.0 && show >= 1.0) {",
     "      vec2 patchCell = floor(a_p.xy * 24.0);",
     "      uint cid = uint(patchCell.x) + uint(patchCell.y) * 61u + 7u;",
     "      float period = 6.0 + 5.0 * r01(cid * 3u + 1u);",
@@ -1096,8 +1107,15 @@
     "  float tint = u_tint * wake;",
     // the ink takes the light as the avatar does once the colours have arrived: a warm key where the surface faces the
     // light and a cool fill where it turns away (u_tone: fill, key)
-    "  vec3 tone = mix(u_tone[0], u_tone[1], smoothstep(0.1, 0.85, lam));",
-    "  vec3 col = mix(mix(u_color, tone, tint), mat, a_c.g * tint);",
+    "  vec3 tone = mix(u_tone[0], u_tone[1], smoothstep(0.08, 0.78, lam));",
+    // stone keeps a broad turn even in Gear Two, where tint is partial; metal, cloud and energy stay their own colors
+    "  float belong = a_c.g * max(tint, m == 1 ? 0.0 : 0.86);",
+    "  float stoneMix = max(tint, (m == 1 || a_c.g < 0.04) ? 0.82 : tint);",
+    "  vec3 col = mix(mix(u_color, tone, stoneMix), mat, belong);",
+    // localized reflected light from the energy core, falling off before it reaches the face or the open hand
+    "  vec2 core = a_p.xy - vec2(0.505, 0.840);",
+    "  float nearEnergy = exp(-dot(core, core) * 90.0) * (1.0 - delicate);",
+    "  col = mix(col, u_lit[3], nearEnergy * 0.28);",
     // the currents of light (current, u_life.x): at a crest the stone is lit, in a trough shaded; where the dots are ink
     // that is smaller dots, leaning a little to the key's warmth, and where they are light, larger and brighter ones;
     // twice as strong while a sheen's wash passes
@@ -1132,11 +1150,12 @@
     // pixels along the breeze, wavering with its neighbours, and is gone by six tenths of the way; it comes back in place
     // over the last three. Mirrors fadeAway()
     "  float vis = 1.0;",
-    "  if (u_blink > 0.0 && blown == 0.0 && star < 0.05 && !edge) {",
+    "  if (u_blink > 0.0 && blown == 0.0 && star < 0.05 && !edge && delicate < 0.5) {",
     "    float period = 4.0 / u_blink, phase = u_time / period + r01(id * 3u + 7u), cycle = floor(phase);",
     "    uint key = id * 7919u + uint(cycle) * 104729u;",
     "    float dur = 0.9 + 0.6 * r01(key + 2u), f = ((phase - cycle) * period - r01(key + 1u) * (period - dur)) / dur;",
-    "    if (r01(key) < 0.1 && f > 0.0 && f < 1.0) {",
+    "    float mote = part == 7 ? 0.35 : 1.0;",
+    "    if (r01(key) < 0.1 * mote && f > 0.0 && f < 1.0) {",
     "      vis = f < 0.6 ? 1.0 - smoothstep(0.0, 0.6, f) : smoothstep(0.7, 1.0, f);",
     "      vec2 way = u_wind + 0.6 * vec2(sin(a_p.y * 9.0 + u_time * 0.3), cos(a_p.x * 8.0 - u_time * 0.25));",
     "      if (f < 0.7) flow += normalize(way) * (u_span.y - u_span.x) * (0.003 + 0.004 * s2) * smoothstep(0.0, 0.6, f);",
@@ -1180,11 +1199,11 @@
     "  if (glint) {",
     "    float wave = 0.5 + 0.5 * sin(u_time * (0.5 + 0.9 * s1) + s2 * 6.2831853), twinkle = wave * wave * wave;",
     // a star of the sky (a_c.g) is smaller, and shows only where the paper is dark (u_sky), as the avatar's sky is
-    "    v_glint = min(1.0, clamp((0.55 + 0.45 * twinkle + mix(0.25, 1.2, u_positive) * band) * min(1.0, tint * 2.0) * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g));",
-    "    v_size = u_dot * mix(3.5 + 8.0 * a_p.w * a_p.w, 1.6 + 3.5 * a_p.w * a_p.w, a_c.g) * (0.8 + 0.2 * twinkle + mix(0.12, 0.7, u_positive) * band) * persp * u_dpr;",
-    // a handful of the strongest (one in five, chosen by where they are) carry longer spikes than the rest
-    "    float spiked = step(0.85, a_p.w) * step(r01(uint(a_p.x * 4096.0) * 73u + uint(a_p.y * 4096.0) * 151u), 0.2) * (1.0 - a_c.g);",
-    "    v_sprite = v_size * (1.0 + 0.8 * spiked) + 0.5;",
+    "    v_glint = min(1.0, clamp((0.42 + 0.58 * twinkle + mix(0.08, 0.55, u_positive) * band) * min(1.0, tint * 2.0) * k, 0.0, 1.0) * mix(1.0, u_sky, a_c.g));",
+    // compact optical points: a figure glint is a little over a dot, a sky star smaller still
+    "    v_size = u_dot * mix(1.15 + 1.35 * a_p.w, 1.05 + 1.7 * a_p.w, a_c.g) * (0.88 + 0.12 * twinkle + mix(0.04, 0.28, u_positive) * band) * persp * u_dpr;",
+    "    float spiked = step(0.94, a_p.w) * step(r01(uint(a_p.x * 4096.0) * 73u + uint(a_p.y * 4096.0) * 151u), 0.08) * (1.0 - a_c.g);",
+    "    v_sprite = v_size * (1.0 + 0.28 * spiked) + 0.5;",
     // (a glint has no dot of its own: before the colours arrive it draws nothing, not a disc of its size)
     "    v_alpha = v_glint > 0.0 ? u_alpha * swapShow * (1.0 - hidden) : 0.0;",
     "    v_star = v_blown = v_flare = 0.0;",
@@ -1225,8 +1244,11 @@
     "  float a = clamp(v_size * 0.5 - d + 0.5, 0.0, 1.0);",
     "  vec3 c = v_color;",
     // (a glint's rays on white paper are drawn a little bolder, since a dark line half a pixel wide fades to nothing)
-    "  float t = v_size * (glint ? 0.09 : 0.16), least = glint ? mix(0.9, 0.45, u_positive) : 0.45, spikes = max(arm(m, t, ir, least), arm(m.yx, t, ir, least));",
-    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.04 : 1.2)));",
+    "  float t = v_size * (glint ? 0.055 : 0.11), least = glint ? mix(0.28, 0.4, u_positive) : 0.32;",
+    // arms die well inside the sprite, so a white-paper glint is a facet, not a reticle
+    "  float reach = glint ? mix(3.6, 2.6, u_positive) : mix(3.1, 2.2, u_positive);",
+    "  float spikes = max(arm(m, t, ir * reach, least), arm(m.yx, t, ir * reach, least));",
+    "  float halo = exp(-dot(q, q) / (v_size * v_size * (glint ? 0.018 : 0.7)));",
     // a star is a four-point cross over its disc: two thin arms that taper to the sprite's edge; its middle burns in
     // the sheen's core colour
     "  if (v_star > 0.0) {",
@@ -1253,13 +1275,11 @@
     // edge colour, around a heart in its heart colour (u_glint): a white star in a warm glow on dark paper, a white
     // spark in a star of the sheen's blue on white paper, where white alone would not show
     "  if (glint) {",
-    "    vec2 dg = vec2(m.x + m.y, abs(m.x - m.y)) * 0.70710678;",
-    "    float heart = clamp(v_size * 0.15 - d + 0.5, 0.0, 1.0);",
-    "    float rays = max(min(1.0, spikes * 2.0), min(1.0, arm(dg, v_size * 0.07, ir * 1.8181818, least) * 1.2)), glow = halo * 0.75;",
+    "    float heart = clamp(v_size * 0.28 - d + 0.5, 0.0, 1.0);",
+    "    float rays = spikes * mix(0.45, 0.7, u_positive), glow = halo * mix(0.2, 0.65, u_positive);",
     "    a = max(max(rays, heart), glow) * v_glint;",
-    // the rays in the edge colour and the heart in its own; the glow around the heart is the edge colour's on dark
-    // paper and the heart's on white, where it lights the dots around it instead of darkening them
-    "    c = mix(u_glint[1], u_glint[0], max(heart, (1.0 - u_positive) * clamp((glow - rays) * 3.0, 0.0, 1.0)));",
+    // white paper: a warm core and a short champagne tick. dark paper: a white heart in a tight glow
+    "    c = mix(u_glint[1], u_glint[0], max(heart, u_positive * glow));",
     "  }",
     "  a *= v_alpha;",
     "  if (a <= 0.0) discard;",
@@ -1788,7 +1808,7 @@
       if (halos && halos.key === key) return halos;
       var chars = [], cells = {};
       ring.glyphs.forEach(function (ch) { if (ch !== " " && chars.indexOf(ch) < 0) chars.push(ch); });
-      var scale = 2 * dpr, line = Math.max(3, font * 0.42), w = Math.ceil((advance + line + 4) * scale), h = Math.ceil((font * 1.4 + line + 4) * scale);
+      var scale = 2 * dpr, line = Math.max(1.25, font * 0.16), w = Math.ceil((advance + line + 4) * scale), h = Math.ceil((font * 1.4 + line + 4) * scale);
       var atlas = document.createElement("canvas");
       atlas.width = w * Math.max(1, chars.length);
       atlas.height = h;
@@ -1891,7 +1911,12 @@
         var spot = front && halo.cells[ch], hw = halo.w / halo.scale / 2, hh = halo.h / halo.scale / 2;
         if (spot && facing > 0.5 && !(maskAt(sx, sy) || maskAt(sx + tx * hw + ux * hh, sy + ty * hw + uy * hh) || maskAt(sx - tx * hw + ux * hh, sy - ty * hw + uy * hh) ||
             maskAt(sx + tx * hw - ux * hh, sy + ty * hw - uy * hh) || maskAt(sx - tx * hw - ux * hh, sy - ty * hw - uy * hh))) spot = null;
-        if (spot) ctx.drawImage(halo.canvas, spot[0], spot[1], halo.w, halo.h, -hw, -hh, hw * 2, hh * 2);
+        if (spot) {
+          var knock = maskAt(sx, sy) > 0.35 ? 0.38 : 0.62;
+          ctx.globalAlpha = alpha * knock;
+          ctx.drawImage(halo.canvas, spot[0], spot[1], halo.w, halo.h, -hw, -hh, hw * 2, hh * 2);
+          ctx.globalAlpha = alpha;
+        }
         var lit = Math.min(1, shine), fill = lit < 0.02 ? accent : "rgb(" + [0, 1, 2].map(function (c) { return Math.round((base[c] + (lamp[c] - base[c]) * lit) * 255); }).join(",") + ")";
         // (the colour is set only when it changes)
         if (fill !== filled) ctx.fillStyle = filled = fill;
