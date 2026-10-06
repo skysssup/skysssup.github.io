@@ -1,10 +1,12 @@
 {
   "repository": "skysssup/skysssup.github.io",
   "branch": "codex/hermes-sculpture-stage-1",
-  "starting_sha": "31ab973f60d805a143609acd677b4073624929ba",
-  "implementation_sha": "26d83d7ade86827cda91777ec799cba1594787fd",
+  "starting_sha": "994b21dd927ba2f7624eaf0142a6fa6899d20df2",
+  "implementation_sha": "a71ebdd7873d8dd72bb2fd007498ecfe677f06f1",
   "delivery_ref": "refs/heads/codex/hermes-sculpture-stage-1",
   "pull_request": "https://github.com/skysssup/skysssup.github.io/pull/4",
-  "pr_state": "open draft, unmerged",
-  "note": "The full portable package records the final documentation tip separately; verify remote head and PR state before continuing."
+  "pr_state": "open draft, unmerged, pending push verification",
+  "note": "Stage 2 tip is the implementation commit. A following checkpoint commit records this file. Do not merge or deploy.",
+  "stage": 2,
+  "main_sha": "31ab973f60d805a143609acd677b4073624929ba"
 }

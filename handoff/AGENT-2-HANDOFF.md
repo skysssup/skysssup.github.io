@@ -1,6 +1,6 @@
 # Hermes — Agent 2 handoff
 
-Stage 2 implementation on the stage-1 branch. The owner has not approved the artistic result. Inspect the matched evidence rather than treating this report as that approval.
+Stage 2 implementation on the stage-1 branch. Implementation commit `a71ebdd7873d8dd72bb2fd007498ecfe677f06f1`. The owner has not approved the artistic result. Inspect the matched evidence rather than treating this report as that approval.
 
 ## What this stage owns
 
