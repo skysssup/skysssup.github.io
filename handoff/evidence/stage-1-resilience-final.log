@@ -1,0 +1,45 @@
+✔ loading waits for data and the first drawn figure before announcing a live hero (3780.3569ms)
+✔ real context loss pauses rendering and repeated restoration rebuilds cached geometry (5299.7954ms)
+✔ assets finishing during context loss are retained for restoration (2610.7625ms)
+✔ reduced motion cancels active mouse push, and never advances the still (3741.2983ms)
+✔ a reduced-motion initial load and context restoration stay still (4104.1049ms)
+✔ off-screen heroes remain paused through preference changes and context restoration (5027.8644ms)
+✔ visibilitychange pauses all drawing, including reduced-motion and theme updates (4371.2086ms)
+✔ horizontal touch drags rotate through the springs and cancellation releases capture without push (6064.9376ms)
+✔ native vertical touch scrolling cancels hero interaction and allows the next touch (4208.1992ms)
+✔ enabling reduced motion during a captured touch cancels the drag (2650.7027ms)
+✔ a band of light crosses the figure soon after it assembles, and stars burst with it (4899.3575ms)
+✔ every sheen comes from the key light's side: its light sweeps right, down, and away in every mode (3842.4581ms)
+✔ Tide comes in with a vortex that settles as a sheen crosses it, then keeps a calm tide: no heartbeat, no tears, brighter stars (14501.0366ms)
+✔ the figure lives once it has assembled: it breathes, its wing beats, currents of light cross it, and its key light drifts; under reduced motion it holds entirely still (10251.5465ms)
+✔ Gear Two keeps tearing the figure after the switch; light mode, reduced motion, and touch drags never tear (27988.1146ms)
+✔ a 2x screen draws the whole figure on a grid twice as fine, in smaller dots and the same tone; a 1x screen the coarse grid (2408.335ms)
+✔ the material map names five materials inside the figure (1867.8274ms)
+✔ the statue has a clear outline: a line of points at its edge, in the first frame, on every paper (4597.5404ms)
+✔ the cloud bank is drawn only in Gear Two: it comes in under the switch, fades as Gear Two ends, and the caption counts the dots drawn (7256.275ms)
+✔ in Gear Two the dots under the cursor run ember-hot, in the embers' colour; on light paper, on touch, and under reduced motion they do not (18758.6466ms)
+✔ the sky's stars sit in the sky, and come out on dark paper and in Gear Two but not on white (4141.7644ms)
+✔ a quick sweep of the cursor across the figure blows dust off it, and a slow one only stirs it (4041.0854ms)
+✔ a click on the figure calls down no lightning and adds no control semantics to the image (2117.1088ms)
+✔ the figure wears its materials' colors, keeps 40% of them in Gear Two, and draws in plain ink without the map (19516.8637ms)
+✔ on dark paper the dots stand for light, from the light map, and the lights swap the maps behind a band (5879.4711ms)
+✔ the static fallback survives network failure (1278.1916ms)
+✔ the static fallback survives missing depth map (1229.4037ms)
+✔ the static fallback survives undecodable image (1262.6531ms)
+✔ the static fallback survives failed metadata response with a valid JSON body (1255.9711ms)
+✔ the static fallback survives invalid metadata geometry (1274.0868ms)
+✔ the static fallback survives unavailable context (1550.0461ms)
+✔ the static fallback survives throwing context (1698.9567ms)
+✔ the static fallback survives shader compilation (1957.6183ms)
+✔ the opening holds the figure still in its ink, shines its colors in, and takes the page to Gear Two and back without saving it (17580.394ms)
+✔ a press or a key ends the opening at once; a press on Gear Two then acts on the page as it is (22480.0725ms)
+✔ the opening never visits Tide, and leaves Tide chosen by hand as it is (9531.0319ms)
+✔ the opening plays once a tab and again on a reload, never on the way back from another page or under reduced motion (9528.6619ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 245535.8034

@@ -20,7 +20,7 @@ function cards(root) {
     const file = path.join('work', slug, 'index.html');
     if (!fs.existsSync(path.join(root, file))) continue;
     const html = read(file);
-    const cover = path.join('work', slug, 'media', 'cover-1344.webp');
+    const cover = path.posix.join('work', slug, 'media', 'cover-1344.webp');
     const themes = (html.match(/<dt class="t-label">Themes<\/dt><dd>([^<]*)<\/dd>/) || [])[1] || '';
     list.push({
       out: `${slug}.png`,

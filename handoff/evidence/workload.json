@@ -1,0 +1,114 @@
+[
+  {
+    "mode": "light",
+    "dpr": 1,
+    "before": {
+      "submitted_points": 86453,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 89695,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "light",
+    "dpr": 2,
+    "before": {
+      "submitted_points": 218053,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 226252,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "dark",
+    "dpr": 1,
+    "before": {
+      "submitted_points": 63893,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 80811,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "dark",
+    "dpr": 2,
+    "before": {
+      "submitted_points": 159544,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 203364,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "blue",
+    "dpr": 1,
+    "before": {
+      "submitted_points": 63893,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 80811,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "blue",
+    "dpr": 2,
+    "before": {
+      "submitted_points": 159544,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 203364,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "gear",
+    "dpr": 1,
+    "before": {
+      "submitted_points": 79451,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 96316,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  {
+    "mode": "gear",
+    "dpr": 2,
+    "before": {
+      "submitted_points": 200137,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    "after": {
+      "submitted_points": 243799,
+      "label": null,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  }
+]
