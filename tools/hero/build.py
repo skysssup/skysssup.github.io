@@ -896,7 +896,9 @@ def main():
         'over': OVER,
         'joints': {name: list(j) for name, j in JOINTS.items()},
     }
-    json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
+    # Match the repository's canonical text bytes on every build host.
+    with open(os.path.join(OUT, 'hero.json'), 'w', newline='\n') as metadata_file:
+        json.dump(meta, metadata_file, indent=1)
 
     # the stills cover the page on light and dark paper, where the bank is not drawn
     n = still(levels * (1 - own), bn, dep, meta, '', STILL_GAIN[0], 1.0)

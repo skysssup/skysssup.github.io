@@ -1,0 +1,54 @@
+{
+  "command": "python tools/hero/build.py",
+  "exit": 0,
+  "seconds": 99.18212929999572,
+  "source_commit": "26d83d7ade86827cda91777ec799cba1594787fd",
+  "runtime": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "pillow": "12.3.0"
+  },
+  "byte_identical": true,
+  "before": {
+    "bluenoise.png": "f9600969c71cb89b8b66d264071a6c3a41e2422f9805afab6f2e7bbf41e3608f",
+    "color.webp": "fa9b65d6d25d899e60a393ad3b62ac3a5bba779c23fd9b96824f174c086e4347",
+    "depth.webp": "5913a647defce1d3f5eed04bce2970d1c5b6e51efab43122c5e5aa5b78437949",
+    "hero.json": "ae07670ee20f24371c96dc5736ef8d184e9abb7d8ae784c15bffb7fc29a60754",
+    "ink.webp": "92dd3f1302cbbadba9d7a60e07cc45e17dd39bed8f8c6237e6b5a9d618d8ee3c",
+    "light.webp": "34678c5806bf7cc84f41e7623243dc86898603449d9e49948ec93eab1748f236",
+    "preview-dark.webp": "ac633e3bdd81a5f62741166da6b03fa39be82c3ee9db45b281c94ebc1d4b7353",
+    "preview.webp": "c13006004fba2efdc289fbd2c5728e4af6080a32099ff5b4efbff6ec19cc9a91",
+    "still-dark.webp": "d01f157abb770f369fee4d00c35f6acd55be4adb1ab6f863db3be46086ff938d",
+    "still.webp": "3604ac2709f676945ed00074e80a01fbe8e761c2880e50852321a2c9a3decdaa"
+  },
+  "after": {
+    "bluenoise.png": "f9600969c71cb89b8b66d264071a6c3a41e2422f9805afab6f2e7bbf41e3608f",
+    "color.webp": "fa9b65d6d25d899e60a393ad3b62ac3a5bba779c23fd9b96824f174c086e4347",
+    "depth.webp": "5913a647defce1d3f5eed04bce2970d1c5b6e51efab43122c5e5aa5b78437949",
+    "hero.json": "ae07670ee20f24371c96dc5736ef8d184e9abb7d8ae784c15bffb7fc29a60754",
+    "ink.webp": "92dd3f1302cbbadba9d7a60e07cc45e17dd39bed8f8c6237e6b5a9d618d8ee3c",
+    "light.webp": "34678c5806bf7cc84f41e7623243dc86898603449d9e49948ec93eab1748f236",
+    "preview-dark.webp": "ac633e3bdd81a5f62741166da6b03fa39be82c3ee9db45b281c94ebc1d4b7353",
+    "preview.webp": "c13006004fba2efdc289fbd2c5728e4af6080a32099ff5b4efbff6ec19cc9a91",
+    "still-dark.webp": "d01f157abb770f369fee4d00c35f6acd55be4adb1ab6f863db3be46086ff938d",
+    "still.webp": "3604ac2709f676945ed00074e80a01fbe8e761c2880e50852321a2c9a3decdaa"
+  },
+  "sizes": {
+    "bluenoise.png": 4228,
+    "color.webp": 30732,
+    "depth.webp": 51068,
+    "hero.json": 912,
+    "ink.webp": 71182,
+    "light.webp": 69384,
+    "preview-dark.webp": 72976,
+    "preview.webp": 74336,
+    "still-dark.webp": 233594,
+    "still.webp": 249128
+  },
+  "source_files": {
+    "tools/hero/build.py": "5fe485b3ffea02b6d7b213e3d36585ea1532080bc4112f7ede69080e6b748d3a",
+    "tools/hero/sculpture.json": "0caf1a9f5a6849d4b60140c561a71defa3270853907e843a8fb756b74818c79b",
+    "js/hero.js": "1d4a2ba3f2f8e80295511319eb28ef3d917831bdf0a355ab0673351e5e0ce9aa"
+  },
+  "note": "Source checkpoint plus newline-only builder portability correction; exact source file hashes recorded."
+}

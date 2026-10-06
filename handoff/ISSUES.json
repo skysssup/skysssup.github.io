@@ -1,0 +1,268 @@
+{
+  "schema_version": 2,
+  "source_sha": "31ab973f60d805a143609acd677b4073624929ba",
+  "implementation_status": "stage_1_implemented_owner_visual_review_pending",
+  "note": "Original IDs and all stage 2/3 concerns retained. Stage 1 implementation is not owner approval or final commission closure.",
+  "issues": [
+    {
+      "id": "F01",
+      "title": "Cloud-edge volume and taper",
+      "primary_owner": 2,
+      "contributing_owners": [
+        1
+      ],
+      "status": "stage_1_foundation_implemented_composition_open",
+      "evidence_status": "User-reported and visually observed; source bank restriction verified."
+    },
+    {
+      "id": "F02",
+      "title": "Open hand and raised grip",
+      "primary_owner": 1,
+      "contributing_owners": [],
+      "status": "stage_1_implemented_review_pending",
+      "evidence_status": "User-reported; matched native/DPR comparisons expose remaining form loss.",
+      "implementation_evidence": "evidence/stage-1/comparison-*.jpg; matched native before/after PNGs, phone footprints and live-final MP4s"
+    },
+    {
+      "id": "F03",
+      "title": "Four-mode material palette and light",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "User-reported and visible; current token/material behavior inspected."
+    },
+    {
+      "id": "F04",
+      "title": "White-background crosshair glints",
+      "primary_owner": 2,
+      "contributing_owners": [
+        3
+      ],
+      "status": "not_implemented",
+      "evidence_status": "User-reported, visible, and shape/color source inspected."
+    },
+    {
+      "id": "F05",
+      "title": "Tide / Gear Two responsiveness",
+      "primary_owner": 3,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "Trusted pointer interruption and timing diagnostics reproduced environment-specific failures."
+    },
+    {
+      "id": "F06",
+      "title": "Sticky Tide entrance",
+      "primary_owner": 3,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "Site-specific presented-image hold and independent preparation cost distinguished."
+    },
+    {
+      "id": "F07",
+      "title": "Connected body rather than outline bands",
+      "primary_owner": 1,
+      "contributing_owners": [
+        2
+      ],
+      "status": "stage_1_implemented_review_pending",
+      "evidence_status": "Controlled contour/tone comparisons establish that outline removal alone is insufficient.",
+      "implementation_evidence": "evidence/stage-1/comparison-*.jpg; matched native before/after PNGs, phone footprints and live-final MP4s"
+    },
+    {
+      "id": "F08",
+      "title": "Complete source-derived lower world",
+      "primary_owner": 2,
+      "contributing_owners": [
+        1
+      ],
+      "status": "stage_1_foundation_implemented_composition_open",
+      "evidence_status": "User-reported and visible; foundational contact/masks belong to stage 1."
+    },
+    {
+      "id": "F09",
+      "title": "Purposeful ambient particle hierarchy",
+      "primary_owner": 2,
+      "contributing_owners": [
+        3
+      ],
+      "status": "not_implemented",
+      "evidence_status": "User-reported visual opportunity; use reference-driven depth and distribution."
+    },
+    {
+      "id": "F10",
+      "title": "Face, hair, neck and raised grip readability",
+      "primary_owner": 1,
+      "contributing_owners": [
+        2
+      ],
+      "status": "stage_1_implemented_review_pending",
+      "evidence_status": "Matched region comparisons; source resolution/provenance limits explicit.",
+      "implementation_evidence": "evidence/stage-1/comparison-*.jpg; matched native before/after PNGs, phone footprints and live-final MP4s"
+    },
+    {
+      "id": "F11",
+      "title": "Wings, caduceus and attachments",
+      "primary_owner": 1,
+      "contributing_owners": [
+        2
+      ],
+      "status": "stage_1_structure_implemented_material_open",
+      "evidence_status": "Matched structural/material region comparisons."
+    },
+    {
+      "id": "F12",
+      "title": "Orbiting text and visual hierarchy",
+      "primary_owner": 2,
+      "contributing_owners": [
+        3
+      ],
+      "status": "not_implemented",
+      "evidence_status": "Visible knockout treatment and source halo implementation inspected."
+    },
+    {
+      "id": "F13",
+      "title": "Separate grid and anatomical contour systems",
+      "primary_owner": 3,
+      "contributing_owners": [
+        2
+      ],
+      "status": "not_implemented",
+      "evidence_status": "Existing grid is not itself a confirmed bug; preserve and check it."
+    },
+    {
+      "id": "F14",
+      "title": "Framing and temporal detail stability",
+      "primary_owner": 3,
+      "contributing_owners": [
+        1,
+        2
+      ],
+      "status": "stage_1_regressions_checked_final_integration_open",
+      "evidence_status": "Integrated regression gate; not every possible clipping/flicker failure was reproduced."
+    },
+    {
+      "id": "F15",
+      "title": "Fallback, first-paint and reduced-motion parity",
+      "primary_owner": 3,
+      "contributing_owners": [
+        1,
+        2
+      ],
+      "status": "stage_1_regressions_checked_final_integration_open",
+      "evidence_status": "Mid-flight motion cancellation defect reproduced; other resilience paths need final verification."
+    },
+    {
+      "id": "F16",
+      "title": "Truthful accessible gear controls",
+      "primary_owner": 3,
+      "contributing_owners": [
+        2
+      ],
+      "status": "not_implemented",
+      "evidence_status": "Physical pointer interception reproduced; keyboard/static reduced motion have working foundations."
+    },
+    {
+      "id": "P01",
+      "title": "Author and heading hierarchy",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P02",
+      "title": "Supporting panel and telemetry priority",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P03",
+      "title": "Mobile reading order and proof arrival",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P04",
+      "title": "Tablet composition",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P05",
+      "title": "Mobile portfolio navigation and control targets",
+      "primary_owner": 2,
+      "contributing_owners": [
+        3
+      ],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P06",
+      "title": "Selected-work proportions",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P07",
+      "title": "Readable truthful proof crops",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P08",
+      "title": "Work-index density and hierarchy",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P09",
+      "title": "Public authoring scaffolds",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P10",
+      "title": "Contact, Index and footer precision",
+      "primary_owner": 2,
+      "contributing_owners": [
+        3
+      ],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P11",
+      "title": "Material quality without contaminating real proof",
+      "primary_owner": 2,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    },
+    {
+      "id": "P12",
+      "title": "Motion/lifecycle and saved-mode continuity",
+      "primary_owner": 3,
+      "contributing_owners": [],
+      "status": "not_implemented",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+    }
+  ],
+  "code_checkpoint_sha": "26d83d7ade86827cda91777ec799cba1594787fd",
+  "branch": "codex/hermes-sculpture-stage-1",
+  "pull_request": "https://github.com/skysssup/skysssup.github.io/pull/4"
+}

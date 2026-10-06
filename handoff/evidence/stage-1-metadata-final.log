@@ -1,0 +1,17 @@
+✔ loading waits for data and the first drawn figure before announcing a live hero (4499.614ms)
+✔ the static fallback survives network failure (1997.818ms)
+✔ the static fallback survives missing depth map (1899.123ms)
+✔ the static fallback survives undecodable image (1627.145ms)
+✔ the static fallback survives failed metadata response with a valid JSON body (2727.5071ms)
+✔ the static fallback survives invalid metadata geometry (1759.9666ms)
+✔ the static fallback survives unavailable context (1628.779ms)
+✔ the static fallback survives throwing context (1562.3397ms)
+✔ the static fallback survives shader compilation (1718.0879ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20573.5036
