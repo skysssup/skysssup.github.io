@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "source_sha": "31ab973f60d805a143609acd677b4073624929ba",
-  "implementation_status": "stage_2_implemented_owner_visual_review_pending",
-  "note": "Stage 2 materials, lower world, glints, ring, and editorial page are implemented on the stage-1 branch. Owner visual review is still pending. Stage 3 owns live transitions, input, and performance. This is not owner approval.",
+  "implementation_status": "stage_3_live_input_implemented_hardware_unverified",
+  "note": "Stage 3 removed the in-page root snapshot so a second press hits the real control and the live hero is not covered. Reduced motion commits the requested gear immediately. Opposite-paper geometry is built after first paint. Hardware FPS, Safari, and physical phones were not measured. Not owner approval.",
   "issues": [
     {
       "id": "F01",
@@ -49,16 +49,18 @@
       "title": "Tide / Gear Two responsiveness",
       "primary_owner": 3,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "Trusted pointer interruption and timing diagnostics reproduced environment-specific failures."
+      "status": "stage_3_implemented_hardware_unverified",
+      "evidence_status": "Trusted pointer interruption and timing diagnostics reproduced environment-specific failures.",
+      "implementation_evidence": "Browser check: second Tide press hit BUTTON, ended neutral. Reduced-motion unit test commits the heading gear."
     },
     {
       "id": "F06",
       "title": "Sticky Tide entrance",
       "primary_owner": 3,
       "contributing_owners": [],
-      "status": "not_implemented",
-      "evidence_status": "Site-specific presented-image hold and independent preparation cost distinguished."
+      "status": "stage_3_implemented_hardware_unverified",
+      "evidence_status": "Site-specific presented-image hold and independent preparation cost distinguished.",
+      "implementation_evidence": "Browser check: second Tide press hit BUTTON, ended neutral. Reduced-motion unit test commits the heading gear."
     },
     {
       "id": "F07",
@@ -165,8 +167,9 @@
       "contributing_owners": [
         2
       ],
-      "status": "not_implemented",
-      "evidence_status": "Physical pointer interception reproduced; keyboard/static reduced motion have working foundations."
+      "status": "stage_3_implemented_hardware_unverified",
+      "evidence_status": "Physical pointer interception reproduced; keyboard/static reduced motion have working foundations.",
+      "implementation_evidence": "Browser check: second Tide press hit BUTTON, ended neutral. Reduced-motion unit test commits the heading gear."
     },
     {
       "id": "P01",
@@ -276,7 +279,7 @@
       "title": "Motion/lifecycle and saved-mode continuity",
       "primary_owner": 3,
       "contributing_owners": [],
-      "status": "not_implemented",
+      "status": "stage_3_partial_hardware_unverified",
       "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
     }
   ],

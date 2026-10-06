@@ -138,20 +138,21 @@ test('the light switch flips the theme, and turning the lights on leaves Gear Tw
   assert.equal(p.root.getAttribute('data-gear'), null);
 });
 
-test('the theme reveal grows a soft circle from the switch', async () => {
+test('the theme reveal grows a soft circle from the switch without covering the live page', () => {
   const p = page({ transitions: true });
   const origin = element({ left: 1376, top: 21, width: 26, height: 14 });
+  const appended = [];
+  p.doc.createElement = () => ({ className: '', style: { props: new Map(), setProperty(k, v) { this.props.set(k, v); }, pointerEvents: '' }, setAttribute() {}, addEventListener() {} });
+  p.doc.body = { appendChild(el) { appended.push(el); } };
   const applied = [];
   p.win.skyThemeTransition(t => applied.push(t), 'light', origin);
-  assert.deepEqual(applied, ['dark']);
-  await Promise.all(p.started);
-  await new Promise(r => setImmediate(r));
-  assert.equal(p.animations.length, 1);
-  const { keyframes, options } = p.animations[0];
-  assert.equal(options.pseudoElement, '::view-transition-new(root)');
-  assert.equal(keyframes.maskSize[0], '0px 0px');
-  assert.equal(keyframes.maskPosition[0], '1389px 28px');
-  assert.equal(p.root.classList.contains('theme-reveal'), false);
+  assert.deepEqual(applied, ['dark'], 'the live theme changes at once');
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0].className, 'fx-flood');
+  assert.equal(appended[0].style.pointerEvents, 'none', 'the circle cannot swallow the next press');
+  assert.equal(appended[0].style.left, '1389px');
+  assert.equal(p.root.classList.contains('theme-reveal'), false, 'no root snapshot covers the hero');
+  assert.equal(p.started.length, 0, 'in-page modes do not snapshot the root');
 });
 
 test('switching Gear Two on sends a red ring out from the switch and phases the heartbeat to the clock', () => {
@@ -379,47 +380,54 @@ test('true and false still mean Gear Two and none, so the opening and the hero\'
   assert.equal(BEAT, 0.9);
 });
 
-test('with View Transitions Tide floods out from its position behind a ring of light, and a late callback never undoes a newer switch', async () => {
+test('Tide floods from the control without a root snapshot, and a second press wins', () => {
   const p = page({ transitions: true });
   const rings = [];
-  p.doc.createElement = () => ({ className: '', style: { setProperty() {} }, setAttribute() {}, addEventListener() {} });
-  p.doc.body = { appendChild(el) { rings.push(el.className); } };
+  p.doc.createElement = () => ({ className: '', style: { setProperty() {}, pointerEvents: '' }, setAttribute() {}, addEventListener() {} });
+  p.doc.body = { appendChild(el) { rings.push(el); } };
   p.blueButton.getBoundingClientRect = () => ({ left: 680, top: 14, width: 54, height: 28 });
   p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'surge');
+  assert.equal(p.root.getAttribute('data-gear'), null, 'the palette waits for the short acknowledgment');
   p.run(BLUE.palette);
   assert.equal(p.root.getAttribute('data-gear'), 'blue');
-  assert.equal(p.root.classList.contains('tide-reveal'), true, 'a sharper circle than the lights\'');
-  await Promise.all(p.started);
-  await new Promise(r => setImmediate(r));
-  const { keyframes, options } = p.animations[0];
-  assert.equal(options.pseudoElement, '::view-transition-new(root)');
-  assert.equal(options.duration, BLUE.flood);
-  assert.equal(keyframes.maskPosition[0], '707px 28px', 'the circle grows from the middle of Tide\'s position');
-  assert.deepEqual(rings, ['fx-tide'], 'a ring of light rides its edge');
-  assert.equal(p.root.classList.contains('tide-reveal'), false);
-  assert.equal(p.root.classList.contains('theme-reveal'), false);
+  assert.equal(p.root.classList.contains('theme-reveal'), false, 'the live hero is not covered by an old picture');
+  assert.equal(p.started.length, 0);
+  assert.equal(rings.length, 1);
+  assert.equal(rings[0].className, 'fx-tide');
+  assert.equal(rings[0].style.pointerEvents, 'none');
+  assert.equal(rings[0].style.left, '707px', 'the ring leaves the middle of Tide\'s position');
 
   const q = page({ transitions: true });
-  let update = null;
-  q.doc.startViewTransition = fn => { update = fn; return { ready: new Promise(() => {}), finished: Promise.resolve() }; };
   q.blueButton.getBoundingClientRect = () => ({ left: 680, top: 14, width: 54, height: 28 });
   q.click(q.blueButton);
-  q.run(BLUE.palette);
   q.click(q.blueButton);
-  update();
-  assert.equal(q.root.getAttribute('data-gear'), null, 'the visitor went back to neutral before the transition called back');
+  q.run(BLUE.palette);
+  assert.equal(q.root.getAttribute('data-gear'), null, 'the second press returns to neutral and the old flood cannot reapply Tide');
 });
 
-test('with View Transitions leaving Tide cross-fades the page back once the ebb is over', async () => {
+test('leaving Tide returns to the live page once the ebb is over, without a snapshot', () => {
   const p = page({ gear: 'blue', transitions: true });
   p.click(p.blueButton);
-  assert.equal(p.root.classList.contains('tide-ebb'), false, 'nothing fades during the ebb');
+  assert.equal(p.root.getAttribute('data-phase'), 'ebb');
+  assert.equal(p.root.getAttribute('data-gear'), 'blue', 'the ebb does not freeze the old gear under a picture');
   p.run(BLUE.exit);
   assert.equal(p.root.getAttribute('data-gear'), null);
   assert.equal(p.root.getAttribute('data-phase'), null);
-  assert.equal(p.root.classList.contains('tide-ebb'), true);
-  assert.equal(p.started.length, 1);
-  await new Promise(r => setImmediate(r));
   assert.equal(p.root.classList.contains('tide-ebb'), false);
-  assert.equal(p.animations.length, 0, 'a plain cross-fade, no circle');
+  assert.equal(p.started.length, 0);
+});
+
+test('reduced motion during a Tide surge commits the requested gear and drops the ceremony', () => {
+  const p = page();
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'surge');
+  p.api.motion.set('reduced');
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.root.getAttribute('data-motion'), 'reduced');
+  p.run(BLUE.palette);
+  p.run(BLUE.done);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue', 'the old timers cannot restart the flood');
+  assert.equal(p.root.getAttribute('data-phase'), null);
 });

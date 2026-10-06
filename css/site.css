@@ -1224,7 +1224,7 @@ html.theme-reveal.tide-reveal::view-transition-new(root) {
   background: radial-gradient(closest-side, transparent 80%, color-mix(in srgb, var(--tide-a) 16%, transparent) 92%, color-mix(in srgb, var(--tide-b) 75%, transparent) 98.5%, transparent 100%);
   transform: scale(0);
   will-change: transform, opacity;
-  animation: tide-wave 1s cubic-bezier(.22, .61, .36, 1) 1 forwards;
+  animation: tide-wave .64s cubic-bezier(.22, .61, .36, 1) 1 forwards;
 }
 .fx-tide::after {
   content: "";
@@ -1233,7 +1233,7 @@ html.theme-reveal.tide-reveal::view-transition-new(root) {
   border: 1px solid color-mix(in srgb, var(--tide-b) 55%, transparent);
   border-radius: 50%;
   opacity: 0;
-  animation: tide-echo 1s linear 1 forwards;
+  animation: tide-echo .64s linear 1 forwards;
 }
 @keyframes tide-wave {
   0% { transform: scale(0); opacity: 1; }
@@ -1283,7 +1283,25 @@ html.tide-ebb::view-transition-old(root), html.tide-ebb::view-transition-new(roo
 }
 :root[data-phase="ebb"] .gear, :root[data-phase="ebb"] body > .lines span::after { animation: none !important; }
 
-/* ── theme reveal (View Transitions) ───────────────────── */
+/* ── theme reveal ──────────────────────────────────────── */
+/* In-page mode changes do not snapshot the root. Navigation transitions still must not eat a click. */
+::view-transition,
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) { pointer-events: none; }
+.fx-flood {
+  position: fixed;
+  z-index: 2;
+  width: var(--reach);
+  height: var(--reach);
+  margin: calc(var(--reach) / -2) 0 0 calc(var(--reach) / -2);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, transparent 68%, color-mix(in srgb, var(--ink) 8%, transparent) 92%, transparent 100%);
+  transform: scale(0);
+  animation: tide-wave .64s var(--ease-out) 1 forwards;
+}
 html.theme-reveal::view-transition-new(root) {
   z-index: 9999;
   -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent);

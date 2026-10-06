@@ -4,11 +4,10 @@
   "use strict";
 
   // Gear Two timing (ms): flash, then the palette switches and glitches, then it settles.
-  var GEAR = { flash: 90, settle: 650, done: 1050, exit: 300 };
-  // Tide timing (ms): the surge, in which the palette turns at `palette` and floods out from the control for `flood`
-  // (on `ease`, which the ring riding the flood's edge shares in css/site.css), and the ebb, after which the page
-  // cross-fades back.
-  var BLUE = { palette: 120, flood: 1000, ease: "cubic-bezier(.22, .61, .36, 1)", done: 1200, exit: 300 };
+  var GEAR = { flash: 90, settle: 420, done: 720, exit: 220 };
+  // Tide timing (ms): the surge, in which the palette turns at `palette` and a non-hit-testing ring floods out
+  // from the control for `flood`. The live page changes underneath. There is no root snapshot.
+  var BLUE = { palette: 120, flood: 640, ease: "cubic-bezier(.22, .61, .36, 1)", done: 760, exit: 220 };
   // Gear Two heartbeat period (s); the same constant lives in the hero's heartbeat() and in the CSS keyframes.
   var BEAT = 0.9;
   // Tide's period (s): the slow tide that takes the heartbeat's place in the blue gear, in CSS and in the hero.
@@ -45,8 +44,11 @@
     }
     function applyMotion() {
       var r = reduced();
-      if (r) root.setAttribute("data-motion", "reduced");
-      else root.removeAttribute("data-motion");
+      if (r) {
+        root.setAttribute("data-motion", "reduced");
+        // An already-running reveal must end. CSS duration 0 does not cancel a view-transition snapshot.
+        finishNow();
+      } else root.removeAttribute("data-motion");
       var toggles = doc.querySelectorAll("[data-motion-toggle]");
       for (var i = 0; i < toggles.length; i++) {
         toggles[i].setAttribute("aria-pressed", r ? "true" : "false");
@@ -95,6 +97,21 @@
       timers = [];
       root.removeAttribute("data-phase");
     }
+    function dropOverlays() {
+      if (!doc.querySelectorAll) return;
+      var nodes = doc.querySelectorAll(".fx-flood, .fx-tide, .fx-ring");
+      for (var i = 0; i < nodes.length; i++) if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+    }
+    // Commit the gear the visitor already asked for and throw away the ceremony.
+    function finishNow() {
+      clearPhases();
+      seq++;
+      dropOverlays();
+      root.classList.remove("theme-reveal");
+      root.classList.remove("tide-reveal");
+      root.classList.remove("tide-ebb");
+      if (heading !== mode) setGear(heading);
+    }
     // Gear Two's heartbeat (0.9 s) and Tide's tide (4.5 s) run on the hero's clock (performance.now). CSS animations
     // that pulse with them start from the same phase through --beat-delay and --tide-delay, so the page and the dots agree.
     function syncClock(name, period) {
@@ -137,6 +154,7 @@
       var el = doc.createElement("span");
       el.className = name;
       el.setAttribute("aria-hidden", "true");
+      el.style.pointerEvents = "none";
       el.style.left = c.x + "px";
       el.style.top = c.y + "px";
       el.style.setProperty("--reach", Math.round(reach) + "px");
@@ -150,42 +168,24 @@
       var c = centre(origin);
       if (c && canDraw()) ring(c, c.far * 2 + 48, "fx-ring");
     }
-    // A circle of the new page grows from `origin` while `apply` makes the change (View Transitions): the lights' soft
-    // circle, or Tide's flood with its sharper edge (`tide`). `then` runs as the circle starts to grow.
+    // The live page changes immediately. A circle of light grows from the control and does not hit-test,
+    // so a second press still reaches the real button. A root view-transition snapshot used to cover the
+    // hero and swallow that press; navigation transitions are left alone.
     function reveal(origin, apply, ms, tide, then) {
+      apply();
       var c = centre(origin);
-      if (reduced() || typeof doc.startViewTransition !== "function" || !c) { apply(); return false; }
+      if (reduced() || !c || !canDraw()) return false;
       var reach = c.far * 2.6;
-      root.classList.add("theme-reveal");
-      if (tide) root.classList.add("tide-reveal");
-      var transition = doc.startViewTransition(apply);
-      transition.ready.then(function () {
-        root.animate({
-          maskSize: ["0px 0px", reach + "px " + reach + "px"],
-          maskPosition: [c.x + "px " + c.y + "px", (c.x - reach / 2) + "px " + (c.y - reach / 2) + "px"]
-        }, { duration: ms, easing: tide ? BLUE.ease : "cubic-bezier(.16, 1, .3, 1)", fill: "forwards", pseudoElement: "::view-transition-new(root)" });
-        if (then) then(c, reach);
-      }).catch(function () {});
-      var done = function () { root.classList.remove("theme-reveal"); root.classList.remove("tide-reveal"); };
-      if (transition.finished && transition.finished.then) transition.finished.then(done, done);
-      else done();
+      ring(c, tide ? reach * 0.96 : reach, tide ? "fx-tide" : "fx-flood");
+      if (then) then(c, reach);
       return true;
     }
-    // Tide's palette floods out from the control: the page turns blue inside a circle that grows from it, a ring of
-    // light riding the circle's edge (its band ends where the circle's thin soft edge begins, 96% of the way out) and
-    // a fainter one behind it. Without View Transitions the palette turns at once and the light runs out over it.
     function flood(origin, apply, run) {
-      var light = function (c, reach) { if (run === seq && c && canDraw()) ring(c, reach * 0.96, "fx-tide"); };
-      if (!reveal(origin, apply, BLUE.flood, true, light)) { var c = centre(origin); if (c) light(c, c.far * 2.6); }
+      if (run !== seq) return;
+      reveal(origin, apply, BLUE.flood, true);
     }
-    // Leaving Tide the page cross-fades back, quieter than it came.
     function fade(apply) {
-      if (reduced() || typeof doc.startViewTransition !== "function") { apply(); return; }
-      root.classList.add("tide-ebb");
-      var transition = doc.startViewTransition(apply);
-      var done = function () { root.classList.remove("tide-ebb"); };
-      if (transition.finished && transition.finished.then) transition.finished.then(done, done);
-      else done();
+      apply();
     }
     // Runs the sequence towards `gear` from `origin` (the control pressed; its rings leave it): Gear Two's flash and
     // glitch, Tide's surge, or the way out of the gear that is on (the glitch, or Tide's ebb). Switching straight

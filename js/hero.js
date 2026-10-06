@@ -1676,6 +1676,7 @@
         swap = null;
       }
       if (!shapes[set]) shapes[set] = shape(sources[set]);
+      warmOther();
       if (vertices !== shapes[set].vertices) {
         vertices = shapes[set].vertices;
         count = shapes[set].count;
@@ -1746,6 +1747,22 @@
 
     // A map that fails to arrive leaves the figure on the map it has, at full strength; the next change of paper tries
     // again.
+    // The other paper's geometry is built after first paint, off the click that asks for it.
+    var warming = false;
+    function warmOther() {
+      if (!meta || !set || warming) return;
+      var other = set === "ink" ? "light" : "ink";
+      if (!sources[other]) { fetchMap(other); return; }
+      if (shapes[other]) return;
+      warming = true;
+      var run = function () {
+        warming = false;
+        if (!sources[other] || shapes[other]) return;
+        try { shapes[other] = shape(sources[other]); } catch (e) {}
+      };
+      if (typeof global.requestIdleCallback === "function") global.requestIdleCallback(run, { timeout: 1200 });
+      else global.setTimeout(run, 40);
+    }
     function fetchMap(name) {
       if (sources[name] || loading[name] || !meta) return;
       loading[name] = true;
