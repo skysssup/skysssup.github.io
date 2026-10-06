@@ -38,7 +38,7 @@
   // Tide's tide: the slow rhythm that takes the heartbeat's place in the blue gear, every TIDE seconds on the same clock
   // as the page's tide (--tide-delay in js/motion.js and the CSS keyframes, which share the constant). VORTEX is how
   // long its entrance takes to lift into a vortex and to settle back, and when, as it settles, its sheen sets off (s).
-  var TIDE = 4.5, VORTEX = { rise: 0.45, settle: 0.65, shine: 0.7 };
+  var TIDE = 4.5, VORTEX = { rise: 0.22, settle: 0.26, shine: 0.34 };
   function longTearBeat(block) { return block * TEAR_BLOCK + 2 + Math.floor(hash(block * 7 + 101) * 3); }
   function tearSchedule(beat) {
     if (beat === longTearBeat(Math.floor(beat / TEAR_BLOCK))) return { frames: 8, tiles: 3, glitch: 0.8, after: true, long: true };
@@ -73,7 +73,8 @@
   function easeInOut(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2; }
 
   // Tide's entrance `t` s after its surge began: the dots' vortex, 0 to 1 over VORTEX.rise and back to 0 over
-  // VORTEX.settle, on --ease-in-out (the shader's u_vortex).
+  // VORTEX.settle, on --ease-in-out (the shader's u_vortex). It is done with the page's entrance, about 0.5 s,
+  // so the silhouette is coherent again before the surge clears.
   function vortex(t) {
     if (!(t > 0) || t >= VORTEX.rise + VORTEX.settle) return 0;
     return t < VORTEX.rise ? easeInOut(t / VORTEX.rise) : easeInOut(1 - (t - VORTEX.rise) / VORTEX.settle);
@@ -1449,6 +1450,8 @@
       glitchUntil = 0;
       tear = null;
       tiles = [];
+      vortexAt = 0;
+      vortexShine = false;
     }
 
     function fallback() {
@@ -2299,10 +2302,10 @@
       if (motion.reduced() || !ready) { inkNow = next; tintNow = tintFrom = tintTo = tint; inkAt = 0; }
       else if (next.join() !== inkNow.join() || tint !== tintTo) { inkFrom = inkNow; inkTo = next; tintFrom = tintNow; tintTo = tint; inkAt = performance.now(); }
       var phase = document.documentElement.getAttribute("data-phase");
-      if (phase === "glitch" || phase === "flash") glitchUntil = performance.now() + 520;
       // Tide's surge lifts the dots into a vortex that settles as the palette turns (never under reduced motion, where
       // the switch has no phases)
       if (phase === "surge" && phaseNow !== "surge" && canInteract()) { vortexAt = performance.now(); vortexShine = true; }
+      else if (phaseNow === "surge" && phase !== "surge") { vortexAt = 0; vortexShine = false; }
       phaseNow = phase;
       // leaving Gear Two: the tearing stops just after the palette comes back
       if (was.gear && !colors.gear) { glitchUntil = Math.min(glitchUntil, performance.now() + 140); tear = null; }

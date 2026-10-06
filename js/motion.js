@@ -6,8 +6,12 @@
   // Gear Two timing (ms): flash, then the palette switches and glitches, then it settles.
   var GEAR = { flash: 90, settle: 420, done: 720, exit: 220 };
   // Tide timing (ms): the surge, in which the palette turns at `palette` and a non-hit-testing ring floods out
-  // from the control for `flood`. The live page changes underneath. There is no root snapshot.
-  var BLUE = { palette: 120, flood: 640, ease: "cubic-bezier(.22, .61, .36, 1)", done: 760, exit: 220 };
+  // from the control for `flood`. The live page changes underneath. There is no root snapshot. The entrance
+  // settles by `done` (about 600 ms), not a second later.
+  var BLUE = { palette: 120, flood: 480, ease: "cubic-bezier(.22, .61, .36, 1)", done: 600, exit: 220 };
+  // Tide ↔ Gear Two (ms): the destination is committed at once and the old ceremony is dropped. The short
+  // retarget is the only remaining phase, inside the 220–420 ms band.
+  var RETARGET = 320;
   // Gear Two heartbeat period (s); the same constant lives in the hero's heartbeat() and in the CSS keyframes.
   var BEAT = 0.9;
   // Tide's period (s): the slow tide that takes the heartbeat's place in the blue gear, in CSS and in the hero.
@@ -192,12 +196,23 @@
     // between the gears runs the new gear's entrance. A sequence still running is cancelled first, and nothing more
     // happens when the page is already in the gear it is asked for.
     function switchGear(gear, origin, transient) {
-      var next = modeOf(gear), run = ++seq;
+      var next = modeOf(gear), run = ++seq, from = mode;
       clearPhases();
+      dropOverlays();
       heading = next;
       press(next);
       if (next === mode) return;
       if (reduced()) { setGear(next, transient); return; }
+      // Already in a gear: commit the other one now. Replaying its entrance from neutral stacks a flash
+      // or a surge on top of a palette the visitor has already left.
+      if (from && next) {
+        setGear(next, transient);
+        root.setAttribute("data-phase", "retarget");
+        if (next === "two") shockwave(origin);
+        else reveal(origin, function () {}, BLUE.flood, true);
+        at(RETARGET, function () { if (run === seq) clearPhases(); });
+        return;
+      }
       if (next === "two") {
         shockwave(origin);
         root.setAttribute("data-phase", "flash");
@@ -256,13 +271,13 @@
     var api = {
       motion: motion, setGear: setGear, toggleGear: toggleGear, switchGear: switchGear,
       isGear: function () { return !!mode; }, mode: function () { return mode; },
-      GEAR: GEAR, BLUE: BLUE, BEAT: BEAT, TIDE: TIDE
+      GEAR: GEAR, BLUE: BLUE, RETARGET: RETARGET, BEAT: BEAT, TIDE: TIDE
     };
     win.SkyMotion = motion;
     win.skyGear = api;
     return api;
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BLUE: BLUE, BEAT: BEAT, TIDE: TIDE };
+  if (typeof module !== "undefined" && module.exports) module.exports = { init: init, GEAR: GEAR, BLUE: BLUE, RETARGET: RETARGET, BEAT: BEAT, TIDE: TIDE };
   else init({ document: document, window: global, storage: global.localStorage, session: global.sessionStorage, setTimeout: global.setTimeout.bind(global), clearTimeout: global.clearTimeout.bind(global) });
 })(typeof window !== "undefined" ? window : globalThis);

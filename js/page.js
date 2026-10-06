@@ -643,9 +643,12 @@
         canvas.className = "stipple";
         canvas.setAttribute("aria-hidden", "true");
         frame.appendChild(canvas);
-        frame.classList.add("is-stippled");
         var plate = { img: img, frame: frame, canvas: canvas, drawn: false, seen: false };
-        plate.draw = function () { plate.drawn = drawStipple(img, canvas) || plate.drawn; if (plate.drawn && plate.seen) frame.classList.add("is-developed"); };
+        plate.draw = function () {
+          plate.drawn = drawStipple(img, canvas) || plate.drawn;
+          if (plate.drawn) frame.classList.add("is-stippled");
+          if (plate.drawn && plate.seen) frame.classList.add("is-developed");
+        };
         if (!img.complete) img.addEventListener("load", plate.draw, { once: true });
         return plate;
       });
@@ -656,13 +659,19 @@
           plate.seen = true;
           sight.unobserve(entry.target);
           if (!plate.drawn) plate.draw();
-          if (plate.drawn) win.setTimeout(function () { plate.frame.classList.add("is-developed"); }, 120);
-          else plate.img.addEventListener("load", function () { plate.frame.classList.add("is-developed"); }, { once: true });
+          // A failed or late draw must not leave the photograph wiped. The stipple only hides the image
+          // after it has actually been drawn.
+          if (plate.drawn) win.setTimeout(function () { plate.frame.classList.add("is-developed"); }, motion.reduced() ? 0 : 120);
+          else plate.frame.classList.add("is-developed");
         });
       }, { threshold: 0.35 });
       var sizes = new win.ResizeObserver(function (entries) { entries.forEach(function (entry) { plates.forEach(function (p) { if (p.frame === entry.target) p.draw(); }); }); });
-      plates.forEach(function (p) { p.draw(); sight.observe(p.frame); sizes.observe(p.frame); });
-      new win.MutationObserver(function () { plates.forEach(function (p) { p.draw(); }); }).observe(doc.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-gear"] });
+      plates.forEach(function (p) { sight.observe(p.frame); sizes.observe(p.frame); });
+      new win.MutationObserver(function () { plates.forEach(function (p) { if (p.seen || p.drawn) p.draw(); }); }).observe(doc.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-gear"] });
+      motion.subscribe(function () {
+        if (!motion.reduced()) return;
+        plates.forEach(function (p) { p.frame.classList.add("is-developed"); });
+      });
     }
 
     /* the construction grid: minor columns and insets drawn over the sheet, and the role, size, and alignment of
@@ -737,6 +746,9 @@
         });
       }, { threshold: 0.2 });
       reveals.forEach(function (el) { seen.observe(el); });
+      motion.subscribe(function () {
+        if (motion.reduced()) reveals.forEach(function (el) { el.classList.add("is-seen"); });
+      });
     } else reveals.forEach(function (el) { el.classList.add("is-seen"); });
 
     return { hero: hero };

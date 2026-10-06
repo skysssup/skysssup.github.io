@@ -1044,10 +1044,9 @@ html.index-is-open { scrollbar-gutter: stable; }
 .lost .links { display: flex; gap: 20px; margin-top: 24px; }
 
 /* ── Gear Two ───────────────────────────────────────────── */
-/* Turning it on: a flash that fades, a red ring from the switch, then the palette turns while text splits
-   and media slices, then it settles. --beat-delay (set by motion.js) keeps every pulse on the dots' heartbeat. */
-.fx-flash { position: fixed; inset: 0; z-index: 900; background: #fff; opacity: 0; pointer-events: none; transition: opacity .16s var(--ease-out); }
-:root[data-phase="flash"] .fx-flash { opacity: .7; transition: none; }
+/* Turning it on: a red ring from the switch, then the palette. The old full-page white flash is not used.
+   --beat-delay (set by motion.js) keeps every pulse on the dots' heartbeat. */
+.fx-flash { position: fixed; inset: 0; z-index: 900; background: #fff; opacity: 0; pointer-events: none; }
 .fx-ring {
   position: fixed;
   z-index: 901;
@@ -1068,38 +1067,7 @@ html.index-is-open { scrollbar-gutter: stable; }
   0% { transform: scale(0); opacity: 1; }
   100% { transform: scale(1); opacity: 0; }
 }
-:root[data-phase="flash"] .glitch-text,
-:root[data-phase="glitch"] .glitch-text,
-:root[data-phase="glitch"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-lines a, .intro-label, .section-head h2) { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
-:root[data-phase="settle"] :is(h1, h2, h3, .t-l, .t-s, .panel-head, .nav a, .clock, .contact-lines a, .intro-label, .section-head h2) { animation: unsplit .4s var(--ease-out) 1; }
-:root[data-phase="glitch"] .site-header { animation: slice 180ms steps(1, end) 3; }
-:root[data-phase="glitch"] main { animation: jitter 180ms steps(1, end) 3; }
-:root[data-phase="glitch"] :is(.plate-media, .fig-frame, .thumb, .panel, .media-type) { animation: slice 180ms steps(1, end) 3; }
-:root[data-phase="settle"] .hero-figure { animation: settle 400ms var(--ease-out) 1; }
-@keyframes slice {
-  0% { clip-path: inset(0 0 60% 0); transform: translateX(3px); }
-  33% { clip-path: inset(40% 0 20% 0); transform: translateX(-2px); }
-  66% { clip-path: inset(70% 0 0 0); transform: translateX(1px); }
-  100% { clip-path: none; transform: none; }
-}
-@keyframes jitter {
-  0% { transform: translateX(3px); }
-  33% { transform: translateX(-2px); }
-  66% { transform: translateX(1px); }
-  100% { transform: none; }
-}
-@keyframes settle {
-  0% { transform: translateX(3px); }
-  25% { transform: translateX(-2.2px); }
-  50% { transform: translateX(1.4px); }
-  75% { transform: translateX(-.6px); }
-  100% { transform: none; }
-}
-@keyframes unsplit {
-  from { text-shadow: -1.5px 0 var(--split-a), 1.5px 0 var(--split-b); }
-  to { text-shadow: 0 0 transparent, 0 0 transparent; }
-}
-
+/* The entrance does not shake the sheet or split the type. The ring and the palette are the impulse. */
 /* While it is on: the figure glows and the switch pulses with the heartbeat (lub-dub every 0.9 s). */
 :root[data-gear="two"] .gear { animation: gear-beat .9s linear infinite; animation-delay: var(--beat-delay, 0s); }
 @keyframes gear-beat {
@@ -1204,10 +1172,10 @@ body > .lines span { position: relative; }
 }
 
 /* ── Tide (the blue gear) ───────────────────────────────── */
-/* Turning it on (js/motion.js, data-phase="surge" for 1.2 s): the gear shift ripples, and at 120 ms the page turns
-   blue inside a circle that floods out from the control (View Transitions, a sharper edge than the lights' circle), a
-   ring of light riding its edge with a fainter one behind. No flash, no glitch. Leaving it (data-phase="ebb", 300 ms)
-   the tide stops, then the page cross-fades back over 300 ms. */
+/* Turning it on (js/motion.js): data-phase="surge" until BLUE.done (600 ms). The knob moves at once, the
+   palette turns at 120 ms, and a non-hit-testing ring leaves the control over BLUE.flood (480 ms). No root
+   snapshot. Leaving it (data-phase="ebb") commits neutral at BLUE.exit (220 ms). Tide ↔ Gear Two is
+   data-phase="retarget" and commits the destination immediately. */
 html.theme-reveal.tide-reveal::view-transition-new(root) {
   -webkit-mask-image: radial-gradient(closest-side, #000 96%, transparent);
   mask-image: radial-gradient(closest-side, #000 96%, transparent);
@@ -1224,7 +1192,7 @@ html.theme-reveal.tide-reveal::view-transition-new(root) {
   background: radial-gradient(closest-side, transparent 80%, color-mix(in srgb, var(--tide-a) 16%, transparent) 92%, color-mix(in srgb, var(--tide-b) 75%, transparent) 98.5%, transparent 100%);
   transform: scale(0);
   will-change: transform, opacity;
-  animation: tide-wave .64s cubic-bezier(.22, .61, .36, 1) 1 forwards;
+  animation: tide-wave .48s cubic-bezier(.22, .61, .36, 1) 1 forwards;
 }
 .fx-tide::after {
   content: "";
@@ -1233,7 +1201,7 @@ html.theme-reveal.tide-reveal::view-transition-new(root) {
   border: 1px solid color-mix(in srgb, var(--tide-b) 55%, transparent);
   border-radius: 50%;
   opacity: 0;
-  animation: tide-echo .64s linear 1 forwards;
+  animation: tide-echo .48s linear 1 forwards;
 }
 @keyframes tide-wave {
   0% { transform: scale(0); opacity: 1; }
@@ -1276,7 +1244,8 @@ html.tide-ebb::view-transition-old(root), html.tide-ebb::view-transition-new(roo
   75%, 100% { opacity: 0; transform: translateY(-40vh); }
 }
 /* the ripple of the surge outlasts the palette's turn, and the ebb stills the tide */
-:root[data-phase="surge"]:not([data-motion="reduced"]) .gear { animation: gear-surge .9s var(--ease-out) 1; }
+:root[data-phase="surge"]:not([data-motion="reduced"]) .gear,
+:root[data-phase="retarget"]:not([data-motion="reduced"]) .gear { animation: gear-surge .48s var(--ease-out) 1; }
 @keyframes gear-surge {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tide-a) 60%, transparent); }
   100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--tide-a) 0%, transparent); }

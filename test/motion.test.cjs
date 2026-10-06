@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { init, GEAR, BLUE, BEAT, TIDE } = require('../js/motion.js');
+const { init, GEAR, BLUE, RETARGET, BEAT, TIDE } = require('../js/motion.js');
 
 function element(rect) {
   const attrs = new Map();
@@ -241,6 +241,8 @@ test('Tide surges from neutral: the knob moves at once, the palette turns at 120
   assert.equal(TIDE, 4.5);
   assert.equal(p.api.TIDE, TIDE);
   assert.ok(BLUE.palette < BLUE.done && BLUE.exit < BLUE.done, 'leaving is quicker than arriving');
+  assert.ok(BLUE.done <= 600, 'the Tide entrance settles by about 600 ms');
+  assert.ok(RETARGET >= 220 && RETARGET <= 420, 'a gear-to-gear retarget stays inside the storyboard band');
 });
 
 test('leaving Tide ebbs quietly, then the page comes back and forgets the session flag', () => {
@@ -259,7 +261,7 @@ test('leaving Tide ebbs quietly, then the page comes back and forgets the sessio
   assert.equal(p.api.isGear(), false);
 });
 
-test('the gears run none, Gear Two, Tide, none; switching straight between them runs the new gear\'s entrance', () => {
+test('the gears run none, Gear Two, Tide, none; switching straight between them commits the destination without a stacked entrance', () => {
   const p = page();
   p.click(p.gearButton);
   p.run(GEAR.flash);
@@ -268,28 +270,49 @@ test('the gears run none, Gear Two, Tide, none; switching straight between them 
   assert.equal(p.root.getAttribute('data-gear'), 'two');
   assert.equal(p.session.get('sky-gear'), 'two');
   p.click(p.blueButton);
-  assert.equal(p.root.getAttribute('data-phase'), 'surge', 'red to blue surges, without Gear Two\'s glitch');
+  assert.equal(p.root.getAttribute('data-gear'), 'blue', 'red to blue does not wait through a surge or pass through neutral');
+  assert.equal(p.root.getAttribute('data-phase'), 'retarget');
   assert.deepEqual(p.pressed(), ['false', 'true']);
-  p.run(BLUE.palette);
-  assert.equal(p.root.getAttribute('data-gear'), 'blue');
   assert.equal(p.session.get('sky-gear'), 'blue');
-  p.run(BLUE.done);
+  p.run(RETARGET);
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
   p.click(p.gearButton);
-  assert.equal(p.root.getAttribute('data-phase'), 'flash', 'blue to red flashes and glitches like Gear Two from neutral');
-  p.run(GEAR.flash);
-  assert.equal(p.root.getAttribute('data-gear'), 'two');
-  assert.equal(p.root.getAttribute('data-phase'), 'glitch');
-  p.run(GEAR.settle);
-  p.run(GEAR.done);
+  assert.equal(p.root.getAttribute('data-gear'), 'two', 'blue to red commits at once');
+  assert.equal(p.root.getAttribute('data-phase'), 'retarget');
+  p.run(RETARGET);
   p.click(p.blueButton);
-  p.run(BLUE.palette);
-  p.run(BLUE.done);
+  p.run(RETARGET);
   p.click(p.blueButton);
   assert.equal(p.root.getAttribute('data-phase'), 'ebb');
   p.run(BLUE.exit);
   assert.equal(p.root.getAttribute('data-gear'), null);
   assert.equal(p.session.has('sky-gear'), false);
   assert.equal(p.timers.size, 0);
+});
+
+test('a Gear Two press during a Tide surge cancels the flood so it cannot reapply blue', () => {
+  const p = page();
+  p.click(p.blueButton);
+  p.click(p.gearButton);
+  assert.equal(p.root.getAttribute('data-phase'), 'flash');
+  p.run(BLUE.palette);
+  assert.equal(p.root.getAttribute('data-gear'), null, 'the cancelled flood does not turn the page blue');
+  p.run(GEAR.flash);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+});
+
+test('interrupting a retarget keeps the latest gear', () => {
+  const p = page({ gear: 'two' });
+  p.click(p.blueButton);
+  assert.equal(p.root.getAttribute('data-gear'), 'blue');
+  assert.equal(p.root.getAttribute('data-phase'), 'retarget');
+  p.click(p.gearButton);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  p.run(RETARGET);
+  assert.equal(p.root.getAttribute('data-gear'), 'two');
+  assert.equal(p.root.getAttribute('data-phase'), null);
+  assert.equal(p.session.get('sky-gear'), 'two');
 });
 
 test('a press on Tide while its surge runs returns to neutral before the palette turns', () => {

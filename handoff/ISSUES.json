@@ -2,7 +2,7 @@
   "schema_version": 2,
   "source_sha": "31ab973f60d805a143609acd677b4073624929ba",
   "implementation_status": "stage_3_live_input_implemented_hardware_unverified",
-  "note": "Stage 3 removed the in-page root snapshot so a second press hits the real control and the live hero is not covered. Reduced motion commits the requested gear immediately. Opposite-paper geometry is built after first paint. Hardware FPS, Safari, and physical phones were not measured. Not owner approval.",
+  "note": "Stage 3 live-system close is local until the branch push is verified. Hardware, Safari, and a physical phone were not measured.",
   "issues": [
     {
       "id": "F01",
@@ -51,7 +51,7 @@
       "contributing_owners": [],
       "status": "stage_3_implemented_hardware_unverified",
       "evidence_status": "Trusted pointer interruption and timing diagnostics reproduced environment-specific failures.",
-      "implementation_evidence": "Browser check: second Tide press hit BUTTON, ended neutral. Reduced-motion unit test commits the heading gear."
+      "implementation_evidence": "Pointer mouse.click during surge hit BUTTON and retargeted. Hardware unverified."
     },
     {
       "id": "F06",
@@ -60,7 +60,7 @@
       "contributing_owners": [],
       "status": "stage_3_implemented_hardware_unverified",
       "evidence_status": "Site-specific presented-image hold and independent preparation cost distinguished.",
-      "implementation_evidence": "Browser check: second Tide press hit BUTTON, ended neutral. Reduced-motion unit test commits the heading gear."
+      "implementation_evidence": "Vortex settles in 0.48s and cancels when the surge is left or motion is reduced."
     },
     {
       "id": "F07",
@@ -135,8 +135,9 @@
       "contributing_owners": [
         2
       ],
-      "status": "not_implemented",
-      "evidence_status": "Existing grid is not itself a confirmed bug; preserve and check it."
+      "status": "stage_3_verified_unchanged",
+      "evidence_status": "Existing grid is not itself a confirmed bug; preserve and check it.",
+      "implementation_evidence": "Sheet construction grid and sculpture contour are separate systems. Grid overlay checked; no redesign."
     },
     {
       "id": "F14",
@@ -146,8 +147,9 @@
         1,
         2
       ],
-      "status": "stage_1_regressions_checked_final_integration_open",
-      "evidence_status": "Integrated regression gate; not every possible clipping/flicker failure was reproduced."
+      "status": "stage_3_checked_hardware_unverified",
+      "evidence_status": "Integrated regression gate; not every possible clipping/flicker failure was reproduced.",
+      "implementation_evidence": "Bounds and pivot unchanged. Settled four-mode frames show base, ring, and hand. Hardware flicker unmeasured."
     },
     {
       "id": "F15",
@@ -157,8 +159,9 @@
         1,
         2
       ],
-      "status": "stage_1_regressions_checked_final_integration_open",
-      "evidence_status": "Mid-flight motion cancellation defect reproduced; other resilience paths need final verification."
+      "status": "stage_3_implemented_hardware_unverified",
+      "evidence_status": "Mid-flight motion cancellation defect reproduced; other resilience paths need final verification.",
+      "implementation_evidence": "Reduced motion commits the requested gear. Cold WebGL-loss path not re-run."
     },
     {
       "id": "F16",
@@ -169,7 +172,7 @@
       ],
       "status": "stage_3_implemented_hardware_unverified",
       "evidence_status": "Physical pointer interception reproduced; keyboard/static reduced motion have working foundations.",
-      "implementation_evidence": "Browser check: second Tide press hit BUTTON, ended neutral. Reduced-motion unit test commits the heading gear."
+      "implementation_evidence": "Pressed state matches the pointer hit target. Keyboard path covered by the existing Tide browser test."
     },
     {
       "id": "P01",
@@ -279,8 +282,9 @@
       "title": "Motion/lifecycle and saved-mode continuity",
       "primary_owner": 3,
       "contributing_owners": [],
-      "status": "stage_3_partial_hardware_unverified",
-      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead."
+      "status": "stage_3_implemented_hardware_unverified",
+      "evidence_status": "See namespaced page audit; distinguish visible/editorial observations from proposals and unconfirmed reload lead.",
+      "implementation_evidence": "Retarget commits immediately. Saved Tide reload keeps the ring. Reduced motion does not wait out the old ceremony."
     }
   ],
   "code_checkpoint_sha": "26d83d7ade86827cda91777ec799cba1594787fd",
