@@ -65,7 +65,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
         const result = original.call(this, location, ...values);
         const name = locations.get(location);
         if (hero(this)) probe.uniforms[name] = method === 'uniform4fv' ? Array.from(values[0]) : values;
-        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[3] : name === 'u_swap' || name === 'u_tide' ? values.slice() : values[0]]);
+        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[1] : name === 'u_swap' || name === 'u_tide' ? values.slice() : values[0]]);
         return result;
       };
     }
@@ -79,9 +79,9 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
         // how many of the uploaded dots are drawn smaller, on the finer grid (the dot-size byte, a_e.z, at 30 of 36),
         // how many vertices are the avatar's star glints (their flag, a_e.w, at 31), and how many are the statue's
         // outline (its flag, a_w.x, at 32)
-        let fine = 0, glints = 0, edges = 0;
-        if (bytes.length % 36 === 0) for (let i = 30; i < bytes.length; i += 36) { if (bytes[i]) fine++; if (bytes[i + 1]) glints++; if (bytes[i + 2]) edges++; }
-        probe.uploads.push({ bytes: bytes.length, hash, fine, glints, edges });
+        let fine = 0, glints = 0, edges = 0, under = 0;
+        if (bytes.length % 36 === 0) for (let i = 30; i < bytes.length; i += 36) { if (bytes[i]) fine++; if (bytes[i + 1]) glints++; if (bytes[i + 2]) edges++; if (bytes[i + 3]) under++; }
+        probe.uploads.push({ bytes: bytes.length, hash, fine, glints, edges, under });
       }
       return result;
     };
@@ -270,11 +270,10 @@ test('reduced motion cancels active mouse push, and never advances the still', a
   const before = await capture(page, () => window.__heroApi.highlight(null));
   const uniforms = (await state(page)).uniforms;
   assert.deepEqual(uniforms.u_rot, [0.12, 0.02]);
-  for (const key of ['u_time', 'u_blink', 'u_beat', 'u_glitch']) assert.deepEqual(uniforms[key], [0], key);
+  for (const key of ['u_time', 'u_beat', 'u_glitch']) assert.deepEqual(uniforms[key], [0], key);
   assert.deepEqual(uniforms.u_sheen, [0, 0, 0, 0], 'no sheen and no sparkle burst under reduced motion');
-  assert.deepEqual(uniforms.u_last, [0, 0, 0, 0], 'no gust growing back');
-  assert.deepEqual(uniforms.u_breeze, [0, 0, 0, 0], 'and no breeze');
-  assert.ok(uniforms.u_puff.filter((_, i) => i % 4 === 3).every(n => n === 0), 'and no puffs from the cursor');
+  assert.deepEqual(uniforms.u_life, [0, 0, 0, 0], 'no currents of light and no drift');
+  assert.deepEqual(uniforms.u_silkw, [0], 'and no silk flowing over it');
   assert.deepEqual(uniforms.u_stir.slice(0, 2), [0, 0], 'and no stir');
   assert.equal(uniforms.u_pointer[2], 0);
   assert.deepEqual(uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0]);
@@ -285,7 +284,7 @@ test('reduced motion cancels active mouse push, and never advances the still', a
   assert.equal(after.hash, before.hash, 'redrawing the reduced-motion frame must produce the same pixels');
   assert.deepEqual((await state(page)).uniforms, uniforms);
   await page.evaluate(() => window.SkyMotion.set('full'));
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_blink[0] === 1);
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_time[0] > 0);
   assert.equal((await state(page)).uniforms.u_pointer[2], 0, 'old hover state must not return when motion resumes');
 });
 
@@ -329,7 +328,7 @@ test('off-screen heroes remain paused through preference changes and context res
   await page.evaluate(() => scrollTo(0, 0));
   await live(page);
   await stillDrawing(page);
-  assert.deepEqual((await state(page)).uniforms.u_blink, [0]);
+  assert.deepEqual((await state(page)).uniforms.u_time, [0]);
 });
 
 test('visibilitychange pauses all drawing, including reduced-motion and theme updates', async t => {
@@ -349,7 +348,7 @@ test('visibilitychange pauses all drawing, including reduced-motion and theme up
   });
   assert.ok((await state(page)).draws > paused);
   await stillDrawing(page);
-  assert.deepEqual((await state(page)).uniforms.u_blink, [0]);
+  assert.deepEqual((await state(page)).uniforms.u_time, [0]);
 });
 
 test('horizontal touch drags rotate through the springs and cancellation releases capture without push', async t => {
@@ -429,8 +428,9 @@ test('a band of light crosses the figure soon after it assembles, and stars burs
   assert.ok(sweep.some(([, x]) => x > 0.02 && x < 0.98), 'the band travels across the figure rather than jumping');
   for (let i = 1; i < sweep.length && sweep[i][1] < 0.999; i++) assert.ok(sweep[i][1] >= sweep[i - 1][1], 'the band never runs backwards within a sweep');
   assert.ok(uniforms.u_span[3] > 0 && uniforms.u_span[3] < 0.05, `each burst picks a few dozen stars, chance ${uniforms.u_span[3]}`);
-  assert.equal(uniforms.u_flow[0], 0.14, 'on light paper its gust lifts fine dust off a few of the dots near the outline');
-  assert.ok(uniforms.u_breeze[0] > 0 && uniforms.u_breeze[1] > 0, 'and between gusts a breeze keeps taking dots off the outline');
+  assert.equal(uniforms.u_flow[0], 1.4, 'its light takes 1.4 s to cross the figure');
+  assert.ok(uniforms.u_life[3] > 0 && uniforms.u_silkw[0] > 0, 'between sheens the dots drift with their neighbours and the silk flows');
+  for (const gone of ['u_breeze', 'u_last', 'u_puff', 'u_blink']) assert.equal(uniforms[gone], undefined, `and nothing takes dots off the figure (${gone})`);
 });
 
 test('every sheen comes from the key light\'s side: its light sweeps right, down, and away in every mode', async t => {
@@ -551,7 +551,8 @@ test('a 2x screen draws the whole figure on a grid twice as fine, in smaller dot
   await live(plain.page);
   const two = await state(sharp.page), one = await state(plain.page);
   assert.ok(two.count > one.count * 2.2 && two.count < one.count * 3, `about 2.6 dots where a 1x screen draws one (${two.count} vs ${one.count})`);
-  assert.equal(two.uploads.at(-1).fine, two.count - two.uploads.at(-1).glints - two.uploads.at(-1).edges, 'every dot on the 2x screen is drawn smaller');
+  const last = two.uploads.at(-1);
+  assert.equal(last.fine, two.count - last.glints - last.edges - last.under, 'every dot on the 2x screen is drawn smaller');
   assert.equal(one.uploads.at(-1).fine, 0, 'and none on the 1x screen');
   const redraw = () => window.__heroApi.highlight(null);
   const tone = (await capture(sharp.page, redraw)).cover / (await capture(plain.page, redraw)).cover;
@@ -578,13 +579,15 @@ test('the material map names five materials inside the figure', async t => {
   for (const [m, n] of Object.entries(counts)) assert.ok(n / total > 0.001, `material ${m} covers ${n} of ${total} figure pixels`);
 });
 
-test('the statue has a clear outline: a line of points at its edge, in the first frame, on every paper', async t => {
+test('the statue has a clear outline: a line of points at its edge, in the first frame, on every paper, over paper that hides what lies behind it', async t => {
   for (const scheme of ['light', 'dark']) {
     const { page } = await open(t, { scheme, reduced: true });
     await live(page);
     const { uploads, count } = await state(page);
     const last = uploads.at(-1);
     assert.ok(last.edges > 2000 && last.edges < 12000, `${scheme}: ${last.edges} outline points for ${count} vertices`);
+    // and paper under the dots, so the sheet's lines behind the figure stop at its edge
+    assert.ok(last.under > 1000 && last.under < count / 4, `${scheme}: ${last.under} discs of underpaint`);
     // they sit on the statue's edge: in reduced motion the still frame draws them, and the canvas there is inked
     const redraw = () => window.__heroApi.highlight(null);
     assert.ok((await capture(page, redraw)).visible > 500);
@@ -709,17 +712,17 @@ test('the sky\'s stars sit in the sky, and come out on dark paper and in Gear Tw
   assert.deepEqual((await state(page)).uniforms.u_sky, [1], 'and Gear Two keeps them');
 });
 
-test('a quick sweep of the cursor across the figure blows dust off it, and a slow one only stirs it', async t => {
+test('the cursor stirs the dots, slow or quick, and blows none off the figure', async t => {
   const { page } = await open(t);
   await live(page);
   const box = await page.locator('#figure').boundingBox();
   await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.55);
   for (let i = 1; i <= 8; i++) { await page.mouse.move(box.x + box.width * (0.55 + i * 0.005), box.y + box.height * 0.55); await page.waitForTimeout(120); }
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_pointer[2] > 0.5);
-  assert.ok((await state(page)).uniforms.u_puff.filter((_, i) => i % 4 === 3).every(n => n === 0), 'a slow drift leaves no puff');
   await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.45, { steps: 4 });
   await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.6, { steps: 4 });
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_puff.some((n, i) => i % 4 === 3 && n > 0));
+  await page.waitForFunction(() => Math.hypot(window.__heroProbe.uniforms.u_stir[0], window.__heroProbe.uniforms.u_stir[1]) > 200);
+  assert.equal((await state(page)).uniforms.u_puff, undefined, 'a quick sweep drags the dots with it and leaves no dust');
 });
 
 test('a click on the figure calls down no lightning and adds no control semantics to the image', async t => {
@@ -746,7 +749,6 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
   assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0], 'Gear Two switched on by hand calls down no lightning');
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
-  assert.ok((await state(page)).uniforms.u_flow[0] < 0.14, 'Gear Two\'s gust is quieter than the one on light and dark paper');
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
   await plain.page.waitForFunction(() => window.__heroProbe.uniforms.u_build[0] > 2);
@@ -863,9 +865,8 @@ test('the opening holds the figure still in its ink, shines its colors in, and t
   const held = (await state(page)).uniforms;
   assert.deepEqual(held.u_tint, [0], 'the figure starts in its ink alone');
   assert.deepEqual(held.u_rot, [0, 0], 'facing the viewer, as the still that covered the page did');
-  assert.deepEqual(held.u_blink, [0], 'and nothing blinks');
-  assert.equal(held.u_breeze[0], 0, 'and no breeze takes its dots');
-  assert.deepEqual(held.u_life, [0, 0, 0, 0], 'no currents of light run over it');
+  assert.deepEqual(held.u_life, [0, 0, 0, 0], 'no currents of light run over it, and its dots hold still');
+  assert.deepEqual(held.u_silkw, [0], 'nor does the silk');
   assert.ok(held.u_parts.every(v => v === 0) && held.u_key[3] === 0, 'it does not breathe, and its light holds still');
   await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'turn', null, { timeout: 15000 });
   const { stages: changes, liveAt } = await page.evaluate(() => ({ stages: window.__stages, liveAt: window.__liveAt }));

@@ -86,27 +86,6 @@ test('a ripple is a band that travels outward and fades out', () => {
   assert.ok(at(0, 0.5) < 1e-6);
 });
 
-test('dots drift away and fade instead of blinking off: about 1.5% of their light is away at any moment, and it goes and comes back smoothly', () => {
-  let away = 0, total = 0;
-  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) { total++; away += 1 - hero.fadeAway(id, k * 0.37, 1).show; }
-  const share = away / total;
-  assert.ok(share > 0.008 && share < 0.025, `share ${share}`);
-  let doubled = 0;
-  for (let id = 0; id < 2000; id++) for (let k = 0; k < 40; k++) doubled += 1 - hero.fadeAway(id, k * 0.37, 2).show;
-  assert.ok(doubled / total > share * 1.5, 'Gear Two drifts more often');
-  let jump = 0, drifted = 0;
-  for (let id = 0; id < 300; id++) {
-    for (let t = 0; t < 30; t += 1 / 60) {
-      const now = hero.fadeAway(id, t, 1), next = hero.fadeAway(id, t + 1 / 60, 1);
-      if (now.drift > 0 && next.drift > 0) jump = Math.max(jump, Math.abs(next.show - now.show));
-      if (now.drift > 0.9) drifted++;
-    }
-  }
-  assert.ok(jump < 0.1, `a dot never switches off between two frames at 60 fps (largest step ${jump.toFixed(3)})`);
-  assert.ok(drifted > 0, 'and it moves while it fades');
-  assert.deepEqual(hero.fadeAway(5, 12.3, 0), { show: 1, drift: 0 }, 'nothing drifts when the rate is 0');
-});
-
 test('stippling keeps dots where the ink beats the threshold and nowhere else', () => {
   const size = 8, rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -183,14 +162,14 @@ test('a sheen sweeps the turned figure from the key light at the upper left, in 
   }
 });
 
-test('Tide comes in with a vortex that lifts and settles with the page, and its tide rises once a period on the page\'s clock', () => {
+test('Tide comes in with a vortex that lifts and settles in about a second, and its tide rises once a period on the page\'s clock', () => {
   const { vortex, tide, VORTEX, TIDE } = hero;
   assert.equal(TIDE, require('../js/motion.js').TIDE, 'the figure\'s tide keeps time with the page\'s');
   assert.equal(vortex(0), 0);
   assert.equal(vortex(-0.5), 0);
   assert.equal(vortex(VORTEX.rise), 1, 'the dots lift fully into the vortex');
   assert.equal(vortex(VORTEX.rise + VORTEX.settle), 0, 'and settle back in place');
-  assert.ok(VORTEX.rise + VORTEX.settle <= 0.6, 'the entrance settles with the page, not a second later');
+  assert.ok(VORTEX.rise + VORTEX.settle <= 1.2, 'in about a second');
   for (let t = 0.01; t < VORTEX.rise + VORTEX.settle; t += 0.01) {
     const v = vortex(t), w = vortex(t + 0.01);
     assert.ok(v >= 0 && v <= 1);
@@ -647,3 +626,35 @@ test('each pixel of the figure knows how far its outline is and which way is out
   }
 });
 
+
+test('the underpaint fills the statue and the heart of its clouds with paper, and nothing outside the figure', () => {
+  // a 40 px map: a statue part (the torso, part 5) in the top half and the clouds (the base, part 7) below it
+  const size = 40, rgba = new Uint8Array(size * size * 4), parts = ['wing', 'caduceus', 'arm', 'head', 'torso', 'reach', 'base'];
+  for (let y = 4; y < 36; y++) for (let x = 4; x < 36; x++) {
+    const i = (y * size + x) * 4;
+    rgba[i] = 200;
+    rgba[i + 2] = (y < 20 ? 5 : 7) * 32;
+  }
+  const outline = hero.outlineField(rgba, size);
+  const discs = hero.underpaint(rgba, size, outline, null, parts, null, 2, 1.5);
+  const at = [];
+  for (let i = 0; i < discs.length; i += 3) at.push({ x: discs[i] * (size - 1), y: discs[i + 1] * (size - 1), a: discs[i + 2] });
+  assert.ok(at.length > 0);
+  assert.ok(at.every(d => d.x > 3 && d.x < 36 && d.y > 3 && d.y < 36), 'no disc in the sky');
+  assert.ok(at.every(d => d.a > 0 && d.a <= 1));
+  const torso = at.filter(d => d.y < 20 && d.x > 8 && d.x < 31 && d.y > 8);
+  assert.ok(torso.length > 0 && torso.every(d => d.a === 1), 'full paper inside the statue');
+  const rim = at.filter(d => d.y < 20 && (d.x < 5 || d.y < 5));
+  assert.ok(rim.every(d => d.a < 1), 'fading out at its edge, so no disc reaches past the outline');
+  const cloudEdge = at.filter(d => d.y > 20 && d.y < 33 && d.x > 3 && d.x < 6), cloudHeart = at.filter(d => d.y > 20 && d.x > 18 && d.x < 22);
+  assert.ok(cloudEdge.every(d => d.a < 0.3) && cloudHeart.some(d => d.a > 0.5), 'in the clouds it rises slowly from their soft edge');
+  // the blurred parts' half level is the statue's edge: below it, no paper
+  const field = new Float32Array(size * size).fill(1);
+  for (let y = 0; y < 20; y++) for (let x = 0; x < size; x++) if (x < 10) field[y * size + x] = 0.2;
+  const clipped = hero.underpaint(rgba, size, outline, field, parts, null, 2, 1.5);
+  for (let i = 0; i < clipped.length; i += 3) assert.ok(!(clipped[i + 1] * (size - 1) < 20 && clipped[i] * (size - 1) < 9.5), 'nothing beyond the outline');
+  // the cloud bank (the colour map's blue), drawn in Gear Two alone, gets none
+  const bank = new Uint8Array(size * size * 4);
+  for (let i = 0; i < size * size; i++) bank[i * 4 + 2] = 255;
+  assert.equal(hero.underpaint(rgba, size, outline, null, parts, bank, 2, 1.5).length, 0);
+});

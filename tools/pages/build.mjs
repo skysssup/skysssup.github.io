@@ -173,20 +173,10 @@ function media(m, { eager = false, cls = '' } = {}) {
   return `<img class="${cls}" src="${m.src}" alt="${esc(m.alt || '')}" width="${m.w}" height="${m.h}" loading="${load}" decoding="async"${eager ? ' fetchpriority="high"' : ''}>`;
 }
 
-const PROOF = {
-  agentcrucible: '28% 62%',
-  shipgate: '78% 46%',
-  airforge: '50% 64%',
-  spanforge: '62% 48%',
-  localpulse: '40% 42%',
-  'ghost-notetaker': '50% 40%',
-  moltdao: '55% 45%',
-};
 function cover(p, sizes, priority = '') {
-  if (!p.cover) return `<div class="media-type plate-type" aria-hidden="true"><span class="type-kicker">Type plate</span><span class="type-line">${tie(esc(p.tagline))}</span><span>${p.stack.slice(0, 3).map(esc).join(' · ')}</span></div>`;
+  if (!p.cover) return `<div class="media-type" aria-hidden="true">${p.stack.slice(0, 3).map(t => `<span>${esc(t)}</span>`).join('')}</div>`;
   const b = p.cover.src;
-  const proof = PROOF[p.slug] ? ` style="--proof: ${PROOF[p.slug]}"` : '';
-  return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}${proof}>`;
+  return `<img src="${b}-672.webp" srcset="${b}-672.webp 672w, ${b}-1344.webp 1344w" sizes="${sizes}" alt="" width="${p.cover.w}" height="${p.cover.h}" loading="lazy" decoding="async"${priority ? ` fetchpriority="${priority}"` : ''}>`;
 }
 
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
@@ -240,7 +230,7 @@ ${header('home')}
 ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
         </ol>
       </nav>
-      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">A turning sculpture of my GitHub avatar. <span class="fine">Move the cursor to stir it.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="caption-spec t-label muted">Five materials${DOT}<span data-dot-count>${site.dots}</span> dots${DOT}depth from one photo</p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
+      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to stir them.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
     </div>
   </section>
 
@@ -313,7 +303,7 @@ ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join('
       <span class="idx" aria-hidden="true">${pad(i + 1)}</span>
       <div class="project-title"><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h2><p>${tie(esc(p.tagline))}</p></div>
       <p class="facts"><span class="themes-line">${themesOf(p, DOT)}</span><span>${p.stack.slice(0, 3).map(esc).join(DOT)}</span><span>${p.visibility}</span></p>
-      <div class="thumb" aria-hidden="true"${PROOF[p.slug] ? ` style="--proof: ${PROOF[p.slug]}"` : ''}>${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
+      <div class="thumb" aria-hidden="true">${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
     </li>`).join('\n')}
   </ol>
   <div class="row work-empty" data-work-empty hidden><div class="work-empty-note"><h2>No matching projects</h2><p>Try another name, technology, or theme.</p><button class="reset" type="button" data-clear-work>Reset filters</button></div></div>
