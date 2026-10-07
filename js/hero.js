@@ -987,6 +987,10 @@
     "  vec3 silk = mix(mix(u_silk[0], u_silk[1], smoothstep(0.0, 0.55, fold)), u_silk[2], smoothstep(0.55, 1.0, fold));",
     "  float wear = (m == 2 ? 0.6 : (m == 3 || m == 4) ? 0.35 : 0.0) * a_c.g + (m == 1 ? 0.12 * lam * u_positive : 0.0);",
     "  col = mix(col, silk, wear * u_silkw * min(1.0, tint * 2.5));",
+    // and where the silk folds over, the gold catches it as satin catches light: thin bands of its lit colour that
+    // flow across the wings and the caduceus, its own colour brighter, never another hue
+    "  float sheer = smoothstep(0.78, 0.98, fold) * u_silkw * min(1.0, tint * 2.5) * (m == 0 ? a_c.g : 0.0);",
+    "  col = mix(col, u_lit[0], sheer * 0.55);",
     // the currents of light (current, u_life.x): at a crest the stone is lit, in a trough shaded; where the dots are ink
     // that is smaller dots, leaning a little to the key's warmth, and where they are light, larger and brighter ones;
     // twice as strong while a sheen's wash passes
@@ -1015,7 +1019,7 @@
     "  bool glint = a_e.w > 0.5;",
     "  px += (glint || edge || under ? vec2(0.0) : flow) + u_offset;",
     "  float size = u_dot * (0.78 + 0.5 * a_p.w) * persp * persp * (1.0 + 0.3 * u_beat) * (1.0 + 0.6 * lift) * (1.0 + 0.3 * tide);",
-    "  size *= shade * (1.0 + 0.4 * tw) * (1.0 + mix(0.25, 0.6, u_positive) * band + 0.6 * swell + 0.3 * flash + 0.25 * wash * (1.0 - lam) * (1.0 - u_positive)) * (1.0 + 0.6 * star) * (1.0 + 0.35 * strike);",
+    "  size *= shade * (1.0 + 0.4 * tw) * (1.0 + 0.15 * sheer * u_positive) * (1.0 + mix(0.25, 0.6, u_positive) * band + 0.6 * swell + 0.3 * flash + 0.25 * wash * (1.0 - lam) * (1.0 - u_positive)) * (1.0 + 0.6 * star) * (1.0 + 0.35 * strike);",
     // fine features (high detail) are drawn with smaller dots, broad shadows with larger ones, on screens with the pixels
     // for it: below 1.5 device pixels per CSS pixel a smaller dot is smaller than a pixel, and as the figure turns it
     // flickers in and out of the pixels it crosses
