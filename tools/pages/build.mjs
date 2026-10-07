@@ -212,8 +212,8 @@ ${header('home')}
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
-        <h1 id="hero-name">Aakash Dahal</h1>
-        <div class="intro-actions"><a class="action-link" href="#selected">See the evidence <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
+        <h1 class="vh" id="hero-name">Aakash Dahal</h1>
+        <div class="intro-actions"><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: ${esc(site.ringLine)}." data-ring="${esc(site.ringLine)}">
         <div class="still" aria-hidden="true"></div>
