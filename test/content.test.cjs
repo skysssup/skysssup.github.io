@@ -101,12 +101,15 @@ test('every case study has the full section structure, stack, and code link', ()
   }
 });
 
-test('the work index lists every case study once, and the home page links each featured one', () => {
+test('the work index lists every case study once, and the home page lists each one', () => {
   const listed = [...html['work/index.html'].matchAll(/<h2><a href="\/work\/([a-z-]+)\/"[^>]*>/g)].map(m => m[1]);
   assert.deepEqual([...listed].sort(), caseStudies.map(p => p.split('/')[1]).sort());
-  const featured = [...html['index.html'].matchAll(/<h3><a href="(\/work\/[a-z-]+\/)"[^>]*>/g)];
-  assert.equal(featured.length, 4);
-  for (const m of featured) assert.ok(fs.existsSync(resolve(m[1])));
+  const home = [...html['index.html'].matchAll(/<ol class="home-work">([\s\S]*?)<\/ol>/g)][0][1];
+  const slugs = [...home.matchAll(/<a href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]);
+  assert.deepEqual([...slugs].sort(), caseStudies.map(p => p.split('/')[1]).sort());
+  assert.deepEqual(slugs, ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']);
+  assert.doesNotMatch(html['index.html'], /Work by theme/);
+  for (const slug of slugs) assert.ok(fs.existsSync(resolve('/work/' + slug + '/')));
 });
 
 test('copy avoids marketing filler and shouting', () => {

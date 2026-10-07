@@ -5,8 +5,8 @@ GitHub Pages straight from `main`, with no build step. Every asset is in this re
 
 ## Pages
 
-- `/` — the hero (the intro, and "Why the statue" beside the figure), selected work as four plates that develop
-  from stipple drawings, and contact, with my day on a 24-hour dial. Opening the page plays the figure's opening
+- `/` — the hero (the intro, and "Why the statue" beside the figure), every project as a numbered list
+  (name and one line), and contact. Opening the page plays the figure's opening
   (see `js/hero.js` below).
 - Every page ends on the same closing line: name, local time, year, three links, and two quiet toggles, Grid
   (the construction grid, also on `G` and in the header) and Reduce motion.

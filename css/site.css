@@ -517,26 +517,8 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
 .hero-figure canvas { position: absolute; max-width: none; pointer-events: none; }
 /* the light a sheen throws on the paper behind the figure, moved and faded by js/hero.js on light and dark paper */
 .essentially { grid-column: 4; grid-row: 1; align-self: start; }
-.themes { grid-column: 1; grid-row: 3; align-self: end; }
 .fig-note { grid-column: 4; grid-row: 3; align-self: end; display: grid; gap: 4px; }
 .fig-note .t-small { color: var(--muted); max-width: 34ch; }
-
-.themes h2 { margin-bottom: 8px; }
-.themes ol { border-top: 1px solid var(--line); }
-.themes li { border-bottom: 1px solid var(--line); }
-.themes a {
-  position: relative;
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
-  align-items: center;
-  min-height: 44px;
-  padding: 12px 0;
-  transition: background-color .2s;
-}
-.themes a:hover, .themes a:focus-visible { background: var(--wash); }
-.themes a .t-small { color: var(--ink); transition: color .2s; }
-.themes a .t-label { transition: color .2s; }
-.themes a:hover .t-small, .themes a:hover .t-label, .themes a:focus-visible .t-small { color: var(--accent); }
 
 /* tablet: the figure gets the full width between the panels */
 @media (max-width: 1199px) and (min-width: 768px) {
@@ -550,7 +532,6 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
   .intro { grid-column: 1 / span 2; grid-row: 1; }
   .essentially { grid-column: 3 / span 2; grid-row: 1; }
   .hero-figure { grid-column: 1 / -1; grid-row: 2; }
-  .themes { grid-column: 1 / span 2; grid-row: 3; }
   .fig-note { grid-column: 3 / span 2; grid-row: 3; }
   .intro-actions { flex-direction: row; align-items: center; flex-wrap: wrap; }
 }
@@ -562,11 +543,10 @@ html:not(.js) .hero-figure .still, .hero-figure.is-fallback .still {
     padding: 24px 0 48px;
     row-gap: 24px;
   }
-  .intro, .hero-figure, .essentially, .themes, .fig-note { grid-column: 1 / -1; grid-row: auto; }
+  .intro, .hero-figure, .essentially, .fig-note { grid-column: 1 / -1; grid-row: auto; }
   .hero-figure { width: 100%; order: 1; }
   .fig-note { order: 2; margin-top: -8px; padding-bottom: 8px; }
   .essentially { order: 3; }
-  .themes { order: 4; }
   .intro-actions { flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; }
   .intro p { max-width: 40ch; }
   .fig-note .t-small { max-width: 44ch; }
@@ -591,6 +571,28 @@ a.link-ui { text-decoration: underline 1px var(--line-strong); }
   .section-head { padding-bottom: 24px; }
   .section-head .end { grid-column: 1 / -1; text-align: left; margin-top: 4px; }
   .section-note { margin-top: 8px; margin-bottom: 8px; }
+}
+
+/* ── home work: one row per project, number, name, line ── */
+.home-work { grid-column: 1 / -1; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.home-work a {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(9rem, 16rem) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px 24px;
+  min-height: 44px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+}
+.home-work .idx { font: 400 11px/16px var(--mono); letter-spacing: .04em; color: var(--muted); }
+.home-work .name { font: 500 18px/24px var(--sans); transition: color .2s; }
+.home-work .line { font: 400 16px/24px var(--sans); color: var(--muted); }
+.home-work a:hover .name, .home-work a:focus-visible .name { color: var(--accent); }
+.home-work a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media (max-width: 767px) {
+  .home-work a { grid-template-columns: 3rem minmax(0, 1fr); row-gap: 2px; }
+  .home-work .line { grid-column: 2; }
 }
 
 /* ── selected work: four plates ─────────────────────────── */
@@ -1336,12 +1338,10 @@ html:not(.theme-reveal)::view-transition-new(root) { -webkit-mask: none; mask: n
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 html.js:not([data-motion="reduced"]) .page-home .intro,
 html.js:not([data-motion="reduced"]) .page-home .essentially,
-html.js:not([data-motion="reduced"]) .page-home .themes,
 html.js:not([data-motion="reduced"]) .page-home .fig-note { animation: rise .7s var(--ease-out) both; }
 html.js:not([data-motion="reduced"]) .page-home .intro { animation-delay: .25s; }
 html.js:not([data-motion="reduced"]) .page-home .essentially { animation-delay: .31s; }
-html.js:not([data-motion="reduced"]) .page-home .themes { animation-delay: .37s; }
-html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43s; }
+html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .37s; }
 
 /* ── print: ink on paper, no controls, the hero as its still ─────────── */
 @media print {

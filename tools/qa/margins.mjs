@@ -62,8 +62,8 @@ for (let run = 0; run < RUNS; run++) {
   });
   await page.waitForTimeout(600);
   const before = await page.evaluate(() => performance.now());
-  await page.evaluate(() => document.querySelector('[data-theme-link="developer-tools"]').addEventListener('mouseenter', () => { window.__entered = performance.now(); }, { once: true }));
-  await page.hover('[data-theme-link="developer-tools"]');
+  await page.evaluate(() => document.querySelector('[data-work-link]').addEventListener('mouseenter', () => { window.__entered = performance.now(); }, { once: true }));
+  await page.hover('[data-work-link]');
   await page.waitForTimeout(1100);
   const entered = await page.evaluate(() => window.__entered);
   const frames = await page.evaluate(() => window.__ring);

@@ -387,8 +387,8 @@
         }
       });
       if (opening) interrupts.forEach(function (type) { doc.addEventListener(type, interrupt, { capture: true, passive: true }); });
-      // hovering or focusing a theme brightens the ring for a moment
-      Array.prototype.forEach.call(doc.querySelectorAll("[data-theme-link]"), function (link) {
+      // hovering or focusing a piece of work brightens the ring for a moment
+      Array.prototype.forEach.call(doc.querySelectorAll("[data-work-link]"), function (link) {
         link.addEventListener("mouseenter", function () { hero.highlight(); });
         link.addEventListener("focus", function () { hero.highlight(); });
       });

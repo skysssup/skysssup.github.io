@@ -41,7 +41,7 @@ Themes, where a project can carry two:
 - **Developer tools:** Shipgate, Recall, Ghost Notetaker, Spanforge, LocalPulse.
 - **Physics software:** AirForge.
 
-Order: AgentCrucible, AirForge, Shipgate, Recall, Spanforge, LocalPulse, Ghost Notetaker, MoltDAO. Selected work on home shows the four public ones, because a reviewer can open their code.
+Order: AgentCrucible, AirForge, Shipgate, Recall, Spanforge, LocalPulse, Ghost Notetaker, MoltDAO. The home page lists all eight in that order, number, name, and one line, with no theme grouping.
 
 ## 3. Grid
 - A drawing sheet. The outer frame and the major column lines are fixed 1px hairlines (`--line`) that stay put while content scrolls. Horizontal rules belong to sections and scroll with them.
@@ -271,7 +271,7 @@ Each page gets a unique title and description, a canonical URL on `https://skyss
 > I build instruments for AI systems: a harness that catches an agent refunding twice, a proxy that traces every LLM call, and a gate that scans what a coding agent is about to push. Also physics software you can draw into. Next: reinforcement learning and robotics.
 
 ## 17. Defaults I'll take unless you say otherwise
-- Selected work on home = the 4 public projects.
+- Home lists all eight projects, number then name then one line.
 - Live AirForge and Shipgate demos hosted at `/work/<slug>/demo/`, loaded only on click.
 - MoltDAO stays, last, labeled "Experiment", written candidly as what the experiment taught.
 - Private projects show only their GitHub one-liner until you approve a per-fact disclosure list for each.

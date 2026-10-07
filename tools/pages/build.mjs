@@ -27,8 +27,6 @@ const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
 // A separator stays at the end of a line when a list wraps.
 const DOT = '&nbsp;· ';
 const DOWN = '&nbsp;<span aria-hidden="true">↓</span>';
-// Selected work alternates wide and narrow plates, mirrored from one band to the next.
-const PLATES = [['wide', 'left'], ['narrow', 'right'], ['wide', 'right'], ['narrow', 'left']];
 const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
 const NEXT = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg>';
 
@@ -183,8 +181,6 @@ const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
 /* ── home ─────────────────────────────────────────── */
 function home() {
-  const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
-  const featured = site.featured.map(slug => projects.find(p => p.slug === slug));
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
   return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
 <body class="page-home">
@@ -203,29 +199,16 @@ ${header('home')}
         <h2 class="panel-head" id="why-title">${esc(site.why.title)}</h2>
         <p class="panel-body">${tie(esc(site.why.body))}</p>
       </aside>
-      <nav class="themes" aria-labelledby="themes-title">
-        <h2 class="t-label muted" id="themes-title">Work by theme</h2>
-        <ol>
-${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-theme-link="${t.id}"><span class="t-label muted">${pad(i + 1)}</span><span class="t-small">${t.name}</span><span class="t-label muted num">${pad(counts[t.id])}</span></a></li>`).join('\n')}
-        </ol>
-      </nav>
       <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to stir them.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
     </div>
   </section>
 
-  <section class="section" id="selected" aria-labelledby="selected-title">
-    <div class="row section-head rule" data-reveal>
-      <h2 class="c1" id="selected-title">Selected work</h2>
-      <a class="end link-ui" href="/work/">All work${DOT}${pad(projects.length)}${OPEN}</a>
-    </div>
-    <div class="row plates">
-${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; return `      <article class="plate plate-${size} plate-${side}" data-project="${p.slug}">
-        <div class="plate-caption">
-          <p class="plate-line">Plate ${pad(i + 1)}${DOT}${themesOf(p, DOT)}${DOT}${p.visibility}</p>
-          <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h3>
-          <p>${tie(esc(p.tagline))}</p>
-        </div>
-      </article>`; }).join('\n')}
+  <section class="section" id="work-list" aria-labelledby="work-title">
+    <div class="row">
+      <h2 class="vh" id="work-title">Work</h2>
+      <ol class="home-work">
+${projects.map((p, i) => `        <li><a href="/work/${p.slug}/" data-work-link${vt(p)}><span class="idx">${pad(i + 1)}.</span><span class="name">${esc(p.name)}</span><span class="line">${tie(esc(p.tagline))}</span></a></li>`).join('\n')}
+      </ol>
     </div>
   </section>
 

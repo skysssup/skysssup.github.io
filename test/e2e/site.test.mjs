@@ -353,7 +353,7 @@ test('the theme filter on /work shows matching projects, updates the URL, and re
   await context.close();
 });
 
-test('the home theme links brighten the ring for a moment, and the figure takes a click', async () => {
+test('hovering a project on the home list brightens the ring for a moment, and the figure takes a click', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
   const count = await page.textContent('[data-dot-count]');
@@ -377,8 +377,8 @@ test('the home theme links brighten the ring for a moment, and the figure takes 
   await page.waitForTimeout(600);
   // measured from the moment the link is entered: Playwright's hover waits for the link to hold still over two frames
   // first, which under software rendering can take most of a second
-  await page.evaluate(() => document.querySelector('[data-theme-link="developer-tools"]').addEventListener('mouseenter', () => { window.__entered = performance.now(); }, { once: true }));
-  await page.hover('[data-theme-link="developer-tools"]');
+  await page.evaluate(() => document.querySelector('[data-work-link]').addEventListener('mouseenter', () => { window.__entered = performance.now(); }, { once: true }));
+  await page.hover('[data-work-link]');
   await page.waitForTimeout(1100);
   const hovered = await page.evaluate(() => window.__entered);
   const frames = await page.evaluate(() => window.__ring);
@@ -386,7 +386,7 @@ test('the home theme links brighten the ring for a moment, and the figure takes 
   const rest = median(frames.filter(([time]) => time < hovered).map(([, v]) => v));
   const peak = Math.max(...frames.filter(([time]) => time > hovered && time < hovered + 500).map(([, v]) => v));
   const after = median(frames.filter(([time]) => time > hovered + 700).map(([, v]) => v));
-  assert.ok(peak > rest * 1.3, `hovering a theme brightens the ring (${rest.toFixed(1)} -> ${peak.toFixed(1)})`);
+  assert.ok(peak > rest * 1.3, `hovering a project brightens the ring (${rest.toFixed(1)} -> ${peak.toFixed(1)})`);
   assert.ok(after < rest * 1.1, `and it settles back within 400 ms (${peak.toFixed(1)} -> ${after.toFixed(1)})`);
   const fig = page.locator('#figure');
   const box = await fig.boundingBox();
@@ -449,25 +449,20 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
   await context.close();
 });
 
-test('section rules draw in and plates develop from a stipple drawing, once seen, except under reduced motion', async () => {
+test('the home page lists every project, and the contact rule draws in once seen', async () => {
   const { page, context, problems } = await open('/');
+  assert.equal(await page.getByText('Work by theme').count(), 0);
+  const names = await page.locator('.home-work .name').allTextContents();
+  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO']);
   const band = page.locator('#contact .band');
   assert.equal(await band.evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
   assert.equal(await band.evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
-  const plate = page.locator('#selected .plate-wide.plate-right .plate-media');
-  assert.equal(await plate.evaluate(el => el.classList.contains('is-stippled') && !!el.querySelector('canvas.stipple')), true, 'a plate waits as a drawing');
-  assert.equal(await plate.evaluate(el => getComputedStyle(el.querySelector('img')).opacity), '0', 'its screenshot waits under the drawing');
-  await plate.scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('#selected .plate-wide.plate-right .plate-media').classList.contains('is-developed'));
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#selected .plate-wide.plate-right .plate-media img')).opacity === '1');
-  const inked = await plate.evaluate(el => { const c = el.querySelector('canvas'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n / (d.length / 4); });
-  assert.ok(inked > 0.05 && inked < 0.9, `the drawing is stippled, not blank or solid (${inked.toFixed(2)})`);
   await band.scrollIntoViewIfNeeded();
   await page.waitForFunction(() => getComputedStyle(document.querySelector('#contact .band'), '::before').transform === 'none');
   assert.deepEqual(problems, []);
   await context.close();
   const still = await open('/', { reduced: true });
-  assert.equal(await still.page.locator('#selected .plate-media').count(), 0, 'selected work stays text only');
+  assert.equal(await still.page.locator('.home-work a').count(), 8);
   assert.equal(await still.page.locator('#contact .band').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
   await still.context.close();
 });
