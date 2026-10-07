@@ -467,27 +467,15 @@ test('section rules draw in and plates develop from a stipple drawing, once seen
   assert.deepEqual(problems, []);
   await context.close();
   const still = await open('/', { reduced: true });
-  assert.equal(await still.page.locator('#selected .plate-media.is-stippled').count(), 0, 'no drawing under reduced motion');
-  assert.equal(await still.page.locator('#selected .plate-media img').first().evaluate(el => getComputedStyle(el).opacity), '1', 'the screenshot is simply there');
+  assert.equal(await still.page.locator('#selected .plate-media').count(), 0, 'selected work stays text only');
   assert.equal(await still.page.locator('#contact .band').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
   await still.context.close();
 });
 
-test('contact reads my time off a 24-hour dial, and G draws the construction grid for the session', async () => {
+test('contact stays concise, and G draws the construction grid for the session', async () => {
   const { page, context, problems } = await open('/');
-  assert.match(await page.textContent('[data-contact-note]'), /^It’s \d\d:\d\d for me, so I’m probably [a-z ,’]+\. Email reaches me fastest\.$/);
-  const dial = page.locator('[data-dial] svg');
-  await dial.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(600);
-  assert.ok(await page.locator('[data-dial-night] circle').count() > 200, 'the night is stippled in');
-  assert.equal(await page.locator('[data-dial-hands] .hand').count(), 1);
-  assert.match(await page.textContent('[data-dial-time]'), /^\d\d:\d\d$/);
-  const box = await dial.boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height * (104 / 448));
-  assert.equal(await page.textContent('[data-dial-time]'), '12:00', 'pointing at the top of the dial reads noon');
-  assert.equal(await page.textContent('[data-dial-status]'), 'Probably writing tests');
-  await page.mouse.move(5, 5);
-  assert.match(await page.textContent('[data-dial-place]'), /now/);
+  assert.equal(await page.textContent('[data-contact-note]'), 'Email reaches me fastest.');
+  assert.equal(await page.locator('[data-dial]').count(), 0, 'the time dial is removed');
   await page.keyboard.press('g');
   assert.equal(await page.getAttribute('html', 'data-grid'), 'on');
   assert.deepEqual(await page.$$eval('[data-grid-toggle]', bs => bs.map(b => b.getAttribute('aria-pressed'))), ['true', 'true']);
@@ -528,3 +516,4 @@ test('every internal link resolves, and old /portfolio/ links land on /work/', a
   assert.match(page.url(), /\/work\/$/);
   await context.close();
 });
+

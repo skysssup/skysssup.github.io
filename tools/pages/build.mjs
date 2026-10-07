@@ -107,7 +107,6 @@ ${LINES}
       <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
     <div class="header-end">
-      <span class="clock">Kathmandu <b data-time>--:--</b><span class="utc"> · UTC+5:45</span></span>
       <button class="lamp" type="button" aria-pressed="true" aria-label="Lights" data-lamp><span class="lamp-label" aria-hidden="true">Lights</span><span class="lamp-track" aria-hidden="true"><span class="lamp-knob"></span></span></button>
     </div>
   </div>
@@ -118,7 +117,7 @@ function footer() {
   const source = `https://github.com/${site.github}/${site.github}.github.io`;
   return `<footer class="site-footer">
   <div class="row sign-off rule">
-    <p class="sign-name">${site.name}${DOT}<span data-time>--:--</span> UTC+5:45${DOT}${year}</p>
+    <p class="sign-name">${site.name}${DOT}${year}</p>
     <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="${source}/blob/main/docs/design-spec.md">Design spec${ARROW}</a><a href="#main">Back to top${UP}</a></p>
     <div class="sign-toggles">
       <button class="grid-toggle" type="button" aria-pressed="false" aria-label="Construction grid" data-grid-toggle><span aria-hidden="true">Grid</span> <b aria-hidden="true" data-grid-state>Off</b></button>
@@ -182,24 +181,6 @@ function cover(p, sizes, priority = '') {
 // Project titles share a view-transition name across pages, so a title morphs into the next page's title.
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
-/* ── home: the contact dial ───────────────────────── */
-// My day on a 24-hour dial, midnight at the foot and noon at the top, so the sun rises on the left and sets
-// on the right. The generator draws the face; js/page.js stipples the night in and sets the hands and the readout.
-function dial() {
-  const at = (t, r) => { const a = t / 24 * 2 * Math.PI; return [+(200 - r * Math.sin(a)).toFixed(2), +(200 + r * Math.cos(a)).toFixed(2)]; };
-  const ticks = Array.from({ length: 96 }, (_, k) => {
-    const len = k % 24 === 0 ? 14 : k % 4 === 0 ? 8 : 4;
-    const [x1, y1] = at(k / 4, 180 - len), [x2, y2] = at(k / 4, 180);
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
-  }).join('');
-  return `<div class="dial-face">
-          <svg viewBox="-24 -24 448 448" aria-hidden="true"><circle class="rim" cx="200" cy="200" r="180"/><g class="ticks">${ticks}</g><g class="night" data-dial-night></g><g class="hands" data-dial-hands></g></svg>
-          ${[0, 6, 12, 18].map(h => `<span class="dial-hour h${pad(h)}" aria-hidden="true">${pad(h)}</span>`).join('')}
-          <p class="dial-readout" aria-hidden="true"><b data-dial-time></b><span data-dial-place></span><span data-dial-status></span></p>
-          <span class="dial-you" aria-hidden="true" data-dial-you hidden></span>
-        </div>`;
-}
-
 /* ── home ─────────────────────────────────────────── */
 function home() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
@@ -251,16 +232,12 @@ ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; retur
   <section class="section" id="contact" aria-labelledby="contact-title">
     <div class="row band rule contact" data-reveal>
       <h2 class="band-title" id="contact-title">Contact</h2>
-      <p class="band-note" data-contact-note>My clock reads&nbsp;<span data-time>--:--</span>&nbsp;(UTC+5:45). Email reaches me&nbsp;fastest.</p>
+      <p class="band-note" data-contact-note>Email reaches me&nbsp;fastest.</p>
       <ul class="hang-list contact-lines">
         <li><span>Email</span><span><a href="mailto:${site.email}">${site.email}</a> <button class="copy" type="button" data-copy="${site.email}">Copy</button></span></li>
         <li><span>X</span><span><a href="https://x.com/${site.x}">@${site.x}${ARROW}</a></span></li>
         <li><span>GitHub</span><span><a href="https://github.com/${site.github}">${site.github}${ARROW}</a></span></li>
       </ul>
-      <figure class="dial" data-dial>
-        ${dial()}
-        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie('My day on a 24-hour dial, noon at the top and the night stippled in. Point at any hour to see what I’m probably doing then.')}</span></figcaption>
-      </figure>
     </div>
   </section>
 </main>
