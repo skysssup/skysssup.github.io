@@ -738,6 +738,48 @@
       }
     }
 
+    /* The home work list is a shallow cylinder. Distance from the row under the pointer sets the tilt,
+       the same way a hovered entry leans forward and the neighbours fall back. Reduced motion leaves it flat. */
+    var cylinder = doc.querySelector("[data-work-cylinder]");
+    if (cylinder) {
+      var tilts = Array.prototype.slice.call(cylinder.querySelectorAll(".work-tilt"));
+      var cards = Array.prototype.slice.call(doc.querySelectorAll(".work-card"));
+      var panel = doc.querySelector("[data-work-detail]");
+      var hot = null;
+      var poseWork = function () {
+        var flat = hot == null || motion.reduced();
+        tilts.forEach(function (tilt, i) {
+          var link = tilt.querySelector("[data-work-link]");
+          if (flat) {
+            tilt.style.transform = "";
+            tilt.style.opacity = "";
+            link.classList.remove("is-active");
+          } else {
+            var delta = i - hot, dist = Math.abs(delta);
+            tilt.style.transform = "rotateX(" + (6 * delta) + "deg) translateZ(" + (delta === 0 ? 18 : -6 * dist) + "px)";
+            tilt.style.opacity = delta === 0 ? "1" : String(Math.max(0.18, 1 - 0.2 * dist));
+            link.classList.toggle("is-active", delta === 0);
+          }
+        });
+        cards.forEach(function (card, i) {
+          var on = !flat && i === hot;
+          card.classList.toggle("is-on", on);
+          card.setAttribute("aria-hidden", on ? "false" : "true");
+        });
+        if (panel) panel.classList.toggle("is-on", !flat);
+      };
+      tilts.forEach(function (tilt, i) {
+        var link = tilt.querySelector("[data-work-link]");
+        link.addEventListener("mouseenter", function () { hot = i; poseWork(); });
+        link.addEventListener("focus", function () { hot = i; poseWork(); });
+      });
+      cylinder.addEventListener("mouseleave", function () { hot = null; poseWork(); });
+      cylinder.addEventListener("focusout", function (event) {
+        if (!cylinder.contains(event.relatedTarget)) { hot = null; poseWork(); }
+      });
+      motion.subscribe(poseWork);
+    }
+
     /* reveals: graphics that draw in the first time they come into view (text is never hidden) */
     var reveals = Array.prototype.slice.call(doc.querySelectorAll("[data-reveal]"));
     if (reveals.length && win.IntersectionObserver) {

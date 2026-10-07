@@ -41,7 +41,7 @@ Themes, where a project can carry two:
 - **Developer tools:** Shipgate, Recall, Ghost Notetaker, Spanforge, LocalPulse.
 - **Physics software:** AirForge.
 
-Order: AgentCrucible, AirForge, Shipgate, Recall, Spanforge, LocalPulse, Ghost Notetaker, MoltDAO. The home page lists all eight in that order, number, name, and one line, with no theme grouping.
+Order: AgentCrucible, AirForge, Shipgate, Recall, Spanforge, LocalPulse, Ghost Notetaker, MoltDAO. The home page lists all eight in that order as a perspective list: the row under the pointer comes forward, the others tilt away, and a detail panel slides in beside them. No theme grouping.
 
 ## 3. Grid
 - A drawing sheet. The outer frame and the major column lines are fixed 1px hairlines (`--line`) that stay put while content scrolls. Horizontal rules belong to sections and scroll with them.

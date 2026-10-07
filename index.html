@@ -73,19 +73,97 @@
     </div>
   </section>
 
-  <section class="section" id="work-list" aria-labelledby="work-title">
+  <section class="section work-stage" id="work-list" aria-labelledby="work-title" data-reveal>
     <div class="row">
       <h2 class="vh" id="work-title">Work</h2>
-      <ol class="home-work">
-        <li><a href="/work/agentcrucible/" data-work-link class="vt" style="view-transition-name: t-agentcrucible"><span class="idx">01.</span><span class="name">AgentCrucible</span><span class="line">Fault-tests tool-using agents against scripted&nbsp;mock&nbsp;worlds.</span></a></li>
-        <li><a href="/work/airforge/" data-work-link class="vt" style="view-transition-name: t-airforge"><span class="idx">02.</span><span class="name">AirForge</span><span class="line">Draw ramps, balls, platforms, and curves; Rapier simulates them&nbsp;in&nbsp;2.5D.</span></a></li>
-        <li><a href="/work/shipgate/" data-work-link class="vt" style="view-transition-name: t-shipgate"><span class="idx">03.</span><span class="name">Shipgate</span><span class="line">A Git gate that scans what a coding agent is about&nbsp;to&nbsp;push.</span></a></li>
-        <li><a href="/work/recall-ai/" data-work-link class="vt" style="view-transition-name: t-recall-ai"><span class="idx">04.</span><span class="name">Recall</span><span class="line">Spaced repetition for algorithm practice, kept on&nbsp;your&nbsp;machine.</span></a></li>
-        <li><a href="/work/spanforge/" data-work-link class="vt" style="view-transition-name: t-spanforge"><span class="idx">05.</span><span class="name">Spanforge</span><span class="line">A local trace proxy for LLM calls,&nbsp;with&nbsp;waterfalls.</span></a></li>
-        <li><a href="/work/localpulse/" data-work-link class="vt" style="view-transition-name: t-localpulse"><span class="idx">06.</span><span class="name">LocalPulse</span><span class="line">Token usage, latency, and cost for LLM calls,&nbsp;on&nbsp;disk.</span></a></li>
-        <li><a href="/work/ghost-notetaker/" data-work-link class="vt" style="view-transition-name: t-ghost-notetaker"><span class="idx">07.</span><span class="name">Ghost Notetaker</span><span class="line">Desktop sticky notes that try to stay out of&nbsp;screen&nbsp;shares.</span></a></li>
-        <li><a href="/work/moltdao/" data-work-link class="vt" style="view-transition-name: t-moltdao"><span class="idx">08.</span><span class="name">MoltDAO</span><span class="line">Agents propose and vote on a treasury, on a&nbsp;local&nbsp;chain.</span></a></li>
-      </ol>
+      <div class="work-stage-body">
+        <div class="work-cylinder" data-work-cylinder>
+          <ol class="home-work">
+            <li style="--i:0"><div class="work-tilt"><a href="/work/agentcrucible/" data-work-link class="vt" style="view-transition-name: t-agentcrucible"><span class="idx">01.</span><span class="name">AgentCrucible</span><span class="role">Prototype</span></a></div></li>
+            <li style="--i:1"><div class="work-tilt"><a href="/work/airforge/" data-work-link class="vt" style="view-transition-name: t-airforge"><span class="idx">02.</span><span class="name">AirForge</span><span class="role">Working tool</span></a></div></li>
+            <li style="--i:2"><div class="work-tilt"><a href="/work/shipgate/" data-work-link class="vt" style="view-transition-name: t-shipgate"><span class="idx">03.</span><span class="name">Shipgate</span><span class="role">Working tool</span></a></div></li>
+            <li style="--i:3"><div class="work-tilt"><a href="/work/recall-ai/" data-work-link class="vt" style="view-transition-name: t-recall-ai"><span class="idx">04.</span><span class="name">Recall</span><span class="role">Working tool</span></a></div></li>
+            <li style="--i:4"><div class="work-tilt"><a href="/work/spanforge/" data-work-link class="vt" style="view-transition-name: t-spanforge"><span class="idx">05.</span><span class="name">Spanforge</span><span class="role">Prototype</span></a></div></li>
+            <li style="--i:5"><div class="work-tilt"><a href="/work/localpulse/" data-work-link class="vt" style="view-transition-name: t-localpulse"><span class="idx">06.</span><span class="name">LocalPulse</span><span class="role">Prototype</span></a></div></li>
+            <li style="--i:6"><div class="work-tilt"><a href="/work/ghost-notetaker/" data-work-link class="vt" style="view-transition-name: t-ghost-notetaker"><span class="idx">07.</span><span class="name">Ghost Notetaker</span><span class="role">Working tool</span></a></div></li>
+            <li style="--i:7"><div class="work-tilt"><a href="/work/moltdao/" data-work-link class="vt" style="view-transition-name: t-moltdao"><span class="idx">08.</span><span class="name">MoltDAO</span><span class="role">Experiment</span></a></div></li>
+          </ol>
+        </div>
+        <div class="work-details" data-work-detail>
+          <article class="work-card">
+            <p class="work-card-count">01 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">AgentCrucible</h3>
+            <p class="work-card-role">Prototype&nbsp;· Public</p>
+            <p class="work-card-desc">Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false&nbsp;success&nbsp;claims.</p>
+            <ul class="work-card-stack"><li>TypeScript</li><li>Node.js</li><li>YAML</li></ul>
+            <a class="link-ui" href="/work/agentcrucible/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">02 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">AirForge</h3>
+            <p class="work-card-role">Working tool&nbsp;· Public</p>
+            <p class="work-card-desc">A browser physics sandbox: drawn strokes become ramps, balls, platforms, and curved tracks that Rapier simulates at a fixed&nbsp;120&nbsp;Hz.</p>
+            <ul class="work-card-stack"><li>TypeScript</li><li>React</li><li>Three.js</li><li>Rapier</li><li>MediaPipe</li></ul>
+            <a class="link-ui" href="/work/airforge/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">03 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">Shipgate</h3>
+            <p class="work-card-role">Working tool&nbsp;· Public</p>
+            <p class="work-card-desc">CLI for scanning staged Git changes and applying local policies to commit and&nbsp;push&nbsp;workflows.</p>
+            <ul class="work-card-stack"><li>TypeScript</li><li>Node.js</li><li>Git</li></ul>
+            <a class="link-ui" href="/work/shipgate/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">04 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">Recall</h3>
+            <p class="work-card-role">Working tool&nbsp;· Public</p>
+            <p class="work-card-desc">Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode&nbsp;result&nbsp;capture.</p>
+            <ul class="work-card-stack"><li>Python</li><li>FastAPI</li><li>SQLite</li><li>React</li></ul>
+            <a class="link-ui" href="/work/recall-ai/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">05 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">Spanforge</h3>
+            <p class="work-card-role">Prototype&nbsp;· Private</p>
+            <p class="work-card-desc">Local OpenAI-compatible trace proxy with a waterfall dashboard and limited,&nbsp;pattern-based&nbsp;redaction.</p>
+            <ul class="work-card-stack"><li>TypeScript</li><li>Node.js</li><li>React</li></ul>
+            <a class="link-ui" href="/work/spanforge/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">06 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">LocalPulse</h3>
+            <p class="work-card-role">Prototype&nbsp;· Private</p>
+            <p class="work-card-desc">Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata&nbsp;is&nbsp;retained.</p>
+            <ul class="work-card-stack"><li>TypeScript</li><li>Node.js</li><li>React</li></ul>
+            <a class="link-ui" href="/work/localpulse/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">07 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">Ghost Notetaker</h3>
+            <p class="work-card-role">Working tool&nbsp;· Private</p>
+            <p class="work-card-desc">Local desktop sticky notes with Markdown, workspaces, quick capture, and best-effort&nbsp;screen-capture&nbsp;exclusion.</p>
+            <ul class="work-card-stack"><li>JavaScript</li><li>Electron</li></ul>
+            <a class="link-ui" href="/work/ghost-notetaker/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+          <article class="work-card">
+            <p class="work-card-count">08 / 08</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">MoltDAO</h3>
+            <p class="work-card-role">Experiment&nbsp;· Private</p>
+            <p class="work-card-desc">Toy agent-governance experiment with ERC-20 voting and treasury proposals;&nbsp;not&nbsp;production-safe.</p>
+            <ul class="work-card-stack"><li>Solidity</li><li>Foundry</li><li>ethers</li></ul>
+            <a class="link-ui" href="/work/moltdao/">Case study&nbsp;<span class="go" aria-hidden="true">→</span></a>
+          </article>
+        </div>
+      </div>
     </div>
   </section>
 

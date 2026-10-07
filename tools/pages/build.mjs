@@ -203,12 +203,27 @@ ${header('home')}
     </div>
   </section>
 
-  <section class="section" id="work-list" aria-labelledby="work-title">
+  <section class="section work-stage" id="work-list" aria-labelledby="work-title" data-reveal>
     <div class="row">
       <h2 class="vh" id="work-title">Work</h2>
-      <ol class="home-work">
-${projects.map((p, i) => `        <li><a href="/work/${p.slug}/" data-work-link${vt(p)}><span class="idx">${pad(i + 1)}.</span><span class="name">${esc(p.name)}</span><span class="line">${tie(esc(p.tagline))}</span></a></li>`).join('\n')}
-      </ol>
+      <div class="work-stage-body">
+        <div class="work-cylinder" data-work-cylinder>
+          <ol class="home-work">
+${projects.map((p, i) => `            <li style="--i:${i}"><div class="work-tilt"><a href="/work/${p.slug}/" data-work-link${vt(p)}><span class="idx">${pad(i + 1)}.</span><span class="name">${esc(p.name)}</span><span class="role">${esc(p.status)}</span></a></div></li>`).join('\n')}
+          </ol>
+        </div>
+        <div class="work-details" data-work-detail>
+${projects.map((p, i) => `          <article class="work-card">
+            <p class="work-card-count">${pad(i + 1)} / ${pad(projects.length)}</p>
+            <span class="work-card-accent" aria-hidden="true"></span>
+            <h3 class="work-card-name">${esc(p.name)}</h3>
+            <p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p>
+            <p class="work-card-desc">${tie(esc(p.summary || p.tagline))}</p>
+            <ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+            <a class="link-ui" href="/work/${p.slug}/">Case study${OPEN}</a>
+          </article>`).join('\n')}
+        </div>
+      </div>
     </div>
   </section>
 
