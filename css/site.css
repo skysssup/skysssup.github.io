@@ -28,12 +28,17 @@
   --figure-sheen-core: #f2c766;
   --figure-star: #e6b04a;
   --figure-sheen-fringe: #6f7df2;
+  /* the silk: three colours of light that flow across the figure, folded on themselves, as light moves through
+     silk (js/hero.js); the clouds wear them most, the stone a breath of them on its lit side */
+  --figure-silk-1: #d9a032;
+  --figure-silk-2: #e59a8f;
+  --figure-silk-3: #8fa8e6;
   /* once the colours arrive the ink takes the light: a cool fill where the stone turns away, a warm key where it faces
-     the light; and the avatar's star glints, a heart and the edge that shows it on this paper */
+     the light; and the avatar's star glints, light caught on gold: a white-gold heart in a bloom and rays of gold */
   --figure-fill: #0b1a33;
   --figure-key: #3a2a1c;
-  --figure-glint: #ffffff;
-  --figure-glint-edge: #2e2010;
+  --figure-glint: #fffdf4;
+  --figure-glint-edge: #eaa514;
   /* the figure's materials, base and lit (marble is --figure-ink); see docs/design-spec.md §5 */
   --mat-gold: #b8860b;
   --mat-gold-lit: #d4a017;
@@ -80,6 +85,9 @@
   --figure-sheen-core: #ffffff;
   --figure-star: #ffe1a0;
   --figure-sheen-fringe: #8f8cff;
+  --figure-silk-1: #f2c14e;
+  --figure-silk-2: #ff8fc0;
+  --figure-silk-3: #6fe4ff;
   --figure-fill: #93a9dd;
   --figure-key: #fff2dc;
   --figure-glint: #ffffff;
@@ -110,6 +118,9 @@
     --figure-sheen-core: #ffffff;
     --figure-star: #ffe1a0;
     --figure-sheen-fringe: #8f8cff;
+    --figure-silk-1: #f2c14e;
+    --figure-silk-2: #ff8fc0;
+    --figure-silk-3: #6fe4ff;
     --figure-fill: #93a9dd;
     --figure-key: #fff2dc;
     --figure-glint: #ffffff;
@@ -140,6 +151,9 @@
   --figure-sheen-core: #ffe1c2;
   --figure-star: #ffb273;
   --figure-sheen-fringe: #ff3d7a;
+  --figure-silk-1: #ff3b30;
+  --figure-silk-2: #ff8a3d;
+  --figure-silk-3: #ffd8a3;
   --figure-fill: #b3122a;
   --figure-key: #ffb36b;
   --figure-glint: #fff1e6;
@@ -173,6 +187,9 @@
   --figure-sheen-core: #eafcff;
   --figure-star: #9feaff;
   --figure-sheen-fringe: #b07cff;
+  --figure-silk-1: #2a63ff;
+  --figure-silk-2: #83bdff;
+  --figure-silk-3: #eef6ff;
   --figure-fill: #1f3fbf;
   --figure-key: #c9efff;
   --figure-glint: #f2fbff;

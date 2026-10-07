@@ -30,7 +30,7 @@ transformers, diffusers). --color stops after the material map (color.webp); --s
 """
 import hashlib, json, os, sys, urllib.request
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'assets', 'hero')
@@ -349,10 +349,13 @@ SIGMA = {'wing': 12.0, 'caduceus': 7.0, 'arm': 6.0, 'head': 5.0, 'torso': 9.0, '
 SQUASH = {'wing': 0.55, 'caduceus': 0.8, 'arm': 1.0, 'head': 0.9, 'torso': 1.0, 'reach': 0.9, 'base': 1.0}
 KEEP, DETAIL = 0.35, 0.03
 # Where one part lies in front of another, the engine draws the nearer one's edge across it (as it draws every part's
-# edge against the sky): the raised arm and the caduceus over the wing, the outstretched arm before the clouds, and the
-# head over the raised arm and the chest. Elsewhere parts grow out of each other (the arms out of the shoulders) or sink
-# into the clouds, and no line is drawn.
-OVER = [['arm', 'wing'], ['caduceus', 'wing'], ['reach', 'base'], ['head', 'arm'], ['head', 'torso']]
+# edge against the sky), more lightly than against the sky (INNER): the raised arm and the caduceus over the wing, the
+# outstretched arm before the clouds, and the head over the raised arm. Elsewhere parts grow out of each other (the
+# arms out of the shoulders, the neck out of the chest) or sink into the clouds, and no line is drawn.
+OVER = [['arm', 'wing'], ['caduceus', 'wing'], ['reach', 'base'], ['head', 'arm']]
+# How strongly an edge across another part is drawn, against an edge against the sky: on the ink map's light paper, and
+# on the light map's dark paper, where a rim of light inside the figure would read as a scratch. Mirrors js/hero.js.
+INNER = {'ink': 0.45, 'light': 0.0}
 # A part's label in depth.webp's blue, inside the figure: its number in PARTS times PART_STEP, less half a step where
 # the figure is still only its soft fringe (the mask under one half), outside the statue's edge.
 PART_STEP = 32
@@ -621,9 +624,10 @@ MARCH = [[], [3, 0], [0, 1], [3, 1], [1, 2], [3, 0, 1, 2], [0, 2], [3, 2], [2, 3
 
 
 def outline(codes, inside, spacing):
-    """The statue's edges from depth.webp's blue (`codes`, M px) and its figure (`inside`): points [x, y] in figure
-    units every `spacing` px of the map, and the statue's blurred parts at their strongest (the field whose half level
-    the outline is). Mirrors edges() in js/hero.js."""
+    """The statue's edges from depth.webp's blue (`codes`, M px) and its figure (`inside`): points [x, y, inner] in
+    figure units every `spacing` px of the map (`inner` 1 where the edge lies across another part, 0 against the sky),
+    and the statue's blurred parts at their strongest (the field whose half level the outline is). Mirrors edges() in
+    js/hero.js."""
     label = np.where(inside, np.round(codes / PART_STEP), 0).astype(int)
     solid = inside & (codes % PART_STEP == 0) & (label > 0)
     r = int(np.ceil(EDGE_BLUR * 3))
@@ -652,7 +656,7 @@ def outline(codes, inside, spacing):
                     gx = at(fx + 1, fy) - at(fx - 1, fy) + at(fx + 1, fy + 1) - at(fx - 1, fy + 1)
                     gy = at(fx, fy + 1) - at(fx, fy - 1) + at(fx + 1, fy + 1) - at(fx + 1, fy - 1)
                     gl = float(np.hypot(gx, gy)) or 1.0
-                    keep = True
+                    keep, inner = True, 0
                     for d in range(1, 5):
                         sx, sy = int(np.floor(px - gx / gl * d + 0.5)), int(np.floor(py - gy / gl * d + 0.5))
                         if sx < 0 or sy < 0 or sx > last or sy > last:
@@ -662,11 +666,11 @@ def outline(codes, inside, spacing):
                             break
                         if q == p:
                             continue
-                        keep = (p, q) in front
+                        keep, inner = (p, q) in front, 1
                         break
                     if keep:
-                        points.append((px / last, py / last))
-    return np.array(points).reshape(-1, 2), field
+                        points.append((px / last, py / last, inner))
+    return np.array(points).reshape(-1, 3), field
 
 
 def cross(v, x, y, e):
@@ -674,9 +678,10 @@ def cross(v, x, y, e):
     return [(x + t, y), (x + 1, y + t), (x + 1 - t, y + 1), (x, y + 1 - t)][e]
 
 
-def still(levels, bn, dep, meta, suffix, gain, edge):
+def still(levels, bn, dep, meta, suffix, gain, edge, inner):
     """Still frame: the same threshold stipple at 1000px with round dots (`gain` times as wide), clipped to the statue's
-    outline as the engine clips it, and the outline drawn in its points (`edge`: how strongly), all placed the way the
+    outline as the engine clips it, and the outline drawn in its points (`edge`: how strongly against the sky, `inner`
+    times that across another part), all placed the way the
     engine draws the figure facing the viewer: its bounds fill the box less a 2% margin (fit() in js/hero.js) and each
     dot is foreshortened by its depth around the centre of mass. The still covers the page until the first frame is
     drawn, so in the opening, where that frame is the figure held still in its ink, one turns into the other in place.
@@ -710,9 +715,16 @@ def still(levels, bn, dep, meta, suffix, gain, edge):
         dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(160 + 95 * min(1, v * 1.4)))
     lz = dep[np.minimum(lines[:, 1] * N, N - 1).astype(int), np.minimum(lines[:, 0] * N, N - 1).astype(int)]
     lp = 3.2 / (3.2 - (lz - 0.62) * 0.34)
-    for lx, ly, f in zip(lines[:, 0], lines[:, 1], lp):
+    # the edges across other parts go on a layer of their own, laid over the dots without lightening any of them
+    across = Image.new('L', (S * 2, S * 2), 0)
+    da = ImageDraw.Draw(across)
+    for lx, ly, within, f in zip(lines[:, 0], lines[:, 1], lines[:, 2], lp):
         cx, cy, r = (ox + (px + (lx - px) * f) * k) * 2 * S, (oy + (py + (ly - py) * f) * k) * 2 * S, 1.2 * gain * k * f
-        dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(255 * edge))
+        if not within:
+            dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(255 * edge))
+        elif inner > 0:
+            da.ellipse([cx - r, cy - r, cx + r, cy + r], fill=int(255 * edge * inner))
+    im = ImageChops.lighter(im, across)
     im = im.resize((S, S), Image.LANCZOS)
     rgba = Image.merge('RGBA', [Image.new('L', (S, S), 0)] * 3 + [im])
     rgba.save(os.path.join(OUT, f'still{suffix}.webp'), 'WEBP', lossless=True, quality=100, method=6)
@@ -803,8 +815,8 @@ def main():
         json.dump(meta, metadata_file, indent=1)
 
     # the stills cover the page on light and dark paper, where the bank is not drawn
-    n = still(levels * (1 - own), bn, dep, meta, '', STILL_GAIN[0], 1.0)
-    still(light_levels * (1 - own), bn, dep, meta, '-dark', STILL_GAIN[1], 0.55)
+    n = still(levels * (1 - own), bn, dep, meta, '', STILL_GAIN[0], 1.0, INNER['ink'])
+    still(light_levels * (1 - own), bn, dep, meta, '-dark', STILL_GAIN[1], 0.55, INNER['light'])
     print(json.dumps(meta), n, 'still points')
 
 
