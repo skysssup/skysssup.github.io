@@ -212,7 +212,6 @@ ${header('home')}
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
-        <p class="intro-label t-label muted">Developer</p>
         <h1 id="hero-name">Aakash Dahal</h1>
         <div class="intro-actions"><a class="action-link" href="#selected">See the evidence <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
       </div>
@@ -526,3 +525,4 @@ Disallow: /tools/
 Sitemap: ${site.origin}/sitemap.xml
 `);
 console.log('wrote', 4 + projects.length, 'pages, sitemap.xml, and robots.txt');
+
