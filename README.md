@@ -64,32 +64,35 @@ paint can be checked bit for bit), `stillmatch.py` (that frame against the still
   map's alpha carries the image's sparkles, which twinkle). Once the colors have arrived the ink takes the light as the
   avatar does, a warm key where the stone faces the light and a cool fill where it turns away. The statue has a clear
   edge: each part's outline is traced at load from the parts the depth map's blue names and drawn as a fine line of
-  points, ink on white and a soft rim of light on dark, with the stipple clipped to it (the clouds keep their soft fade).
+  points, ink on white and a soft rim of light on dark, with the stipple clipped to it (the clouds keep their soft fade);
+  where it runs across another part (the raised arm over the wing) it is a light engraved line on white and none on
+  dark, and the neck grows out of the chest with no line at all. The dots lie on paper of their own, an even grid of
+  discs in the paper's colour drawn first, so the sheet's lines behind the figure stop at its edge.
   The wing and the caduceus are drawn in strokes along their feathers and coils, an engraving's hatching, from the
   image's own local contrast. The avatar's own star glints (the round sparkles on its wings, caduceus, rubble, and lightning, found in the color map at load, none
-  in the hair or on a hand) twinkle over it as eight-point stars, clearly visible and never dominant; on dark paper and in Gear Two the
+  in the hair or on a hand) twinkle over it, clearly visible and never dominant, each at its own slight angle and now and
+  then bursting: on dark paper as eight-point stars of white in a warm glow, on white as small four-pointed sparkles,
+  white at the heart and gold to their points, never as dark crosshairs; on dark paper and in Gear Two the
   stars of the avatar's sky come out around it too, far behind (read from the depth map's blue channel). The cursor stirs the dots like a hand through dust: they
-  turn about it in an eddy and are dragged along with it, and a quick sweep across the figure blows off the dots it
-  passes. Sway, lighting, the dots' drift, the cursor's stir, and Gear Two all run in the vertex shader. The figure is
+  turn about it in an eddy and are dragged along with it, and nothing is blown off. Sway, lighting, the dots' drift,
+  the cursor's stir, and Gear Two all run in the vertex shader. The figure is
   alive: each dot knows which part of the statue it belongs to, and once a frame `life()` works out each part's small
   motion about its joint (`joints` in `assets/hero/hero.json`), so the torso breathes every 4.5 s and the head rides on
   it, the arms follow at half, the big wing opens and closes about its root over 7 s and comes forward a little as it
   lifts, the caduceus's small wings beat either side of the staff, the two snakes sway about a staff that holds still,
   the curls sway with the breeze, and the outstretched arm turns by a hair; slow currents of light flow over the
   whole surface, brightening the stone where they crest and shading its troughs, with the dots riding them a little
-  along the wave; and the key light drifts a few degrees over 25 s, as if clouds passed the sun. At each turn of the
+  along the wave, all together; a slow field of colour folded on itself, the silk, flows across the clouds as light
+  moves through silk (`--figure-silk-*` per mode: pastel on white, the avatar's nebula on dark, ember in Gear Two, sky
+  in Tide); and the key light drifts a few degrees over 25 s, as if clouds passed the sun. At each turn of the
   sway a sheen crosses the figure: a sheet of light that sweeps the turned statue from the key light's side, the upper
   left in front, to the lower right behind, through its depth, so the line where it cuts the surface bends over the
   forms and the raised arm and the head catch it before the wing and the chest behind them; the line is bright in each
   mode's own colour (molten gold with a light gold core on white paper, gold with a white-hot core on dark, ember in
   Gear Two, electric cyan in Tide), a warm wash lands behind it on the surfaces facing the light, a thin fringe of a
   complementary hue runs just ahead of it on the stone, surfaces facing it flash, and a few dots twinkle into small
-  stars as it passes them. The sheet is a gust of wind blowing its way: every dot it reaches breathes out and back
-  with its neighbours, and a few of the dots near the outline lift off as fine dust in their own colours, take the
-  light's colour for a moment, drift out slowing and wavering together, and fade into the paper, then grow back in
-  place, each at its own moment. Dots never blink: now and then one drifts away on the breeze, fading as it goes, and
-  fades back in at home, and between gusts the breeze takes a few dots off the outline, quietly enough to be seen only
-  by someone who looks. Gear Two's gust lifts half as much dust. Opening the page plays an opening once a tab (again
+  stars as it passes them. The figure stays whole: nothing blows off it, no dot fades out on its own, and every dot
+  drifts a fraction of a pixel with its neighbours. Opening the page plays an opening once a tab (again
   on a reload, never under reduced motion): the figure holds still in its ink for two seconds, a shine sweeps it from
   the upper left and leaves its colors in its wake, it turns once and comes back, the page goes to Gear Two with the
   shockwave leaving the figure and one bolt of lightning striking it (the only lightning there is: nothing calls it
