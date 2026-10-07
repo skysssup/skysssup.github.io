@@ -599,8 +599,7 @@ a.link-ui { text-decoration: underline 1px var(--line-strong); }
    plate line and one block of type, the title and then the tagline. */
 .plates { row-gap: 64px; align-items: start; }
 .row > .plate { position: relative; margin: 0 var(--p); padding: 0; }
-.plate-media { border-bottom: 1px solid var(--line); }
-.plate-media img { width: 100%; }
+.plate { border-top: 1px solid var(--line); }
 .plate-caption { padding-top: 16px; max-width: 44ch; font: 500 18px/24px var(--sans); }
 .plate-line { margin-bottom: 4px; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .plate-caption h3 { font: inherit; transition: color .2s; }
@@ -809,11 +808,8 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 .project-title h2 { font: inherit; transition: color .2s; }
 .project-title p { font-weight: 400; color: var(--muted); }
 .project h2 a::after { content: ""; position: absolute; inset: 0; z-index: 2; }
-.project .facts { grid-column: 3; grid-row: 1; display: grid; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.project .facts { grid-column: 3 / -1; grid-row: 1; display: grid; font: 400 10px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .project .facts .themes-line { color: var(--ink); }
-.project .thumb { grid-column: 4; grid-row: 1; align-self: start; }
-.thumb > :not(canvas) { border-bottom: 1px solid var(--line); }
-.thumb img { width: 100%; }
 .project:hover h2 { color: var(--accent); }
 .project:hover .go { transform: translateX(3px); }
 .project:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -821,23 +817,18 @@ html[data-filter="physics-software"] .project:not([data-themes~="physics-softwar
 @media (max-width: 1199px) and (min-width: 768px) {
   .project-title { grid-column: 2 / span 2; }
   .project .facts { grid-column: 2 / span 2; grid-row: 2; margin-top: 12px; }
-  .project .thumb { grid-row: 1 / span 2; }
 }
 @media (max-width: 767px) {
   .project { row-gap: 12px; }
   .project .idx { grid-column: 1 / -1; justify-self: start; }
   .project-title { grid-column: 1 / -1; grid-row: 2; }
   .project .facts { grid-column: 1; grid-row: 3; align-self: start; }
-  .project .thumb { grid-column: 2; grid-row: 3; }
-  .thumb .media-type { padding: 8px 0; font-size: 13px; line-height: 20px; }
 }
 html[data-work-view="grid"] .projects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 html[data-work-view="grid"] .project { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; row-gap: 8px; padding-bottom: 48px; }
 html[data-work-view="grid"] .project > * { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; margin-top: 0; }
-html[data-work-view="grid"] .project .thumb { grid-row: 1; margin-bottom: 8px; }
 @media (max-width: 767px) {
   html[data-work-view="grid"] .projects { grid-template-columns: minmax(0, 1fr); }
-  html[data-work-view="grid"] .thumb .media-type { padding: 16px 0; font-size: 18px; line-height: 24px; }
 }
 
 /* ── case study ─────────────────────────────────────────── */
@@ -1387,3 +1378,4 @@ html.js:not([data-motion="reduced"]) .page-home .fig-note { animation-delay: .43
   h1, h2, h3 { break-after: avoid; }
   .term { white-space: pre-wrap; overflow: visible; }
 }
+

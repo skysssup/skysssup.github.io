@@ -239,7 +239,6 @@ ${site.themes.map((t, i) => `          <li><a href="/work/?theme=${t.id}" data-t
     </div>
     <div class="row plates">
 ${featured.map((p, i) => { const [size, side] = PLATES[i % PLATES.length]; return `      <article class="plate plate-${size} plate-${side}" data-project="${p.slug}">
-        <div class="plate-media">${cover(p, size === 'wide' ? '(max-width: 1199px) 100vw, 75vw' : '(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 25vw', 'low')}</div>
         <div class="plate-caption">
           <p class="plate-line">Plate ${pad(i + 1)}${DOT}${themesOf(p, DOT)}${DOT}${p.visibility}</p>
           <h3><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h3>
@@ -301,7 +300,6 @@ ${projects.map((p, i) => `    <li class="project" data-themes="${p.themes.join('
       <span class="idx" aria-hidden="true">${pad(i + 1)}</span>
       <div class="project-title"><h2><a href="/work/${p.slug}/"${vt(p)}>${esc(p.name)}</a>${OPEN}</h2><p>${tie(esc(p.tagline))}</p></div>
       <p class="facts"><span class="themes-line">${themesOf(p, DOT)}</span><span>${p.stack.slice(0, 3).map(esc).join(DOT)}</span><span>${p.visibility}</span></p>
-      <div class="thumb" aria-hidden="true">${cover(p, '(max-width: 767px) 50vw, 25vw')}</div>
     </li>`).join('\n')}
   </ol>
   <div class="row work-empty" data-work-empty hidden><div class="work-empty-note"><h2>No matching projects</h2><p>Try another name, technology, or theme.</p><button class="reset" type="button" data-clear-work>Reset filters</button></div></div>
