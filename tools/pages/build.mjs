@@ -214,7 +214,6 @@ ${header('home')}
       <div class="intro">
         <p class="intro-label t-label muted">Developer</p>
         <h1 id="hero-name">Aakash Dahal</h1>
-        <p>${tie(esc(site.intro))}</p>
         <div class="intro-actions"><a class="action-link" href="#selected">See the evidence <span aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: ${esc(site.ringLine)}." data-ring="${esc(site.ringLine)}">
