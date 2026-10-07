@@ -54,7 +54,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <meta name="twitter:site" content="@${site.x}">
 <meta name="twitter:creator" content="@${site.x}">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0b0b0c">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -70,7 +70,7 @@ const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="d
 // The home page preloads the still that covers the figure until it is drawn, for the paper the page opens on (the
 // boot script has just set the theme and the gear): it is stippled from the ink map on light paper and from the light
 // map on dark, Gear Two's and Tide's included, like the figure's dots (css/site.css --figure-preview).
-const PREVIEW = `(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches),u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);`;
+const PREVIEW = `(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);`;
 
 const LINES = '<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
 

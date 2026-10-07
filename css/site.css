@@ -71,7 +71,8 @@
   --ease-in-out: cubic-bezier(.65, 0, .35, 1);
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+:root:not([data-theme="light"]) {
   color-scheme: dark;
   --paper: #0b0b0c;
   --ink: #ecebe8;

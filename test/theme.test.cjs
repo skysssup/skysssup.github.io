@@ -24,11 +24,11 @@ function page({ saved = null, dark = false, blocked = false, legacy = false } = 
   return { api, attrs, lamp, meta, mq, listeners, win, click, setSaved: v => { saved = v; } };
 }
 
-test('follows the OS until a choice is made, and the switch reads "lights on" in light mode', () => {
+test('defaults to dark, and the switch reads "lights on" only in light mode', () => {
   const p = page();
-  assert.equal(p.lamp.attrs.get('aria-pressed'), 'true');
-  assert.equal(p.meta.content, COLORS.light);
-  p.mq.matches = true;
+  assert.equal(p.lamp.attrs.get('aria-pressed'), 'false');
+  assert.equal(p.meta.content, COLORS.dark);
+  p.mq.matches = false;
   p.listeners.scheme();
   assert.equal(p.lamp.attrs.get('aria-pressed'), 'false');
   assert.equal(p.meta.content, COLORS.dark);
@@ -37,11 +37,11 @@ test('follows the OS until a choice is made, and the switch reads "lights on" in
 test('a choice made in this tab survives OS changes even when storage is blocked', () => {
   const p = page({ blocked: true });
   p.click();
-  assert.equal(p.attrs.get('data-theme'), 'dark');
+  assert.equal(p.attrs.get('data-theme'), 'light');
   p.mq.matches = false;
   p.listeners.scheme();
-  assert.equal(p.attrs.get('data-theme'), 'dark');
-  assert.equal(p.lamp.attrs.get('aria-pressed'), 'false');
+  assert.equal(p.attrs.get('data-theme'), 'light');
+  assert.equal(p.lamp.attrs.get('aria-pressed'), 'true');
 });
 
 test('a saved light choice overrides a dark OS', () => {
@@ -84,7 +84,7 @@ test('Gear Two reads as lights off, and an installed transition receives the swi
   let seen = null;
   p.win.skyThemeTransition = (apply, current, origin) => { seen = { current, origin }; apply('light'); };
   p.click();
-  assert.equal(seen.current, 'light');
+  assert.equal(seen.current, 'dark');
   assert.equal(seen.origin, p.lamp);
   assert.equal(p.attrs.get('data-theme'), 'light');
 });
@@ -98,8 +98,8 @@ test('Tide reads as lights off too, with its own paper as the theme colour', () 
   assert.equal(COLORS.blue, '#060a14');
   p.attrs.delete('data-gear');
   p.api.paint();
-  assert.equal(p.lamp.attrs.get('aria-pressed'), 'true');
-  assert.equal(p.meta.content, COLORS.light);
+  assert.equal(p.lamp.attrs.get('aria-pressed'), 'false');
+  assert.equal(p.meta.content, COLORS.dark);
 });
 
 test('Tide\'s palette sets every token Gear Two sets, its text meets WCAG AA on its paper, and its paper is the theme colour', () => {
@@ -114,3 +114,4 @@ test('Tide\'s palette sets every token Gear Two sets, its text meets WCAG AA on 
   assert.equal(blue['--paper'], COLORS.blue);
   assert.equal(two['--paper'], COLORS.gear);
 });
+

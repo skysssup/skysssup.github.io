@@ -1,4 +1,4 @@
-/* Light switch: a saved light/dark choice that follows the OS until set, syncs across tabs,
+/* Light switch: dark by default, with a saved light/dark choice that syncs across tabs,
    and reads as "lights off" while a gear (Gear Two or Tide) is on. The switch's aria-pressed means "lights on". */
 (function (global) {
   "use strict";
@@ -21,7 +21,7 @@
     function current() {
       var theme = root.getAttribute("data-theme");
       if (theme === "dark" || theme === "light") return theme;
-      return darkMq.matches ? "dark" : "light";
+      return "dark";
     }
 
     function paint() {
@@ -74,3 +74,4 @@
   if (typeof module !== "undefined" && module.exports) module.exports = { init: init, COLORS: COLORS };
   else init(document, global, global.localStorage);
 })(typeof window !== "undefined" ? window : globalThis);
+
