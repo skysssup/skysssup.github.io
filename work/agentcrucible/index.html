@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AgentCrucible — Aakash Dahal</title>
-<meta name="description" content="Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.">
+<meta name="description" content="A fault-testing tool for AI agents: break their tool calls, compare their answers with what actually committed, and replay the evidence.">
 <link rel="canonical" href="https://skysssup.github.io/work/agentcrucible/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Aakash Dahal">
 <meta property="og:title" content="AgentCrucible — Aakash Dahal">
-<meta property="og:description" content="Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.">
+<meta property="og:description" content="A fault-testing tool for AI agents: break their tool calls, compare their answers with what actually committed, and replay the evidence.">
 <meta property="og:url" content="https://skysssup.github.io/work/agentcrucible/">
 <meta property="og:image" content="https://skysssup.github.io/assets/og/agentcrucible.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="AgentCrucible: Fault-tests tool-using agents against scripted mock worlds.">
+<meta property="og:image:alt" content="AgentCrucible: Break tool calls. Check what committed and what the agent claimed.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@skysssup">
 <meta name="twitter:creator" content="@skysssup">
@@ -27,7 +27,6 @@
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
 <link rel="stylesheet" href="/css/site.css">
-<link rel="preload" href="/work/agentcrucible/media/overview-poster.webp" as="image" fetchpriority="high">
 </head>
 <body class="page-case" data-project="agentcrucible">
 <a class="skip" href="#main">Skip to content</a>
@@ -60,13 +59,13 @@
     <p class="crumb"><a href="/work/">Work</a>&nbsp;· 01</p>
     <div class="case-title">
       <h1 class="vt" style="view-transition-name: t-agentcrucible">AgentCrucible</h1>
-      <p>Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.</p>
-      <p class="case-actions"><a href="#problem">Read the notes&nbsp;<span aria-hidden="true">↓</span></a><a href="https://github.com/skysssup/agentcrucible">View source&nbsp;<span class="ext" aria-hidden="true">↗</span></a></p>
+      <p>A fault-testing tool for AI agents: break their tool calls, compare their answers with what actually committed, and replay the evidence.</p>
+      <p class="case-actions"><a href="#problem">Read case study&nbsp;<span aria-hidden="true">↓</span></a><a href="https://github.com/skysssup/agentcrucible">View source&nbsp;<span class="ext" aria-hidden="true">↗</span></a></p>
     </div>
     <div class="meta">
       <dl>
         <dt class="t-label">Role</dt><dd>Designed and built solo</dd>
-        <dt class="t-label">Status</dt><dd>Prototype</dd>
+        <dt class="t-label">Status</dt><dd>Working tool</dd>
         <dt class="t-label">Themes</dt><dd>AI systems</dd>
         <dt class="t-label">Stack</dt><dd>TypeScript&nbsp;· Node.js&nbsp;· YAML</dd>
         <dt class="t-label">Code</dt><dd><a href="https://github.com/skysssup/agentcrucible">github.com/skysssup/agentcrucible</a>&nbsp;<span class="ext" aria-hidden="true">↗</span></dd>
@@ -76,8 +75,8 @@
 
   <div class="row lead-media">
     <figure class="fig c2-4">
-        <div class="fig-frame" data-reveal><video class="" src="/work/agentcrucible/media/overview.mp4" poster="/work/agentcrucible/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Terminal recording: agentcrucible runs payments/timeout-after-commit against naive-retry, idempotent-retry, honest-stop and liar, then prints a verdict comparison." data-autoplay></video></div>
-        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">The real CLI running one scenario against four scripted agents, then comparing&nbsp;their&nbsp;verdicts.</span></figcaption>
+        <div class="fig-frame" data-reveal><img class="" src="/work/agentcrucible/media/console.png" alt="AgentCrucible's local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data." width="1440" height="900" loading="eager" decoding="async" fetchpriority="high"></div>
+        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated&nbsp;demo&nbsp;data.</span></figcaption>
       </figure>
   </div>
 
@@ -91,6 +90,7 @@
         <li><a href="#how">How it works</a></li>
         <li><a href="#decisions">Key decisions</a></li>
         <li><a href="#hard">What’s hard</a></li>
+        <li><a href="#try">Try it locally</a></li>
         <li><a href="#status">Status and next</a></li>
         <li><a href="#stack">Stack and links</a></li>
       </ol>
@@ -98,27 +98,70 @@
     <article class="prose">
       <section id="problem" aria-labelledby="problem-title">
         <h2 id="problem-title">The problem</h2>
-        <p>Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false&nbsp;success&nbsp;claims. Status: Prototype. Visibility: Public.</p>
+        <p>A tool call can fail after it has already done the work. A payment service creates a refund, the response times out, and an agent retries. Without the same idempotency key, the customer gets refunded twice. The opposite is possible too: a tool returns a convincing success response even though nothing happened, and the agent tells the user the task is finished.</p>
+        <p>Checking the final answer alone misses both failures. I built AgentCrucible to test the gap between what an agent sees, what it says, and what the service actually changed. It makes those failures repeatable, so a recovery strategy can be checked before it touches a real service.</p>
       </section>
       <section id="built" aria-labelledby="built-title">
         <h2 id="built-title">What I built</h2>
-        <p>Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false&nbsp;success&nbsp;claims. The stack named on this page is TypeScript, Node.js, YAML.</p>
+        <p>AgentCrucible is a TypeScript CLI, library, and local web console. It runs agents against five small services held in memory: payments, email, a database, support tickets, and a filesystem. YAML scenarios describe the task, starting records, faults, allowed changes, and expected outcomes. Fourteen fault kinds cover timeouts, lost responses, stale reads, altered values, malformed results, expired authentication, phantom successes, and duplicate delivery.</p>
+        <p>The same harness accepts a JavaScript agent module, a model through OpenAI, Anthropic, or Ollama, or an MCP client connected over stdio. Scripted agents run offline without keys. Model responses can be recorded and replayed offline; fresh model calls use the configured provider.</p>
+        <p>The console brings the evidence together: scenario editing, background runs, a scenario-by-agent result matrix, report timelines, fault sweeps, coverage gaps, comparisons, and reliability trends across agent versions. The CLI writes JSON, HTML, Markdown, and JUnit reports, and a saved baseline can make CI fail when a result regresses or a new scenario fails.</p>
+        <p>The Northwind workspace shown above is a built-in demonstration, with fictional agents and generated history. It shows how the console works; those numbers are not customer usage or production reliability measurements.</p>
       </section>
       <section id="how" aria-labelledby="how-title">
         <h2 id="how-title">How it works</h2>
-        <p>The recording on this page is the evidence: The real CLI running one scenario against four scripted agents, then comparing&nbsp;their&nbsp;verdicts. I am not publishing a reconstructed architecture here. The source is <a href="https://github.com/skysssup/agentcrucible">github.com/skysssup/agentcrucible</a>.</p>
+        <p>Each trial starts with fresh worlds and any records declared by the scenario. The agent receives the task, tool schemas, and a <code>callTool</code> function. The harness intercepts each call, applies the selected fault, and records both the real result and the observation delivered to the agent.</p>
+        <figure class="diagram wide" data-diagram>
+          <script type="application/json">{"nodes":[{"id":"scenario","label":"Scenario","sub":"task + expectations"},{"id":"agent","label":"Agent","sub":"calls tools"},{"id":"harness","label":"Fault harness","sub":"seeded schedule"},{"id":"world","label":"Mock services","sub":"committed records"},{"id":"grader","label":"Grader","sub":"state + answer"}],"edges":[{"from":"scenario","to":"agent"},{"from":"agent","to":"harness"},{"from":"harness","to":"world"},{"from":"world","to":"grader"}]}</script>
+          <ol class="diagram-steps t-small"><li>Scenario: the task, setup records, fault schedule, policies, and expected outcomes</li><li>Agent: calls tools through the harness and returns its final answer</li><li>Fault harness: keeps the service's result separate from what the agent receives</li><li>Mock services: record the changes that actually committed after each call</li><li>Grader: checks the committed changes and final answer against the scenario, then produces findings with evidence</li></ol>
+          <figcaption><span class="t-label muted">Fig. 2</span><span class="t-small">The execution path. The grader also reads the scenario and final answer; the agent sees only the tool observations.</span></figcaption>
+        </figure>
+        <p>Fault timing matters. A fault can stop a call before it runs, change the response after it commits, or deliver the request twice. With <code>timeout_after_commit</code>, the refund exists even though the agent receives an error. With <code>phantom_success</code>, the agent sees a valid-looking result for a call that never ran. The trace preserves that distinction.</p>
+        <p>The grader compares the world's records before and after the trial, checks invariants after every call, and evaluates the final answer. Every finding points to the relevant call, record, or statement. It returns one of six verdicts: <code>HARMFUL_ACTION</code>, <code>SILENT_FAILURE</code>, <code>DEGRADED</code>, <code>INCONCLUSIVE</code>, <code>SAFE_FAILURE</code>, or <code>SAFE_SUCCESS</code>. The most severe finding decides the trial; the worst trial decides a multi-trial run.</p>
+        <p>The current refund demo compares five fixed strategies. Blind retry creates two refunds and gets <code>HARMFUL_ACTION</code>; stopping honestly after the timeout gets <code>DEGRADED</code>; reusing the key or checking the committed refund gets <code>SAFE_SUCCESS</code>; claiming success while hiding the error gets <code>SILENT_FAILURE</code>. These are scripted fixtures with known behavior.</p>
+        <figure class="fig wide">
+          <div class="fig-frame"><video src="/work/agentcrucible/media/overview.mp4" poster="/work/agentcrucible/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Earlier AgentCrucible CLI recording comparing four scripted agents on a refund that commits before its response times out." data-autoplay></video></div>
+          <figcaption><span class="t-label muted">Fig. 3</span><span class="t-small">An earlier CLI recording compares four scripted strategies on the lost refund response. The current demo adds a fifth, the cross-checker.</span></figcaption>
+        </figure>
+        <p>A sweep first runs the agent without faults to discover its path, then injects one fault kind at one call per run. Its heat map shows where recovery fails. Saved JSON reports go further: <code>replay</code> reissues the recorded calls against fresh worlds without running the agent, checks each observation and state, then grades the trace again. It can distinguish a changed world from a changed grading rule.</p>
       </section>
       <section id="decisions" aria-labelledby="decisions-title">
         <h2 id="decisions-title">Key decisions</h2>
-        <p>The public evidence is the summary, the media, and the source. A longer design narrative is not written yet, and this page does not&nbsp;invent&nbsp;one.</p>
+        <ol class="decisions">
+          <li><p><b>Grade committed state and the answer together.</b> A successful response is not proof of a successful task. <code>SAFE_SUCCESS</code> requires explicit expectations to match. Missing checks or ambiguous evidence can produce <code>INCONCLUSIVE</code>, so an empty finding list cannot silently become a pass.</p></li>
+          <li><p><b>Make failures repeatable.</b> A seed and a call schedule select the faults. Fresh worlds isolate trials, and reports retain the calls and state changes needed for replay. This makes regressions explainable. Fresh model runs can still vary; recorded model responses provide a repeatable input.</p></li>
+          <li><p><b>Use explicit grading rules.</b> Expectations, mutation policies, invariants, and typed answer checks produce evidence a developer can inspect. There is no model judging the answer. The tradeoff is that language rules can misread unfamiliar wording, so structured output checks are useful for precise contracts.</p></li>
+          <li><p><b>Keep the console local and small.</b> The runtime has one dependency, <code>yaml</code>. The browser UI uses TypeScript, escaped HTML, CSS, and SVG charts. Its server binds to loopback by default, checks a session token on API requests, and serves its own scripts and fonts. History stores summaries; complete report files preserve the original trace.</p></li>
+        </ol>
       </section>
       <section id="hard" aria-labelledby="hard-title">
         <h2 id="hard-title">What’s hard</h2>
-        <p>Fault-tests tool-using agents against scripted&nbsp;mock&nbsp;worlds. What is hard beyond that is in the repository, not restated here as an unverified claim.</p>
+        <p><b>Recovery can repair state without erasing the mistake.</b> In a refund–email–ticket workflow, an agent might create a duplicate refund and later void it, or resolve a ticket before notifying the customer. Checking only the final state loses the intermediate violation. AgentCrucible checks invariants after each call and distinguishes a violation that remains from one that was repaired.</p>
+        <p><b>A plausible answer can conceal a missing action.</b> The report below follows a phantom email success. The response looked valid, but the service committed nothing. The final answer still claimed the email was sent, so the grader produced <code>SILENT_FAILURE</code>. The timeline puts the fault, arguments, answer, and committed state in the same place.</p>
+        <figure class="fig wide">
+          <div class="fig-frame"><img src="/work/agentcrucible/media/report.png" alt="AgentCrucible's Northwind demo report: send_email received a phantom_success fault and committed nothing, while the agent claimed the email was sent. The verdict is SILENT_FAILURE." width="1440" height="900" loading="lazy" decoding="async"></div>
+          <figcaption><span class="t-label muted">Fig. 4</span><span class="t-small">A failure in the fictional Northwind demo: the email was never sent. The report ties the verdict to that call and the agent's answer.</span></figcaption>
+        </figure>
+        <p><b>Reproducing history is different from retaining a trace.</b> The console keeps compact run summaries and regenerates an old report from its scenario, agent, and seed, reporting whether it matches the stored verdict. If those inputs change, regeneration can differ. A saved JSON report retains the original calls for replay, which still requires deterministic worlds and the same extensions.</p>
+      </section>
+      <section id="try" aria-labelledby="try-title">
+        <h2 id="try-title">Try it locally</h2>
+        <p>With Node.js 22.12 or later, build the current source and run the offline demo:</p>
+        <pre class="term" tabindex="0" aria-label="Commands to build AgentCrucible and run its demo"><code>git clone https://github.com/skysssup/agentcrucible.git
+cd agentcrucible
+npm ci
+npm run build
+node dist/cli.js demo
+node dist/cli.js ui --demo</code></pre>
+        <p>Open the local address printed by the console command. <code>--demo</code> creates Northwind in a temporary directory. In a project of your own, <code>init</code> creates a config, starter scenario, and agent module; <code>validate</code> checks the scenarios, <code>run</code> produces reports, and <code>check</code> compares results with declared verdicts or a baseline.</p>
+        <p>See the <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/ui.md">console guide</a>, <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/scenarios.md">scenario format</a>, <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/model-agents.md">model adapters</a>, and <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/mcp.md">MCP setup</a>.</p>
       </section>
       <section id="status" aria-labelledby="status-title">
         <h2 id="status-title">Status and next</h2>
-        <p>Labeled Prototype. A full case narrative is in progress. This page keeps the verified summary, the real media, and the&nbsp;source&nbsp;link.</p>
+        <p>This case study describes the v2.1.0 source at <a href="https://github.com/skysssup/agentcrucible/commit/475e5c0c76e6496fb21c3210aa1ef70cc6eace78">commit 475e5c0</a>, checked on 8 October 2026. At that check, the latest published GitHub release was <a href="https://github.com/skysssup/agentcrucible/releases/tag/v1.0.0">v1.0.0</a>; the commands above build from source. The repository's CI is configured to build, typecheck, run Vitest, exercise documented commands, and verify the package on Node.js 22 and 24.</p>
+        <p>The main limits are explicit: the worlds are small in-memory mocks without real latency, concurrency, or partial writes; answer parsing uses keyword rules; and answer facts beyond amounts need scenario-specific checks. A safe result applies to the modeled scenario. It does not establish safety against a production service.</p>
+        <p>The next useful validation is to test a real agent's recovery behavior against scenarios derived from the services it actually uses, then compare those results with controlled integration tests. Richer service behavior and broader answer checks would address the current limits. These are directions for further work, not capabilities claimed by this version.</p>
+        <p>The <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/grading.md">grading rules</a>, <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/traces.md">trace and replay reference</a>, and <a href="https://github.com/skysssup/agentcrucible/blob/main/CHANGELOG.md">changelog</a> document the behavior and its boundaries. The project is MIT licensed.</p>
       </section>
       <section id="stack" aria-labelledby="stack-title">
         <h2 id="stack-title">Stack and links</h2>
@@ -129,9 +172,10 @@
     <aside class="aside" aria-label="Key numbers">
       <div class="numbers">
           <dl>
-            <div><dt>Prototype</dt><dd>Status labeled on this page</dd></div>
-            <div><dt>Public</dt><dd>Repository visibility</dd></div>
-            <div><dt>3</dt><dd>Named parts of the stack, listed below</dd></div>
+            <div><dt>5</dt><dd>mock services: payments, email, database, tickets, and filesystem</dd></div>
+            <div><dt>14</dt><dd>built-in fault kinds, scheduled at specific tool calls</dd></div>
+            <div><dt>6</dt><dd>verdicts, each supported by findings and evidence</dd></div>
+            <div><dt>1</dt><dd>runtime dependency: the YAML parser</dd></div>
           </dl>
       </div>
     </aside>
@@ -169,7 +213,7 @@
     <nav aria-label="Projects">
       <p class="index-label t-label muted">Projects</p>
       <ol class="index-projects">
-        <li data-index-item data-search="AgentCrucible agentcrucible Fault-tests tool-using agents against scripted mock worlds. AI systems TypeScript Node.js YAML"><a href="/work/agentcrucible/"><span class="t-label muted">01</span><span class="index-project-name">AgentCrucible<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
+        <li data-index-item data-search="AgentCrucible agentcrucible Break tool calls. Check what committed and what the agent claimed. AI systems TypeScript Node.js YAML"><a href="/work/agentcrucible/"><span class="t-label muted">01</span><span class="index-project-name">AgentCrucible<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
         <li data-index-item data-search="AirForge airforge Draw ramps, balls, platforms, and curves; Rapier simulates them in 2.5D. Physics software TypeScript React Three.js Rapier MediaPipe"><a href="/work/airforge/"><span class="t-label muted">02</span><span class="index-project-name">AirForge<span class="t-small muted">Physics software</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
         <li data-index-item data-search="Shipgate shipgate A Git gate that scans what a coding agent is about to push. Developer tools TypeScript Node.js Git"><a href="/work/shipgate/"><span class="t-label muted">03</span><span class="index-project-name">Shipgate<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
         <li data-index-item data-search="Recall recall-ai Spaced repetition for algorithm practice, kept on your machine. Developer tools Python FastAPI SQLite React"><a href="/work/recall-ai/"><span class="t-label muted">04</span><span class="index-project-name">Recall<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>

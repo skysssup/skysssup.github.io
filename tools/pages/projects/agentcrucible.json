@@ -6,28 +6,26 @@
  "themes": [
   "ai-systems"
  ],
- "status": "Prototype",
+ "status": "Working tool",
  "stack": [
   "TypeScript",
   "Node.js",
   "YAML"
  ],
- "tagline": "Fault-tests tool-using agents against scripted mock worlds.",
- "description": "Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.",
- "summary": "Offline fault-testing harness for tool-using agents, using scripted mock worlds to score unsafe actions and false success claims.",
- "placeholder": true,
+ "tagline": "Break tool calls. Check what committed and what the agent claimed.",
+ "description": "Fault injection for tool-using agents: seeded failures, committed-state grading, replay, a local console, and CI regression checks.",
+ "summary": "A fault-testing tool for AI agents: break their tool calls, compare their answers with what actually committed, and replay the evidence.",
  "cover": {
   "src": "/work/agentcrucible/media/cover",
   "w": 1344,
   "h": 840
  },
  "lead": {
-  "kind": "video",
-  "src": "/work/agentcrucible/media/overview.mp4",
-  "poster": "/work/agentcrucible/media/overview-poster.webp",
+  "kind": "image",
+  "src": "/work/agentcrucible/media/console.png",
   "w": 1440,
   "h": 900,
-  "caption": "The real CLI running one scenario against four scripted agents, then comparing their verdicts.",
-  "alt": "Terminal recording: agentcrucible runs payments/timeout-after-commit against naive-retry, idempotent-retry, honest-stop and liar, then prints a verdict comparison."
+  "caption": "The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data.",
+  "alt": "AgentCrucible's local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data."
  }
 }
