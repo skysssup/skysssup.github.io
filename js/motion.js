@@ -85,7 +85,7 @@
         // Anchor links land where the native jump would: Lenis reads the root's scroll-padding-top.
         smoother = new win.Lenis({
           autoRaf: true,
-          lerp: 0.1,
+          lerp: 0.18,
           anchors: true,
           prevent: function (node) { return !!(node && node.closest && node.closest("[data-lenis-prevent]")); }
         });

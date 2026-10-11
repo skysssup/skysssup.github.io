@@ -213,7 +213,7 @@ ${projects.map((p, i) => `            <li style="--i:${i}"><div class="work-tilt
           </ol>
         </div>
         <div class="work-details" data-work-detail>
-${projects.map((p, i) => `          <article class="work-card">
+${projects.map((p, i) => `          <article class="work-card${i === 0 ? ' is-on' : ''}" aria-hidden="${i !== 0}"${i === 0 ? '' : ' inert'}>
             <p class="work-card-count">${pad(i + 1)} / ${pad(projects.length)}</p>
             <span class="work-card-accent" aria-hidden="true"></span>
             <h3 class="work-card-name">${esc(p.name)}</h3>
@@ -498,4 +498,3 @@ Disallow: /tools/
 Sitemap: ${site.origin}/sitemap.xml
 `);
 console.log('wrote', 4 + projects.length, 'pages, sitemap.xml, and robots.txt');
-

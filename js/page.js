@@ -518,9 +518,8 @@
 
     /* contact: Kathmandu's day on a 24-hour dial, the night stippled in, a hand for now, and a readout that follows
        the pointer round the face */
-    var note = doc.querySelector("[data-contact-note]");
     var dialFigure = doc.querySelector("[data-dial]");
-    if (note || dialFigure) {
+    if (dialFigure) {
       var offset = -new Date().getTimezoneOffset();
       var svg = dialFigure && dialFigure.querySelector("svg");
       var NS = "http://www.w3.org/2000/svg";
@@ -555,7 +554,6 @@
       };
       var render = function () {
         var now = new Date(), minute = kathmanduMinute(now), shown = pointing === null ? minute : pointing;
-        if (note) note.textContent = "It’s " + clock(minute) + " for me, so I’m probably " + kathmanduStatus(minute) + ". Email reaches me fastest.";
         if (!svg) return;
         var day = now.getUTCFullYear() * 400 + Math.floor((now.getTime() + KATHMANDU * 6e4) / 864e5);
         if (day !== nightDay) { drawNight(now); nightDay = day; }
@@ -738,46 +736,78 @@
       }
     }
 
-    /* The home work list is a shallow cylinder. Distance from the row under the pointer sets the tilt,
-       the same way a hovered entry leans forward and the neighbours fall back. Reduced motion leaves it flat. */
+    /* Keep hit areas fixed while the list leans around the selected row. Read all row positions before
+       painting, and coalesce pointer and scroll input into one frame. Never intercept page scrolling. */
     var cylinder = doc.querySelector("[data-work-cylinder]");
     if (cylinder) {
       var tilts = Array.prototype.slice.call(cylinder.querySelectorAll(".work-tilt"));
       var cards = Array.prototype.slice.call(doc.querySelectorAll(".work-card"));
       var panel = doc.querySelector("[data-work-detail]");
-      var hot = null;
+      var links = tilts.map(function (tilt) { return tilt.querySelector("[data-work-link]"); });
+      var rows = tilts.map(function (tilt) { return tilt.parentElement; });
+      var hot = 0, aim = 0, queuedWork = false, pointerY = null;
       var poseWork = function () {
-        var flat = hot == null || motion.reduced();
+        var flat = motion.reduced();
         tilts.forEach(function (tilt, i) {
-          var link = tilt.querySelector("[data-work-link]");
           if (flat) {
             tilt.style.transform = "";
             tilt.style.opacity = "";
-            link.classList.remove("is-active");
           } else {
-            var delta = i - hot, dist = Math.abs(delta);
-            tilt.style.transform = "rotateX(" + (6 * delta) + "deg) translateZ(" + (delta === 0 ? 18 : -6 * dist) + "px)";
-            tilt.style.opacity = delta === 0 ? "1" : String(Math.max(0.18, 1 - 0.2 * dist));
-            link.classList.toggle("is-active", delta === 0);
+            var delta = i - aim, dist = Math.abs(delta);
+            tilt.style.transform = "rotateX(" + Math.max(-18, Math.min(18, 5 * delta)).toFixed(2) + "deg) translateZ(" + (12 - Math.min(4, dist) * 7).toFixed(2) + "px)";
+            tilt.style.opacity = String(Math.max(0.48, 1 - 0.13 * dist));
           }
+          links[i].classList.toggle("is-active", i === hot);
         });
         cards.forEach(function (card, i) {
-          var on = !flat && i === hot;
+          var on = i === hot;
           card.classList.toggle("is-on", on);
           card.setAttribute("aria-hidden", on ? "false" : "true");
+          card.inert = !on;
         });
-        if (panel) panel.classList.toggle("is-on", !flat);
+        if (panel) panel.classList.add("is-on");
       };
-      tilts.forEach(function (tilt, i) {
-        var link = tilt.querySelector("[data-work-link]");
-        link.addEventListener("mouseenter", function () { hot = i; poseWork(); });
-        link.addEventListener("focus", function () { hot = i; poseWork(); });
+      var followWork = function () {
+        queuedWork = false;
+        // Keyboard and detail-panel focus keep their selection while the browser scrolls to the link.
+        if (cylinder.contains(doc.activeElement) || (panel && panel.contains(doc.activeElement))) return;
+        var bounds = rows.map(function (row) { return row.getBoundingClientRect(); });
+        if (!bounds.length || bounds[0].top > win.innerHeight || bounds[bounds.length - 1].bottom < 0) return;
+        var y = pointerY == null ? win.innerHeight * 0.5 : pointerY;
+        var next = 0, best = Infinity;
+        bounds.forEach(function (box, i) {
+          var distance = Math.abs(box.top + box.height / 2 - y);
+          if (distance < best) { next = i; best = distance; }
+        });
+        var center = bounds[next].top + bounds[next].height / 2;
+        aim = Math.max(0, Math.min(rows.length - 1, next + (y - center) / Math.max(1, bounds[next].height)));
+        hot = next;
+        poseWork();
+      };
+      var queueWork = function () {
+        if (queuedWork) return;
+        queuedWork = true;
+        win.requestAnimationFrame(followWork);
+      };
+      cylinder.addEventListener("pointermove", function (event) {
+        if (event.pointerType === "touch") return;
+        pointerY = event.clientY;
+        queueWork();
+      }, { passive: true });
+      cylinder.addEventListener("pointerleave", function () { pointerY = null; });
+      links.forEach(function (link, i) {
+        link.addEventListener("focus", function () { hot = aim = i; poseWork(); });
+        link.addEventListener("keydown", function (event) {
+          var next = event.key === "ArrowDown" ? i + 1 : event.key === "ArrowUp" ? i - 1 : event.key === "Home" ? 0 : event.key === "End" ? links.length - 1 : null;
+          if (next == null) return;
+          event.preventDefault();
+          links[Math.max(0, Math.min(links.length - 1, next))].focus();
+        });
       });
-      cylinder.addEventListener("mouseleave", function () { hot = null; poseWork(); });
-      cylinder.addEventListener("focusout", function (event) {
-        if (!cylinder.contains(event.relatedTarget)) { hot = null; poseWork(); }
-      });
+      win.addEventListener("scroll", function () { pointerY = null; queueWork(); }, { passive: true });
+      win.addEventListener("resize", queueWork, { passive: true });
       motion.subscribe(poseWork);
+      poseWork();
     }
 
     /* reveals: graphics that draw in the first time they come into view (text is never hidden) */
