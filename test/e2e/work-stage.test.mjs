@@ -17,7 +17,7 @@ after(async () => { await browser?.close(); site?.server.close(); });
 
 async function open(options = {}) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options });
-  await context.addInitScript(() => sessionStorage.setItem('sky-entry', 'seen'));
+  await context.addInitScript(() => sessionStorage.setItem('sky-intro', 'seen'));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -63,9 +63,13 @@ test('wheel scrolling updates selection and reaches contact without a scroll tra
   const first = await page.locator('.home-work a.is-active .name').innerText();
   await page.mouse.wheel(0, 260);
   await page.waitForTimeout(700);
-  const next = await page.locator('.home-work a.is-active .name').innerText();
+  // Read both labels in one frame while smooth scrolling is still settling.
+  const [next, detail] = await page.evaluate(() => [
+    document.querySelector('.home-work a.is-active .name').innerText,
+    document.querySelector('.work-card.is-on h3').innerText
+  ]);
   assert.notEqual(next, first);
-  assert.equal(await page.locator('.work-card.is-on h3').innerText(), next);
+  assert.equal(detail, next);
   await page.mouse.wheel(0, 1400);
   await page.waitForTimeout(700);
   const contact = await page.locator('#contact').boundingBox();

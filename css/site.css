@@ -471,6 +471,8 @@ html:not(.js) .index-open { display: none; }
 .panel-body { padding: 12px; font: 400 13px/20px var(--sans); }
 
 /* ── home: hero ─────────────────────────────────────────── */
+.blackhole-transition { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1000; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .blackhole-transition { display: none; } }
 .hero { position: relative; overflow-x: clip; }
 .hero .row {
   --fig: min(100%, calc(100svh - var(--header-h) - 112px), 720px);

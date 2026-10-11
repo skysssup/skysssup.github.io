@@ -65,8 +65,10 @@ ${extra}</head>`;
 
 const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
 
-// Paint the entry before the first frame; a failed deferred script must never lock visitors out.
-const ENTRY = `(function(r){r.classList.add("home-experience");var seen=false;try{seen=!!sessionStorage.getItem("sky-entry")}catch(e){}if(!location.hash&&(!seen||location.search==="?intro=1")){r.setAttribute("data-entry","waiting");setTimeout(function(){if(!window.skyEntryReady)r.removeAttribute("data-entry")},2500)}})(document.documentElement);`;
+// The home page preloads the still that covers the figure until it is drawn, for the paper the page opens on (the
+// boot script has just set the theme and the gear): it is stippled from the ink map on light paper and from the light
+// map on dark, Gear Two's and Tide's included, like the figure's dots (css/site.css --figure-preview).
+const PREVIEW = `(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);`;
 
 const LINES = '<div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
 
@@ -180,42 +182,30 @@ const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 /* ── home ─────────────────────────────────────────── */
 function home() {
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
-  const heroSource = fs.readFileSync(path.resolve(SRC, '../../js/hero.js'), 'utf8');
-  const sourceExcerpt = heroSource.match(/  function spring\(state, target, dt, omega\) \{[\s\S]*?\n  \}/)[0].replace(/^  /gm, '');
-  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: ENTRY, extra: `<link rel="stylesheet" href="/css/entry.css">\n<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
+  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
 <body class="page-home">
-<dialog class="entry" aria-labelledby="entry-title" data-entry-screen data-lenis-prevent>
-  <div class="entry-top"><p id="entry-title">Aakash Dahal <span>/ skysssup</span></p><span class="entry-path" aria-hidden="true">~/portfolio</span></div>
-  <div class="entry-scene">
-    <div class="entry-editor" aria-hidden="true">
-      <div class="entry-file"><span>js/hero.js</span><span>spring()</span></div>
-      <pre><code>${sourceExcerpt.split('\n').map((line, i) => `<span style="--line:${i}"><i>${pad(i + 1)}</i>${esc(line) || ' '}</span>`).join('')}</code></pre>
-      <div class="entry-command"><span>❯</span> open portfolio<span class="entry-caret">_</span></div>
-    </div>
-    <div class="entry-drawing" aria-hidden="true"><canvas data-entry-canvas></canvas><span class="entry-drawing-label">Hermes / motion study</span></div>
-  </div>
-  <div class="entry-bottom"><p>Projects &amp; experiments</p><button class="entry-enter" type="button" data-enter autofocus>Enter <span aria-hidden="true">↵</span></button></div>
-</dialog>
 ${header('home')}
 <main id="main">
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
       <div class="intro">
         <h1 class="vh" id="hero-name">Aakash Dahal</h1>
-        <p class="t-label muted">~/portfolio</p>
-        <div class="intro-actions"><a class="link-ui" href="#work-list">Explore work${DOWN}</a><a class="link-ui" href="#contact">Contact${OPEN}</a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
-        <button class="entry-replay link-ui" type="button" data-entry-replay>Replay entry <span aria-hidden="true">↵</span></button>
+        <div class="intro-actions"><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: ${esc(site.ringLine)}." data-ring="${esc(site.ringLine)}">
         <div class="still" aria-hidden="true"></div>
       </div>
-      <div class="fig-note"><p class="t-label">Hermes</p><p class="t-small"><span class="fine">Move to stir the sculpture.</span><span class="coarse">Drag to turn the sculpture.</span></p><a class="link-ui" href="https://github.com/${site.github}/${site.github}.github.io/blob/main/js/hero.js">View source${ARROW}</a></div>
+      <aside class="essentially panel" aria-labelledby="why-title">
+        <h2 class="panel-head" id="why-title">${esc(site.why.title)}</h2>
+        <p class="panel-body">${tie(esc(site.why.body))}</p>
+      </aside>
+      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to stir them.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
     </div>
   </section>
 
   <section class="section work-stage" id="work-list" aria-labelledby="work-title" data-reveal>
     <div class="row">
-      <div class="work-stage-heading"><h2 id="work-title">~/work</h2><span>${pad(projects.length)} projects</span></div>
+      <h2 class="vh" id="work-title">Work</h2>
       <div class="work-stage-body">
         <div class="work-cylinder" data-work-cylinder>
           <ol class="home-work">
@@ -251,7 +241,7 @@ ${projects.map((p, i) => `          <article class="work-card${i === 0 ? ' is-on
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/entry.js', '/js/page.js?v=entry-1'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js?v=blackhole-1'])}
 </body>
 </html>
 `;

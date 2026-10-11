@@ -25,24 +25,11 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r){r.classList.add("home-experience");var seen=false;try{seen=!!sessionStorage.getItem("sky-entry")}catch(e){}if(!location.hash&&(!seen||location.search==="?intro=1")){r.setAttribute("data-entry","waiting");setTimeout(function(){if(!window.skyEntryReady)r.removeAttribute("data-entry")},2500)}})(document.documentElement);</script>
+<script>(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);</script>
 <link rel="stylesheet" href="/css/site.css">
-<link rel="stylesheet" href="/css/entry.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"Developer tools and interactive physics software."}</script>
 </head>
 <body class="page-home">
-<dialog class="entry" aria-labelledby="entry-title" data-entry-screen data-lenis-prevent>
-  <div class="entry-top"><p id="entry-title">Aakash Dahal <span>/ skysssup</span></p><span class="entry-path" aria-hidden="true">~/portfolio</span></div>
-  <div class="entry-scene">
-    <div class="entry-editor" aria-hidden="true">
-      <div class="entry-file"><span>js/hero.js</span><span>spring()</span></div>
-      <pre><code><span style="--line:0"><i>01</i>function spring(state, target, dt, omega) {</span><span style="--line:1"><i>02</i>  var f = 1 + 2 * dt * omega;</span><span style="--line:2"><i>03</i>  var oo = omega * omega;</span><span style="--line:3"><i>04</i>  var hoo = dt * oo;</span><span style="--line:4"><i>05</i>  var hhoo = dt * hoo;</span><span style="--line:5"><i>06</i>  var det = 1 / (f + hhoo);</span><span style="--line:6"><i>07</i>  var x = (f * state.x + dt * state.v + hhoo * target) * det;</span><span style="--line:7"><i>08</i>  var v = (state.v + hoo * (target - state.x)) * det;</span><span style="--line:8"><i>09</i>  state.x = x;</span><span style="--line:9"><i>10</i>  state.v = v;</span><span style="--line:10"><i>11</i>  return state;</span><span style="--line:11"><i>12</i>}</span></code></pre>
-      <div class="entry-command"><span>❯</span> open portfolio<span class="entry-caret">_</span></div>
-    </div>
-    <div class="entry-drawing" aria-hidden="true"><canvas data-entry-canvas></canvas><span class="entry-drawing-label">Hermes / motion study</span></div>
-  </div>
-  <div class="entry-bottom"><p>Projects &amp; experiments</p><button class="entry-enter" type="button" data-enter autofocus>Enter <span aria-hidden="true">↵</span></button></div>
-</dialog>
 <a class="skip" href="#main">Skip to content</a>
 <div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 <div class="fx-flash" aria-hidden="true"></div>
@@ -73,20 +60,22 @@
     <div class="row">
       <div class="intro">
         <h1 class="vh" id="hero-name">Aakash Dahal</h1>
-        <p class="t-label muted">~/portfolio</p>
-        <div class="intro-actions"><a class="link-ui" href="#work-list">Explore work&nbsp;<span aria-hidden="true">↓</span></a><a class="link-ui" href="#contact">Contact&nbsp;<span class="go" aria-hidden="true">→</span></a><a class="link-ui" href="https://github.com/skysssup">GitHub&nbsp;<span class="ext" aria-hidden="true">↗</span></a></div>
-        <button class="entry-replay link-ui" type="button" data-entry-replay>Replay entry <span aria-hidden="true">↵</span></button>
+        <div class="intro-actions"><a class="link-ui" href="https://github.com/skysssup">GitHub&nbsp;<span class="ext" aria-hidden="true">↗</span></a></div>
       </div>
       <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: I stole Apollo’s cattle on day one. Your agent won’t sneak one past me." data-ring="I stole Apollo’s cattle on day one. Your agent won’t sneak one past me">
         <div class="still" aria-hidden="true"></div>
       </div>
-      <div class="fig-note"><p class="t-label">Hermes</p><p class="t-small"><span class="fine">Move to stir the sculpture.</span><span class="coarse">Drag to turn the sculpture.</span></p><a class="link-ui" href="https://github.com/skysssup/skysssup.github.io/blob/main/js/hero.js">View source&nbsp;<span class="ext" aria-hidden="true">↗</span></a></div>
+      <aside class="essentially panel" aria-labelledby="why-title">
+        <h2 class="panel-head" id="why-title">Why the statue</h2>
+        <p class="panel-body">It’s Hermes. On the day he was born he stole fifty of Apollo’s cattle and walked them backwards so the tracks pointed the wrong way. Agents pull the same trick with their logs. I build the trackers. Robots are next and I expect they’ll try&nbsp;it&nbsp;too.</p>
+      </aside>
+      <div class="fig-note"><p class="t-label muted">Fig. 0&nbsp;· Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>81,465</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to stir them.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
     </div>
   </section>
 
   <section class="section work-stage" id="work-list" aria-labelledby="work-title" data-reveal>
     <div class="row">
-      <div class="work-stage-heading"><h2 id="work-title">~/work</h2><span>08 projects</span></div>
+      <h2 class="vh" id="work-title">Work</h2>
       <div class="work-stage-body">
         <div class="work-cylinder" data-work-cylinder>
           <ol class="home-work">
@@ -237,7 +226,8 @@
 <script src="/js/theme.js" defer></script>
 <script src="/assets/vendor/lenis.min.js" defer></script>
 <script src="/js/motion.js" defer></script>
-<script src="/js/entry.js" defer></script>
-<script src="/js/page.js?v=entry-1" defer></script>
+<script src="/js/blackhole.js" defer></script>
+<script src="/js/hero.js" defer></script>
+<script src="/js/page.js?v=blackhole-1" defer></script>
 </body>
 </html>
