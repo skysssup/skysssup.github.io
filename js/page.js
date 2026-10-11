@@ -343,7 +343,8 @@
     /* hero */
     var figure = doc.getElementById("figure");
     var hero = null;
-    if (figure && win.SkyHero) {
+    function mountHero() {
+      if (!figure || hero || !win.SkyHero) return;
       var counters = doc.querySelectorAll("[data-dot-count]");
       var telemetry = doc.querySelector("[data-hero-telemetry]");
       var degrees = function (rad) { var d = rad * 180 / Math.PI; return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + "°"; };
@@ -351,7 +352,7 @@
       // reduced motion. It takes the page into Gear Two and back without saving it, and any press, key, or scroll
       // ends it; a press on a gear or the lights then acts on the page as it is.
       var opening = false;
-      if (!motion.reduced()) {
+      if (!motion.reduced() && !doc.documentElement.classList.contains("home-experience")) {
         try {
           var arrival = win.performance && win.performance.getEntriesByType ? win.performance.getEntriesByType("navigation")[0] : null;
           opening = !win.sessionStorage.getItem("sky-intro") || !!(arrival && arrival.type === "reload");
@@ -392,6 +393,41 @@
         link.addEventListener("mouseenter", function () { hero.highlight(); });
         link.addEventListener("focus", function () { hero.highlight(); });
       });
+    }
+    if (figure) {
+      var heroRequested = false;
+      var arrivalSettled = !win.location.hash;
+      var requestHero = function () {
+        if (heroRequested || !arrivalSettled || doc.documentElement.getAttribute("data-entry") === "waiting") return;
+        var bounds = figure.getBoundingClientRect();
+        var shown = Math.min(bounds.bottom, win.innerHeight) - Math.max(bounds.top, 0);
+        if (shown < Math.min(bounds.height * 0.2, 120)) return;
+        heroRequested = true;
+        if (win.SkyHero) { mountHero(); return; }
+        var script = doc.createElement("script");
+        script.src = "/js/hero.js?v=entry-1";
+        script.onload = mountHero;
+        script.onerror = function () { figure.classList.add("is-fallback"); };
+        doc.head.appendChild(script);
+      };
+      // The wire drawing is self-contained. Load the full sculpture only after entry, and near its viewport.
+      if (win.IntersectionObserver) {
+        new win.IntersectionObserver(function (entries, observer) {
+          if (entries[0].isIntersecting && doc.documentElement.getAttribute("data-entry") !== "waiting") {
+            requestHero();
+            if (heroRequested) observer.disconnect();
+          }
+        }, { threshold: [0, 0.2, 0.5] }).observe(figure);
+      } else requestHero();
+      if (!arrivalSettled) win.addEventListener("load", function () {
+        win.requestAnimationFrame(function () { arrivalSettled = true; requestHero(); });
+      }, { once: true });
+      win.addEventListener("sky:enter", requestHero, { once: true });
+      // An unavailable entry script must not leave the artwork waiting forever.
+      win.setTimeout(function () {
+        var bounds = figure.getBoundingClientRect();
+        if (bounds.top < win.innerHeight && bounds.bottom > 0) requestHero();
+      }, 2600);
     }
 
     /* Gear Two: a soft ember glow follows the pointer across the page, beating with the heart, and sheds a short trail
@@ -755,7 +791,7 @@
           } else {
             var delta = i - aim, dist = Math.abs(delta);
             tilt.style.transform = "rotateX(" + Math.max(-18, Math.min(18, 5 * delta)).toFixed(2) + "deg) translateZ(" + (12 - Math.min(4, dist) * 7).toFixed(2) + "px)";
-            tilt.style.opacity = String(Math.max(0.48, 1 - 0.13 * dist));
+            tilt.style.opacity = String(Math.max(0.94, 1 - 0.015 * dist));
           }
           links[i].classList.toggle("is-active", i === hot);
         });

@@ -17,7 +17,7 @@ after(async () => { await browser?.close(); site?.server.close(); });
 
 async function open(options = {}) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options });
-  await context.addInitScript(() => sessionStorage.setItem('sky-intro', 'seen'));
+  await context.addInitScript(() => sessionStorage.setItem('sky-entry', 'seen'));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));

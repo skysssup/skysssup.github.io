@@ -1,12 +1,13 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { serve } from './server.mjs';
 
 let browser, site;
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 before(async () => {
   site = await serve(root);
@@ -23,7 +24,7 @@ async function open(url = '/work/', { width = 1440, mode = 'light', reduced = tr
     viewport: { width, height: 900 }, colorScheme: mode === 'light' ? 'light' : 'dark',
     reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: width < 768, isMobile: width < 768, javaScriptEnabled,
   });
-  await context.addInitScript(() => sessionStorage.setItem('sky-intro', 'seen'));
+  await context.addInitScript(() => sessionStorage.setItem('sky-entry', 'seen'));
   if (mode === 'gear') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'two'));
   if (mode === 'blue') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'blue'));
   if (seed) await context.addInitScript(seed);

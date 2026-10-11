@@ -1844,9 +1844,13 @@
       sync();
     }
 
+    var lastDraw = 0;
+    var frameGap = 1000 / (global.matchMedia("(pointer: coarse)").matches ? 30 : 60);
     function frame(now) {
       raf = 0;
-      if (!ready || !visible || document.hidden) return;
+      if (!ready || !visible || document.hidden || document.documentElement.getAttribute("data-entry") === "waiting") return;
+      if (now - lastDraw < frameGap - 1) { raf = requestAnimationFrame(frame); return; }
+      lastDraw = now;
       // a page scrolled in one go can take the figure off screen before the observer has seen it, and the observer
       // looks only after this frame: a figure that has gone is not drawn again
       var at = el.getBoundingClientRect();
@@ -2156,7 +2160,7 @@
       if (motion.reduced() || !visible || document.hidden) cancelInteractions();
       // the opening plays once, on screen, in full motion: reducing motion, scrolling away, or hiding the tab ends it
       if (intro && (motion.reduced() || (intro.at != null && (!visible || document.hidden)))) endIntro(false);
-      if (!ready || !visible || document.hidden) return;
+      if (!ready || !visible || document.hidden || document.documentElement.getAttribute("data-entry") === "waiting") return;
       if (motion.reduced()) {
         inkNow = rgb(colors.ink);
         tintNow = tintTo = tintFor(colors);
@@ -2307,6 +2311,8 @@
     if (mq && mq.addEventListener) mq.addEventListener("change", onTheme);
     motion.subscribe(sync);
     document.addEventListener("visibilitychange", sync);
+    global.addEventListener("sky:entry-open", sync);
+    global.addEventListener("sky:enter", sync);
     new IntersectionObserver(function (records) { onScreen(records[records.length - 1].isIntersecting); }).observe(el);
     new ResizeObserver(function () {
       if (!prog || !meta || gl.isContextLost()) return;
