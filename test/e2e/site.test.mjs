@@ -5,11 +5,12 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { serve } from './server.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const slugs = fs.readdirSync(path.join(root, 'work')).filter(d => fs.existsSync(path.join(root, 'work', d, 'index.html')));
 const PAGES = (process.env.PAGES ? process.env.PAGES.split(',') : ['/', '/work/', ...slugs.map(s => `/work/${s}/`), '/missing-page']);
 const WIDTHS = [[1440, 900], [1280, 800], [768, 1024], [390, 844]];
@@ -207,7 +208,6 @@ test('Gear Two flashes, glitches, settles, turns the page red, and survives navi
   assert.equal(accent.toLowerCase(), '#ff3b30');
   assert.equal(await page.evaluate(() => document.getElementById('figure').classList.contains('is-live')), true, 'the hero keeps drawing through the glitch');
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.hero-figure'), '::before').backgroundImage), 'none', 'the figure glows in Gear Two');
-  assert.match(await page.textContent('[data-hero-telemetry]'), /bpm/, 'the readout shows the heartbeat');
   await page.click('a[href="/work/"]');
   await page.waitForLoadState('networkidle');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
@@ -356,8 +356,6 @@ test('the theme filter on /work shows matching projects, updates the URL, and re
 test('hovering a project on the home list brightens the ring for a moment, and the figure takes a click', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
-  const count = await page.textContent('[data-dot-count]');
-  assert.ok(Number(count.replace(/,/g, '')) > 5000, `dot count ${count}`);
   assert.match(await page.getAttribute('#figure', 'aria-label'), new RegExp(`a ring that reads: ${await page.getAttribute('#figure', 'data-ring')}\\.$`));
   await page.waitForTimeout(2200);
   // per frame, how strongly the ring draws its glyphs (the sum of their alphas): steady while it turns, higher while brightened

@@ -19,14 +19,15 @@ before(async () => {
 });
 after(async () => { await browser?.close(); site?.server.close(); });
 
-// Every test but the opening's own starts from a tab that has already seen the opening (js/page.js).
-async function open(t, { reduced = false, touch = false, setup, intro = false, scheme = 'light', scale = 1 } = {}) {
+// Renderer behavior is covered here; blackhole.test.mjs covers the opening effect.
+async function open(t, { reduced = false, touch = false, setup, scheme = 'light', scale = 1 } = {}) {
   const context = await browser.newContext({
     viewport: touch ? { width: 390, height: 844 } : { width: 1280, height: 800 },
     colorScheme: scheme, reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch, deviceScaleFactor: scale,
   });
   t.after(() => context.close());
-  if (!intro) await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
+  await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
+  await context.addInitScript(theme => localStorage.setItem('sky-theme', theme), scheme);
   await context.addInitScript(() => {
     const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [], u_life: [], u_ember: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
@@ -90,6 +91,7 @@ async function open(t, { reduced = false, touch = false, setup, intro = false, s
       const result = draw.apply(this, args);
       if (!hero(this)) return result;
       probe.draws++;
+      probe.lastDrawCount = args[2];
       if (probe.firstDraws.length < probe.programs) probe.firstDraws.push({ live: this.canvas.parentElement.classList.contains('is-live'), count: args[2] });
       if (probe.capture) {
         const pixels = new Uint8Array(this.drawingBufferWidth * this.drawingBufferHeight * 4);
@@ -592,14 +594,14 @@ test('the statue has a clear outline: a line of points at its edge, in the first
     const redraw = () => window.__heroApi.highlight(null);
     assert.ok((await capture(page, redraw)).visible > 500);
   }
-  // with the opening, the outline is drawn from its first frame, in the figure's plain ink, as the still is
-  const opening = await open(t, { intro: true });
+  // After entry, the normal assembly includes the outline from its first frame.
+  const opening = await open(t);
   await live(opening.page);
   assert.ok((await state(opening.page)).uploads.at(-1).edges > 2000);
-  assert.equal(await opening.page.evaluate(() => document.querySelector('#figure').getAttribute('data-intro')), 'hold');
+  assert.equal(await opening.page.evaluate(() => document.querySelector('#figure').getAttribute('data-intro')), null, 'the new entrance does not replay the old gear sequence');
 });
 
-test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fades as Gear Two ends, and the caption counts the dots drawn', async t => {
+test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fades as Gear Two ends, and the draw count includes its dots', async t => {
   // on dark paper, so that Gear Two draws from the same map (the light map) and the counts compare
   const { page } = await open(t, { scheme: 'dark' });
   await live(page);
@@ -620,17 +622,17 @@ test('the cloud bank is drawn only in Gear Two: it comes in under the switch, fa
   assert.ok(share.bank > 0.1 && share.bank < 0.5, `the bank's own share of the figure is ${share.bank}`);
   assert.equal(share.core, 0, 'none of it on the statue');
   assert.deepEqual((await state(page)).uniforms.u_bank, [0], 'dark paper draws no bank');
-  const plain = await page.textContent('[data-dot-count]');
+  const plain = (await state(page)).lastDrawCount;
   await page.evaluate(() => window.skyGear.setGear(true));
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_bank[0] === 1);
-  const red = await page.textContent('[data-dot-count]');
-  assert.ok(Number(red.replace(/,/g, '')) > Number(plain.replace(/,/g, '')) * 1.1, `Gear Two draws the bank's dots too (${red} vs ${plain})`);
+  const red = (await state(page)).lastDrawCount;
+  assert.ok(red > plain * 1.1, `Gear Two draws the bank's dots too (${red} vs ${plain})`);
   const ended = await page.evaluate(() => { window.skyGear.setGear(false); return performance.now(); });
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_bank[0] === 0);
   const leaving = (await state(page)).series.u_bank.filter(([time]) => time > ended).map(([, v]) => v);
   assert.ok(leaving.some(v => v > 0 && v < 1), 'the bank fades out rather than vanishing');
   for (let i = 1; i < leaving.length; i++) assert.ok(leaving[i] <= leaving[i - 1], 'and never comes back on the way');
-  assert.equal(await page.textContent('[data-dot-count]'), plain);
+  assert.equal((await state(page)).lastDrawCount, plain);
 
   const still = await open(t, { reduced: true });
   await live(still.page);
@@ -844,95 +846,4 @@ for (const failure of ['unavailable context', 'throwing context', 'shader compil
   });
 }
 
-// The opening (js/hero.js INTRO, js/page.js): still in ink, a shine that brings the colors, a turn, Gear Two and back.
-async function stages(page) {
-  await page.evaluate(() => {
-    const figure = document.getElementById('figure'), root = document.documentElement;
-    window.__stages = [[performance.now(), figure.getAttribute('data-intro'), root.getAttribute('data-gear')]];
-    new MutationObserver(() => window.__stages.push([performance.now(), figure.getAttribute('data-intro'), root.getAttribute('data-gear')]))
-      .observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-intro', 'data-gear'] });
-    // the hold is counted from the moment the drawn figure is on screen
-    new MutationObserver(() => { if (window.__liveAt == null && figure.classList.contains('is-live')) window.__liveAt = performance.now(); })
-      .observe(figure, { attributes: true, attributeFilter: ['class'] });
-  });
-}
-
-test('the opening holds the figure still in its ink, shines its colors in, and takes the page to Gear Two and back without saving it', async t => {
-  const { page } = await open(t, { intro: true });
-  await stages(page);
-  await live(page);
-  assert.equal(await page.locator('#figure').getAttribute('data-intro'), 'hold');
-  const held = (await state(page)).uniforms;
-  assert.deepEqual(held.u_tint, [0], 'the figure starts in its ink alone');
-  assert.deepEqual(held.u_rot, [0, 0], 'facing the viewer, as the still that covered the page did');
-  assert.deepEqual(held.u_life, [0, 0, 0, 0], 'no currents of light run over it, and its dots hold still');
-  assert.deepEqual(held.u_silkw, [0], 'nor does the silk');
-  assert.ok(held.u_parts.every(v => v === 0) && held.u_key[3] === 0, 'it does not breathe, and its light holds still');
-  await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'turn', null, { timeout: 15000 });
-  const { stages: changes, liveAt } = await page.evaluate(() => ({ stages: window.__stages, liveAt: window.__liveAt }));
-  const hold = changes.find(([, stage]) => stage === 'shine')[0] - liveAt;
-  assert.ok(hold >= 1900 && hold < 4000, `the drawn figure holds still for 2 s before its shine, held ${Math.round(hold)} ms`);
-  const { series } = await state(page);
-  assert.ok(series.u_flow.some(([, wake]) => wake === 1), 'the opening shine brings the colors in behind its band');
-  assert.ok(series.u_sheen.some(([, x]) => x > 0.02 && x < 0.98), 'and crosses the figure');
-  assert.deepEqual((await state(page)).uniforms.u_tint, [1], 'after the shine the figure wears its colors');
-  await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two', null, { timeout: 30000 });
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.filter((n, i) => i % 4 === 3 && n > 0).length === 1, null, { timeout: 3000 });
-  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), null, 'Gear Two is not saved for the next page');
-  await page.waitForFunction(() => document.getElementById('figure').getAttribute('data-intro') === 'done', null, { timeout: 30000 });
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the page comes back');
-  const seen = (await page.evaluate(() => window.__stages)).map(([, stage, gear]) => `${stage}${gear ? '+gear' : ''}`).filter((x, i, a) => x !== a[i - 1]);
-  assert.deepEqual(seen, ['hold', 'shine', 'turn', 'red', 'red+gear', 'redshine+gear', 'redturn+gear', 'back+gear', 'back', 'done']);
-  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-intro')), 'seen');
-});
-
-test('a press or a key ends the opening at once; a press on Gear Two then acts on the page as it is', async t => {
-  const { page } = await open(t, { intro: true });
-  await live(page);
-  await page.keyboard.press('Shift');
-  assert.equal(await page.locator('#figure').getAttribute('data-intro'), 'done');
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_tint[0] === 1, null, { timeout: 5000 });
-
-  const red = await open(t, { intro: true });
-  await live(red.page);
-  await red.page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two', null, { timeout: 30000 });
-  await red.page.locator('[data-gear-toggle]').click();
-  assert.equal(await red.page.locator('#figure').getAttribute('data-intro'), 'done');
-  await red.page.waitForFunction(() => !document.documentElement.hasAttribute('data-gear'));
-  await red.page.waitForTimeout(1500);
-  assert.equal(await red.page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the visitor switched Gear Two off, and it stays off');
-  assert.equal(await red.page.evaluate(() => sessionStorage.getItem('sky-gear')), null);
-});
-
-test('the opening never visits Tide, and leaves Tide chosen by hand as it is', async t => {
-  const { page } = await open(t, { intro: true, setup: page => page.addInitScript(() => { try { if (!sessionStorage.getItem('qa-tide')) { sessionStorage.setItem('qa-tide', '1'); sessionStorage.setItem('sky-gear', 'blue'); } } catch (e) {} }) });
-  await page.evaluate(() => {
-    window.__gears = [document.documentElement.getAttribute('data-gear')];
-    new MutationObserver(() => window.__gears.push(document.documentElement.getAttribute('data-gear'))).observe(document.documentElement, { attributes: true, attributeFilter: ['data-gear'] });
-  });
-  await live(page);
-  await page.waitForFunction(() => document.querySelector('#figure').getAttribute('data-intro') === 'done', null, { timeout: 20000 });
-  await page.waitForTimeout(500);
-  assert.deepEqual(await page.evaluate(() => [...new Set(window.__gears)]), ['blue'], 'the page stays in Tide throughout the opening');
-  assert.ok((await state(page)).series.u_glitch.every(([, x]) => x === 0), 'and the opening never switches to Gear Two');
-  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), 'blue');
-});
-
-test('the opening plays once a tab and again on a reload, never on the way back from another page or under reduced motion', async t => {
-  const { page } = await open(t, { intro: true });
-  await live(page);
-  assert.equal(await page.locator('#figure').getAttribute('data-intro'), 'hold');
-  await page.goto(site.origin + '/work/', { waitUntil: 'domcontentloaded' });
-  await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
-  await live(page);
-  assert.equal(await page.locator('#figure').getAttribute('data-intro'), null, 'coming back to the page does not replay it');
-  assert.ok((await state(page)).uniforms.u_build[0] < 99, 'the figure assembles as before');
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await live(page);
-  assert.notEqual(await page.locator('#figure').getAttribute('data-intro'), null, 'a reload plays it again');
-
-  const still = await open(t, { intro: true, reduced: true });
-  await live(still.page);
-  assert.equal(await still.page.locator('#figure').getAttribute('data-intro'), null);
-  assert.deepEqual((await state(still.page)).uniforms.u_tint, [1]);
-});
+// The automatic black-hole effect and its renderer lifecycle are covered in blackhole.test.mjs.
