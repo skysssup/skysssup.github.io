@@ -43,7 +43,6 @@ test('the main avatar stays large and animates without pointer distortion', asyn
     await page.screenshot({ path: path.join(process.env.CRAFT_SHOTS, 'hero-desktop.png') });
   }
   assert.equal(await page.locator('.fig-note, .essentially, [data-hero-telemetry], [data-enter]').count(), 0);
-  await page.locator('[data-palette-open]').click();
   await page.locator('[data-gear-toggle]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two');
   assert.equal(await page.locator('html').getAttribute('data-phase'), null);

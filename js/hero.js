@@ -1552,7 +1552,7 @@
       pad = Math.round(Math.max(w, h) * 0.18);
       cssW = w + pad * 2;
       cssH = h + pad * 2;
-      dpr = Math.min(2, global.devicePixelRatio || 1);
+      dpr = Math.min(opts.noPointer ? 1.5 : 2, global.devicePixelRatio || 1);
       [canvas, overlay].forEach(function (c) {
         c.width = Math.round(cssW * dpr);
         c.height = Math.round(cssH * dpr);
@@ -1979,7 +1979,7 @@
       var beat = gear && live && opts.finish !== "matte" ? heartbeat(t) : 0;
       // a sheen and a burst of stars at each turn of the sway (in Gear Two the burst also tears one frame), and one
       // as the dots finish assembling, which they do on the wall clock: the sway's clock runs slow where frames do
-      if (live && opts.finish !== "matte") {
+      if (live && !opts.noSheen && opts.finish !== "matte") {
         var turn = sheenPhase(clock);
         if (sheenIndex < 0 && turn.index < 0 && built >= SHEEN_FIRST) turn = sheenPhase(SHEEN_FIRST);
         if (turn.index > sheenIndex) {
@@ -2000,11 +2000,11 @@
         }
       }
       var sheenAge = (now - sheenAt) / 1000;
-      var sheening = opts.finish !== "matte" && live && sheenDir !== 0 && sheenAge < sheenSweep + SHEEN_AFTER;
+      var sheening = !opts.noSheen && opts.finish !== "matte" && live && sheenDir !== 0 && sheenAge < sheenSweep + SHEEN_AFTER;
       // on light and dark paper the band is a little wider, with a few more stars and a little more dust
       var bright = !gear;
       // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
-      var switching = opts.finish !== "matte" && live && now < glitchUntil;
+      var switching = !opts.noPointer && opts.finish !== "matte" && live && now < glitchUntil;
       // a tear is drawn for at least one frame, even when frames come slower than 24 fps
       var tearing = !opts.noPointer && !switching && live && gear && !(touch && touch.dragging) && tear !== null && now >= tear.from &&
         (now < tear.until || (!tear.drawn && now < tear.until + 250));
@@ -2094,7 +2094,7 @@
       var va = vortexAt && live ? (now - vortexAt) / 1000 : 0;
       if (vortexShine && va >= VORTEX.shine) { vortexShine = false; shine(now, 1, SHEEN_SWEEP, false, ++bursts + 200); }
       if (va >= VORTEX.rise + VORTEX.settle || !live) vortexAt = 0;
-      gl.uniform1f(U.u_vortex, opts.finish === "matte" ? 0 : vortex(va));
+      gl.uniform1f(U.u_vortex, opts.noPointer || opts.finish === "matte" ? 0 : vortex(va));
       // while Tide is on, its tide (tide()) rises through the figure on the page's clock
       var tideNow = opts.finish !== "matte" && colors.blue && live && !still ? tide(now / 1000) : [0, 0];
       gl.uniform2f(U.u_tide, tideNow[0], tideNow[1]);
@@ -2139,8 +2139,10 @@
         comet: (now / 1000) * (gear ? 1.8 : 0.9),
         wave: sheening ? { age: sheenAge, sweep: sheenSweep, lane: lane } : null
       } : null;
-      drawRing(yaw.x, pitch.x, fade, beat, brighten, ringMotion);
-      if (live) drawBolts(now);
+      if (line || !opts.noPointer) {
+        drawRing(yaw.x, pitch.x, fade, beat, brighten, ringMotion);
+        if (live) drawBolts(now);
+      }
       if (!drawChecked) {
         drawChecked = true;
         if (gl.getError() !== gl.NO_ERROR) fallback();

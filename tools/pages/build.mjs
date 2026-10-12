@@ -62,7 +62,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=craft-4">
+<link rel="stylesheet" href="/css/craft.css?v=presence-1">
 ${extra}</head>`;
 }
 
@@ -98,13 +98,9 @@ ${LINES}
       <a class="contact-link" href="/#contact">Contact</a>
     </nav>
     <div class="header-tools">
-      <div class="palette-menu">
-        <button class="tool-button palette-trigger" type="button" aria-label="Color palette" aria-expanded="false" aria-controls="palette-options" data-palette-open><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12"/><path class="palette-needle" d="M7 3v4M13 8v4M9 13v4"/></svg></button>
-        <div class="palette-options" id="palette-options" role="group" aria-label="Choose color palette" hidden>
-          <button class="palette-option palette-stone" type="button" aria-label="Stone palette" aria-pressed="true" data-gear-neutral><span aria-hidden="true"></span>Stone<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
-          <button class="palette-option palette-rose" type="button" aria-label="Rose palette" aria-pressed="false" data-gear-toggle><span aria-hidden="true"></span>Rose<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
-          <button class="palette-option palette-blue" type="button" aria-label="Blue palette" aria-pressed="false" data-gear-blue><span aria-hidden="true"></span>Blue<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
-        </div>
+      <div class="avatar-modes" role="group" aria-label="Avatar appearance">
+        <button class="tool-button avatar-mode avatar-red" type="button" aria-label="Red avatar" aria-pressed="false" data-gear-toggle><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 3v18M3 12h18m-15-6 12 12M6 18 18 6"/><circle cx="12" cy="12" r="2"/></svg></button>
+        <button class="tool-button avatar-mode avatar-blue" type="button" aria-label="Blue avatar" aria-pressed="false" data-gear-blue><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12c0-7 13-9 14-3 1 5-10 8-10 3 0-3 6-4 7-1M12 4c7 0 9 13 3 14-5 1-8-10-3-10"/></svg></button>
       </div>
       <span class="tool-divider" aria-hidden="true"></span>
       <button class="tool-button theme-switch" type="button" aria-pressed="false" aria-label="Light theme" data-lamp><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/><path class="theme-rays" d="M10 1v2M10 17v2M1 10h2M17 10h2M3.6 3.6 5 5M15 15l1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg></button>
@@ -149,7 +145,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=craft-3' : ''}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=presence-1' : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
@@ -183,7 +179,7 @@ function home() {
 <nav class="scroll-waypoints" aria-label="Page sections"><span class="waypoint-line" aria-hidden="true"></span><a href="#hero" aria-label="Avatar"><span aria-hidden="true"></span><b>Avatar</b></a><a href="#work-list" aria-label="Work"><span aria-hidden="true"></span><b>Work</b></a><a href="#contact" aria-label="Contact"><span aria-hidden="true"></span><b>Contact</b></a></nav>
 ${header('home')}
 <main id="main">
-  <section class="hero" id="hero" aria-labelledby="hero-name">
+  <section class="hero" id="hero" aria-labelledby="hero-name"><canvas class="hero-presence" data-presence="hero" aria-hidden="true"></canvas>
     <div class="row">
       <h1 class="vh" id="hero-name">Aakash Dahal</h1>
       <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles.">
@@ -195,7 +191,7 @@ ${header('home')}
 
   <section class="workbench" id="work-list" aria-labelledby="work-title" data-workbench>
     <div class="bench-title"><h2 id="work-title">Selected work</h2><a class="link-ui" href="/work/">All projects${OPEN}</a></div>
-    <div class="bench-body"><canvas class="bench-connections" data-bench-connections aria-hidden="true"></canvas>
+    <div class="bench-body"><canvas class="bench-presence" data-presence="work" aria-hidden="true"></canvas><canvas class="bench-connections" data-bench-connections aria-hidden="true"></canvas>
       <nav class="project-orbit" aria-label="Select a project" data-orbit>
         <canvas class="orbit-lattice" aria-hidden="true"></canvas>
         <div class="orbit-window"><ol class="home-work">
@@ -213,23 +209,23 @@ ${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article cl
       </div>
       <aside class="bench-profile" aria-label="Navigation">
         <a class="profile-link" href="https://github.com/${site.github}">@${site.github}${ARROW}</a>
-        <div class="input-compass" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="39"/><circle cx="60" cy="60" r="20"/><path d="M60 10V110M10 60H110M24 24L96 96M24 96L96 24"/><g data-compass-pointer><circle cx="60" cy="60" r="3"/><path d="M55 60H65M60 55V65"/></g></svg></div>
+        <canvas class="aside-presence" data-presence="aside" aria-hidden="true"></canvas>
         <a class="link-ui profile-contact" href="#contact">Contact${OPEN}</a>
       </aside>
     </div>
-    <div class="bench-floor"><span class="bench-category" data-bench-category>${themesOf(projects[0])}</span><div class="bench-keys"><kbd data-echo-key="ArrowUp">↑</kbd><kbd data-echo-key="ArrowDown">↓</kbd><span>Select</span><kbd data-echo-key="Home">Home</kbd><kbd data-echo-key="End">End</kbd></div><a href="#contact" class="link-ui">Email${ARROW}</a></div>
+    <div class="bench-floor"><canvas class="input-presence" data-presence="input" aria-hidden="true"></canvas><span class="bench-category" data-bench-category>${themesOf(projects[0])}</span><div class="bench-keys"><kbd data-echo-key="ArrowUp">↑</kbd><kbd data-echo-key="ArrowDown">↓</kbd><span>Select</span><kbd data-echo-key="Home">Home</kbd><kbd data-echo-key="End">End</kbd></div><a href="#contact" class="link-ui">Email${ARROW}</a></div>
     <script type="application/json" id="workbench-data">${JSON.stringify(projects.map(p => ({slug:p.slug, name:p.name, category:themesOf(p)}))).replace(/</g, '\u003c')}</script>
   </section>
 
   <section class="contact-sheet" id="contact" aria-labelledby="contact-title" data-reveal>
     <div class="contact-heading"><h2 id="contact-title">Contact</h2><p data-contact-note>Email reaches me fastest.</p></div>
-    <div class="contact-mail-row"><a class="contact-address" href="mailto:${site.email}"><span data-email-text>${site.email}</span><span aria-hidden="true">↗</span></a><button class="copy contact-copy" type="button" aria-label="Copy email address" data-copy="${site.email}"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M7 6V3h10v10h-3M3 7h10v10H3Z"/></svg><span data-copy-label>Copy</span></button></div>
+    <div class="contact-mail-row"><a class="contact-address" href="mailto:${site.email}"><span data-email-text>${site.email}</span><span aria-hidden="true">↗</span></a><button class="copy contact-copy" type="button" aria-label="Copy email address" data-copy="${site.email}"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><g class="copy-paper"><path d="M7 6V3h10v10h-3M3 7h10v10H3Z"/></g><path class="copy-check" d="m4 10 4 4 8-9"/></svg><span data-copy-label>Copy</span></button></div>
     <nav class="contact-social" aria-label="Elsewhere"><a href="https://github.com/${site.github}">GitHub <span aria-hidden="true">↗</span></a><a href="https://x.com/${site.x}">X <span aria-hidden="true">↗</span></a></nav>
   </section>
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js', '/js/workbench.js', '/js/scroll-field.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js', '/js/workbench.js', '/js/scroll-field.js', '/js/presence.js'])}
 </body>
 </html>
 `;

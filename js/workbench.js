@@ -15,7 +15,7 @@
   var mobile = matchMedia('(max-width: 760px)'), x = 0, velocity = 0, target = 0, selected = -1;
   var raf = 0, last = 0, visible = true, height = 460, width = 250, dpr = 1;
   var pointer = { x: .5, y: .5, tx: .5, ty: .5, inside: false }, sceneBounds = null, sceneTransform = null;
-  var compass = bench.querySelector('[data-compass-pointer]'), announcement = document.querySelector('[data-announce]');
+  var announcement = document.querySelector('[data-announce]');
   var connections = bench.querySelector("[data-bench-connections]"), connectionContext = connections && connections.getContext("2d");
   var connectionBounds = null, connectionGeometry = null;
   var keyTimers = new Map(), latticeInk = '#d4d0b0';
@@ -78,7 +78,7 @@
       if (mobile.matches) { item.style.transform = ''; item.style.opacity = ''; item.style.zIndex = ''; return; }
       var delta = i - x, distance = Math.abs(delta);
       var proximity = Math.max(0, 1 - distance / 3), shift = Math.pow(Math.min(3, distance), 1.5) * -4;
-      item.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + (focusY + delta * spacing - 48).toFixed(2) + 'px,' + (proximity * 12).toFixed(2) + 'px) rotateX(' + clamp(delta * -5, -18, 18).toFixed(2) + 'deg)';
+      item.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + (focusY + delta * spacing - 48).toFixed(2) + 'px,' + (proximity * 12).toFixed(2) + 'px) rotateX(' + clamp(delta * -7, -26, 26).toFixed(2) + 'deg) rotateZ(' + clamp(delta * -3, -10, 10).toFixed(2) + 'deg)';
       item.style.opacity = '1';
       item.style.setProperty('--proximity', proximity.toFixed(3));
       item.style.zIndex = String(20 - Math.round(distance));
@@ -132,7 +132,6 @@
   function feedback() {
     var card = cards[selected], mark = card.querySelector('.scene-pointer');
     if (mark) mark.setAttribute('transform', 'translate(' + (pointer.x * 640).toFixed(2) + ' ' + (pointer.y * 360).toFixed(2) + ')');
-    if (compass) compass.setAttribute('transform', 'translate(' + ((pointer.x - .5) * 50).toFixed(2) + ' ' + ((pointer.y - .5) * 50).toFixed(2) + ')');
   }
   function frame(now) {
     raf = 0;

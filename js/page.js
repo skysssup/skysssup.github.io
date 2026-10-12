@@ -98,43 +98,6 @@
     var announce = doc.querySelector("[data-announce]");
     var say = function (text) { if (announce) { announce.textContent = ""; win.setTimeout(function () { announce.textContent = text; }, 30); } };
 
-    /* Palette is a small disclosure, using ordinary buttons and predictable focus. */
-    var paletteOpen = doc.querySelector("[data-palette-open]");
-    var paletteOptions = doc.querySelector(".palette-options");
-    if (paletteOpen && paletteOptions) {
-      var closePalette = function (restore) {
-        paletteOptions.hidden = true;
-        paletteOpen.setAttribute("aria-expanded", "false");
-        if (restore) paletteOpen.focus({ preventScroll: true });
-      };
-      paletteOpen.addEventListener("click", function () {
-        var open = paletteOptions.hidden;
-        paletteOptions.hidden = !open;
-        paletteOpen.setAttribute("aria-expanded", String(open));
-      });
-      doc.addEventListener("click", function (event) {
-        if (!event.target.closest(".palette-menu")) closePalette(false);
-      });
-      paletteOptions.addEventListener("click", function (event) {
-        if (event.target.closest("button")) closePalette(true);
-      });
-      paletteOptions.addEventListener("keydown", function (event) {
-        var choices = Array.prototype.slice.call(paletteOptions.querySelectorAll("button"));
-        var index = choices.indexOf(doc.activeElement);
-        if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
-          event.preventDefault();
-          var next = event.key === "Home" ? 0 : event.key === "End" ? choices.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + choices.length) % choices.length;
-          choices[next].focus();
-        }
-      });
-      doc.addEventListener("keydown", function (event) {
-        if (event.key === "Escape" && !paletteOptions.hidden) { event.preventDefault(); closePalette(true); }
-      });
-      doc.addEventListener("focusin", function (event) {
-        if (!event.target.closest(".palette-menu")) closePalette(false);
-      });
-    }
-
     /* local time */
     var times = doc.querySelectorAll("[data-time]");
     var tick = function () { var now = kathmanduTime(new Date()); for (var i = 0; i < times.length; i++) times[i].textContent = now; };
@@ -390,7 +353,7 @@
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
         line: "",
-        noPointer: true, finish: "matte",
+        noPointer: true, noSheen: true, finish: "alive",
         motion: motion,
         intro: false
       });

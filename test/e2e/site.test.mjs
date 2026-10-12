@@ -117,6 +117,7 @@ test('section links land each section just under the header, with smooth scrolli
         const bottom = scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
         return Math.abs(top - (header + 24)) <= 2 || (bottom && top >= header);
       }, { id, header }, { timeout: 10000 });
+      await page.waitForTimeout(250);
       const { top, bottom } = await page.evaluate(i => ({ top: document.getElementById(i).getBoundingClientRect().top, bottom: scrollY + innerHeight >= document.documentElement.scrollHeight - 2 }), id);
       if (!bottom) assert.ok(Math.abs(top - (header + 24)) <= 2, `#${id} ${reduced ? 'reduced' : 'smooth'}: top at ${top}, expected ${header + 24}`);
       else assert.ok(top >= header, `#${id} hidden under the header at the end of the page`);
@@ -168,7 +169,6 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
 test('color choices apply without glitches and persist independently of light mode', async () => {
   const { page, context, problems } = await open('/', { mode: 'dark' });
   for (const [selector, value] of [['[data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
-    await page.locator('[data-palette-open]').click();
     await page.locator(selector).click();
     await page.waitForFunction(value => document.documentElement.getAttribute('data-gear') === value, value);
     assert.equal(await page.locator('html').getAttribute('data-phase'), null);
@@ -185,13 +185,11 @@ test('color choices apply without glitches and persist independently of light mo
 
 test('color modes support keyboard input and reduced motion without visual effects', async () => {
   const { page, context } = await open('/work/', { reduced: true });
-  await page.locator('[data-palette-open]').click();
   await page.locator('[data-gear-blue]').focus();
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('html').getAttribute('data-gear'), 'blue');
   assert.equal(await page.locator('html').getAttribute('data-phase'), null);
   assert.equal(await page.locator('.fx-tide').count(), 0);
-  await page.locator('[data-palette-open]').click();
   await page.locator('[data-gear-blue]').focus();
   await page.keyboard.press('Space');
   assert.equal(await page.locator('html').getAttribute('data-gear'), null);
@@ -217,7 +215,6 @@ test('the light switch saves its choice without clearing the selected palette', 
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'dark');
   assert.equal(await page.evaluate(() => localStorage.getItem('sky-theme')), 'dark');
   assert.equal(await lamp.getAttribute('aria-pressed'), 'false');
-  await page.locator('[data-palette-open]').click();
   await page.locator('[data-gear-toggle]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two');
   await lamp.click();
@@ -274,7 +271,6 @@ test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Tw
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
   assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
   assert.equal(await page.getAttribute('[data-motion-toggle]', 'aria-pressed'), 'true');
-  await page.locator('[data-palette-open]').click();
   await page.click('[data-gear-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-phase')), null);

@@ -86,7 +86,7 @@
         smoother = new win.Lenis({
           autoRaf: true,
           lerp: 0.18,
-          anchors: true,
+          anchors: false,
           prevent: function (node) { return !!(node && node.closest && node.closest("[data-lenis-prevent]")); }
         });
         if (scrollLocked) smoother.stop();
@@ -150,6 +150,8 @@
         } catch (e) {}
       }
       press(mode);
+      var avatar = doc.querySelector("#figure");
+      if (avatar) avatar.setAttribute("aria-label", "Hermes, my GitHub avatar, rendered in " + (mode === "two" ? "red" : mode === "blue" ? "blue" : "gold and marble") + " particles.");
       if (win.skyTheme) win.skyTheme.paint();
     }
     function at(ms, fn) { timers.push(later(fn, ms)); }
@@ -303,6 +305,28 @@
         return;
       }
       if (!t || !t.closest) return;
+      var anchor = t.closest("a[href]");
+      if (anchor && !event.defaultPrevented && !(event.button && event.button !== 0) && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && !anchor.hasAttribute("download") && (!anchor.target || anchor.target === "_self")) {
+        var url;
+        try { url = new URL(anchor.href, win.location.href); } catch (e) {}
+        if (url && url.origin === win.location.origin && url.pathname === win.location.pathname && url.search === win.location.search && url.hash) {
+          var id;
+          try { id = decodeURIComponent(url.hash.slice(1)); } catch (e) {}
+          var destination = id && doc.getElementById(id);
+          if (destination) {
+            event.preventDefault();
+            if (win.location.hash !== url.hash) win.history.pushState(null, "", url.hash);
+            var focusSkip = function () {
+              if (!anchor.classList.contains("skip")) return;
+              if (!destination.hasAttribute("tabindex")) destination.setAttribute("tabindex", "-1");
+              destination.focus({ preventScroll: true });
+            };
+            if (smoother) smoother.scrollTo(destination, { force: true, onComplete: focusSkip });
+            else { destination.scrollIntoView({ block: "start", behavior: "instant" }); focusSkip(); }
+            return;
+          }
+        }
+      }
       var two = t.closest("[data-gear-toggle]"), blue = !two && t.closest("[data-gear-blue]");
       if (two) toggleGear(two, "two");
       else if (blue) toggleGear(blue, "blue");

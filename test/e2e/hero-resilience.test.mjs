@@ -46,6 +46,7 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
           args[1].still = false;
           args[1].noPointer = false;
           args[1].finish = null;
+          args[1].noSheen = false;
           args[0].style.pointerEvents = "auto";
           args[0].style.touchAction = "pan-y";
           args[1].line = 'Aakash Dahal';
@@ -466,7 +467,6 @@ test('Tide comes in with a vortex that settles as a sheen crosses it, then keeps
   const { page } = await open(t, { scheme: 'dark' });
   await live(page);
   await page.waitForTimeout(500);
-  await page.locator('[data-palette-open]').click();
   const clicked = await page.evaluate(() => { document.querySelector('[data-gear-blue]').click(); return performance.now(); });
   const after = (series, at) => series.filter(([time]) => time > at);
   await page.waitForFunction(at => { const s = window.__heroProbe.series.u_vortex.filter(([time]) => time > at); return s.some(([, v]) => v > 0.5) && s.at(-1)[1] === 0; }, clicked, { timeout: 8000 });
