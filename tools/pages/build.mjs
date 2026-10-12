@@ -62,7 +62,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=craft-3">
+<link rel="stylesheet" href="/css/craft.css?v=craft-4">
 ${extra}</head>`;
 }
 

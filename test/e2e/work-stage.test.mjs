@@ -105,6 +105,13 @@ test('desktop, tablet, and mobile retain accessible navigation and the large mai
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${width} must not overflow`);
     const figure = await page.locator('#figure').boundingBox();
     assert.ok(figure.width >= Math.min(250, width - 48));
+    if (width > 760) {
+      const tile = page.locator(".orbit-item.is-active"), card = tile.locator(".project-pick"), link = tile.locator(".orbit-open");
+      const slot = await tile.boundingBox(), cardBounds = await card.boundingBox(), linkBounds = await link.boundingBox();
+      assert.ok(Math.abs(slot.width - cardBounds.width) < 1, "the open link cannot shrink the card");
+      assert.equal(await link.evaluate(el => getComputedStyle(el).position), "absolute");
+      assert.ok(linkBounds.x >= cardBounds.x && linkBounds.x + linkBounds.width <= cardBounds.x + cardBounds.width + 1, "the open link belongs inside the card");
+    }
     await page.locator('[data-work-pick="0"]').focus();
     await page.keyboard.press('ArrowDown');
     assert.equal(await page.locator('.work-card.is-on h3').innerText(), 'AirForge');

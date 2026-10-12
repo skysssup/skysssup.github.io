@@ -447,5 +447,5 @@ html[data-motion="reduced"] .is-probed .physics-ball { transform: translate(426p
   .scene-svg text { font-size: 14px; }
 }
 
-:root[data-polished] .home-work .orbit-open { right: 4px; top: 5px; border: 0; background: transparent; color: var(--bench-dim); }
+:root[data-polished] .home-work .orbit-open { position: absolute; display: grid; place-items: center; right: 4px; top: 5px; border: 0; background: transparent; color: var(--bench-dim); }
 :root[data-polished] .home-work .orbit-open:hover { color: var(--bench-hot); }
