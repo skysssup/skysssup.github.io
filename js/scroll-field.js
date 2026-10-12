@@ -17,7 +17,7 @@
     if (!raf && !document.hidden && !motion.reduced()) { last = performance.now(); raf = requestAnimationFrame(frame); }
   }
   function colors() {
-    var style = getComputedStyle(document.documentElement);
+    var style = getComputedStyle(document.body);
     ink = style.getPropertyValue('--ink').trim();
     hot = style.getPropertyValue('--accent').trim();
   }

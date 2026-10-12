@@ -1,6 +1,9 @@
 /* Final surface rules. The original avatar renderer and materials are untouched. */
-:root[data-polished], :root[data-polished][data-gear] { --paper: #090a0b; --ink: #e3e1d6; --muted: #9a9d95; --accent: #c9b975; }
-:root[data-polished][data-theme="light"], :root[data-polished][data-theme="light"][data-gear] { --paper: #fffef8; --ink: #292e2a; --muted: #505b52; --accent: #766128; }
+:root[data-polished], :root[data-polished][data-gear] { --paper: #090a0b; --ink: #e3e1d6; --muted: #9a9d95; }
+:root[data-polished][data-theme="light"], :root[data-polished][data-theme="light"][data-gear] { --paper: #fffef8; --ink: #292e2a; --muted: #505b52; }
+/* Keep renderer root colors intact while the reading surface uses one accent. */
+:root[data-polished] body { --accent: #c9b975; }
+:root[data-polished][data-theme="light"] body { --accent: #766128; }
 :root[data-polished] body { padding-top: var(--header-h); }
 :root[data-polished] .site-header { position: fixed; inset: 0 0 auto; }
 :root[data-polished] .nav a { min-height: 44px; display: inline-flex; align-items: center; font-size: 11px; }

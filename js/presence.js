@@ -7,7 +7,7 @@
   var slots = [], raf = 0, lastPaint = 0, frames = 0, elapsed = 0;
   var ink = '#e3e1d6', accent = '#c7c7ad', pose = 0;
   function colors() {
-    var style = getComputedStyle(root);
+    var style = getComputedStyle(document.body);
     ink = style.getPropertyValue('--ink').trim(); accent = style.getPropertyValue('--accent').trim();
   }
   function line(ctx, points, color, alpha, dashed) {
