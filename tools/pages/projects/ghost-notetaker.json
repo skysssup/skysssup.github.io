@@ -1,8 +1,8 @@
 {
  "slug": "ghost-notetaker",
  "name": "Ghost Notetaker",
- "visibility": "Private",
- "repo": null,
+ "visibility": "Public",
+ "repo": "https://github.com/skysssup/ghost-notetaker",
  "themes": [
   "developer-tools"
  ],

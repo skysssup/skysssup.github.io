@@ -1,4 +1,4 @@
-// JavaScript port of Recall's backend/app/scheduler.py (skysssup/recall-ai @ 5fabc58).
+// JavaScript port of Recall's backend/app/scheduler.py (skysssup/recall @ 5fabc58, private).
 //
 // Same constants, same operation order, and the same rounding as CPython:
 //   - round(x, n) is reproduced exactly (correctly rounded, ties to even),
