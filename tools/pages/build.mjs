@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scenes } from './scenes.mjs';
+import { headerMark, favicon } from './mark.mjs';
 
 const SRC = path.dirname(fileURLToPath(import.meta.url));
 const BODIES = path.join(SRC, 'bodies');
@@ -22,6 +23,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
+const ASSET_VERSION = 'crest-1';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
@@ -53,16 +55,17 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <meta name="twitter:site" content="@${site.x}">
 <meta name="twitter:creator" content="@${site.x}">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#0b0b0c">
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/favicon.ico" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="theme-color" content="#090a0b">
+<link rel="icon" href="/favicon.ico?v=${ASSET_VERSION}" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
+<link rel="icon" href="/assets/favicon-32.png?v=${ASSET_VERSION}" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/favicon.svg?v=${ASSET_VERSION}" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=${ASSET_VERSION}" sizes="180x180">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>${BOOT}${boot}</script>
-<link rel="stylesheet" href="/css/site.css">
-<link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=avatar-restored-1">
+<link rel="stylesheet" href="/css/site.css?v=${ASSET_VERSION}">
+<link rel="stylesheet" href="/css/polish.css?v=${ASSET_VERSION}">
+<link rel="stylesheet" href="/css/craft.css?v=${ASSET_VERSION}">
 ${extra}</head>`;
 }
 
@@ -93,7 +96,7 @@ ${LINES}
 <header class="site-header">
   <div class="row">
     <nav class="nav" aria-label="Primary">
-      <a class="home crest" href="/" aria-label="Home"${cur('home')}><svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><path d="M14 3v22M3 14h22M6 6l16 16M6 22 22 6"/><circle cx="14" cy="14" r="5"/></svg></a>
+      <a class="home crest" href="/" aria-label="Home"${cur('home')}>${headerMark}</a>
       <a href="/work/"${cur('work')}>Work</a>
       <a class="contact-link" href="/#contact">Contact</a>
     </nav>
@@ -145,7 +148,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=avatar-restored-1' : ''}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=' + ASSET_VERSION : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
@@ -431,6 +434,7 @@ function write(rel, html) {
 }
 
 write('index.html', home());
+write('assets/favicon.svg', favicon);
 write('work/index.html', work());
 projects.forEach((p, i) => write(`work/${p.slug}/index.html`, caseStudy(p, i)));
 write('404.html', notFound());

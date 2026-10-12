@@ -153,6 +153,8 @@ CI runs both on every push to `main`.
 - Pages: `node tools/pages/build.mjs` after editing `tools/pages/` (site and project data, case-study bodies in
   `tools/pages/bodies/`). Commit the regenerated HTML with the change; `npm test` checks they match.
 - Share images: `npm run og` (after changing a page title, summary, or cover).
+- Browser icons: edit the shared crest in `tools/pages/mark.mjs`, rebuild pages, then run
+  `python3 tools/pages/icons.py` (Pillow) to regenerate the multi-size ICO, PNG fallback, and touch icon.
 - Hero data: `python3 tools/hero/build.py` (needs numpy and Pillow). Its source, `assets/avatar.jpg`, is the
   424 px GitHub avatar (`tools/hero/avatar-424.jpg`) upscaled 4× by Real-ESRGAN and Real-ESRNet; `--upscale`
   redoes that (torch and spandrel; the weights are fetched and checked against their SHA-256). The depth map is
