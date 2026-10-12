@@ -276,23 +276,15 @@ html[data-motion="reduced"] .is-probed .physics-ball { transform: translate(426p
 :root[data-polished][data-gear="two"] {
   --paper: #090a0b; --ink: #e3e1d6; --muted: #9a9d95; --accent: #ff7668;
   --line: rgba(227,225,214,.12); --line-strong: rgba(227,225,214,.3); --wash: rgba(227,225,214,.045);
-  --figure-ink: #ff3b30; --figure-fill: #b3122a; --figure-key: #ffb36b;
-  --figure-glint: #fff1e6; --figure-glint-edge: #ffc4b4;
-  --mat-gold: #ff9b4a; --mat-gold-lit: #ffd49b; --mat-cloud: #fa4259; --mat-cloud-lit: #ff8f77;
-  --mat-lightning: #ff4e2f; --mat-lightning-lit: #ffc298; --mat-glint: #ff7d5b; --mat-glint-lit: #ffe0bc;
 }
 :root[data-polished][data-gear="blue"] {
   --paper: #090a0b; --ink: #e3e1d6; --muted: #9a9d95; --accent: #72caff;
   --line: rgba(227,225,214,.12); --line-strong: rgba(227,225,214,.3); --wash: rgba(227,225,214,.045);
-  --figure-ink: #438fff; --figure-fill: #124fc0; --figure-key: #61e1ff;
-  --figure-glint: #c0f8ff; --figure-glint-edge: #45a4ff;
-  --mat-gold: #3596ff; --mat-gold-lit: #70d3ff; --mat-cloud: #286eef; --mat-cloud-lit: #599cff;
-  --mat-lightning: #24bcff; --mat-lightning-lit: #a9f4ff; --mat-glint: #5593ff; --mat-glint-lit: #bee7ff;
 }
 :root[data-polished][data-theme="light"] { color-scheme: light; --paper: #fffef8; --ink: #292e2a; --muted: #505b52; --accent: #646b52; --line: rgba(41,46,42,.14); --line-strong: rgba(41,46,42,.3); --wash: rgba(41,46,42,.045); }
 :root[data-polished][data-theme="light"]:not([data-gear]) { --accent: #646b52; }
-:root[data-polished][data-theme="light"][data-gear="two"] { --accent: #aa353b; --figure-ink: #ba2436; --figure-fill: #781d30; --figure-key: #f16b35; }
-:root[data-polished][data-theme="light"][data-gear="blue"] { --accent: #255fa3; --figure-ink: #145cbb; --figure-fill: #152c82; --figure-key: #178baa; }
+:root[data-polished][data-theme="light"][data-gear="two"] { --accent: #aa353b; }
+:root[data-polished][data-theme="light"][data-gear="blue"] { --accent: #255fa3; }
 :root[data-polished] .page-home { --bench-ink: var(--ink); --bench-dim: var(--muted); --bench-hot: var(--accent); --bench-grid: var(--line); }
 :root[data-polished] .site-header .row { border-color: var(--line); }
 :root[data-polished] body { transition: background-color .28s ease, color .28s ease; }
@@ -467,7 +459,10 @@ html[data-motion="reduced"] .is-probed .physics-ball { transform: translate(426p
 
 [data-presence][hidden] { display: none !important; }
 
-:root[data-polished] .page-home .hero-words { display: none; }
+/* Keep the original avatar's lightning overlay and effects visible. */
+:root[data-polished][data-phase="glitch"] :is(main,.site-header) { animation: none; }
+:root[data-polished][data-phase="glitch"] :is(h1,h2,h3,.nav a,.t-l,.t-s) { text-shadow: none; }
+:root[data-polished][data-phase="settle"] .hero-figure { animation: none; }
 
 .contact-copy .copy-paper { transition: opacity .16s; }
 .contact-copy .copy-check { opacity: 0; stroke-dasharray: 22; stroke-dashoffset: 22; transition: opacity .16s, stroke-dashoffset .24s var(--ease-out); }

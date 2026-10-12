@@ -353,7 +353,7 @@
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
         line: "",
-        noPointer: true, noSheen: true, finish: "alive",
+        noPointer: true,
         motion: motion,
         intro: false
       });
@@ -367,7 +367,7 @@
        -ember, -cool, -glow), so another gear could take its own. Nothing runs under reduced motion or without a fine
        pointer that hovers, and nothing is drawn once the pointer rests and the last ember has faded. */
     var finePointer = win.matchMedia ? win.matchMedia("(hover: hover) and (pointer: fine)") : null;
-    if (finePointer && win.requestAnimationFrame && !doc.documentElement.hasAttribute("data-polished")) {
+    if (finePointer && win.requestAnimationFrame) {
       var EMBERS = 56, SPACING = 9;
       var trail = null, embers = [], spark = { x: 0, y: 0, gx: 0, gy: 0, at: 0, carry: 0, shown: false }, sparkRaf = 0, sparkLast = 0, dirty = null;
       var rgbOf = function (ctx, css) {

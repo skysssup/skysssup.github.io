@@ -45,12 +45,69 @@ test('the main avatar stays large and animates without pointer distortion', asyn
   assert.equal(await page.locator('.fig-note, .essentially, [data-hero-telemetry], [data-enter]').count(), 0);
   await page.locator('[data-gear-toggle]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two');
+  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-phase'));
   assert.equal(await page.locator('html').getAttribute('data-phase'), null);
+  await page.locator('.fx-ring').waitFor({ state: 'detached' });
   assert.equal(await page.locator('.fx-ring, .ember-trail').count(), 0);
   await page.locator('[data-lamp]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light');
   assert.deepEqual(errors, []);
   await context.close();
+});
+
+test('the actual homepage retains the original light sweep, lightning, full resolution, and ember trail', async () => {
+  const context = await browser.newContext({ viewport: { width: 1100, height: 760 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  try {
+    await context.addInitScript(() => {
+      sessionStorage.setItem('sky-intro', 'seen');
+      const probe = window.avatarEffects = { sweep: false, strike: false, bolt: false, dpr: 0, pointerPush: 0 };
+      const locations = new WeakMap(), gl = WebGL2RenderingContext.prototype;
+      const locate = gl.getUniformLocation;
+      gl.getUniformLocation = function (program, name) {
+        const result = locate.call(this, program, name);
+        if (result) locations.set(result, name);
+        return result;
+      };
+      for (const method of ['uniform1f', 'uniform1i', 'uniform4f']) {
+        const original = gl[method];
+        gl[method] = function (at, ...values) {
+          if (this.canvas.classList.contains('hero-dots')) {
+            const name = locations.get(at);
+            if (name === 'u_sheen' && values[1]) probe.sweep = true;
+            if (name === 'u_strikes' && values[0] > 0) probe.strike = true;
+            if (name === 'u_dpr') probe.dpr = values[0];
+            if (name === 'u_pointer') probe.pointerPush = Math.max(probe.pointerPush, values[2]);
+          }
+          return original.call(this, at, ...values);
+        };
+      }
+      const stroke = CanvasRenderingContext2D.prototype.stroke;
+      CanvasRenderingContext2D.prototype.stroke = function (...args) {
+        if (this.canvas.classList.contains('hero-words') && this.lineWidth >= 4) probe.bolt = true;
+        return stroke.apply(this, args);
+      };
+    });
+    await page.goto(site.origin);
+    await page.locator('#figure.is-live').waitFor();
+    await page.waitForFunction(() => window.avatarEffects.sweep, null, { timeout: 18000 });
+    assert.equal(await page.evaluate(() => window.avatarEffects.dpr), 2, 'retain the original high-density raster');
+    await page.locator('[data-gear-toggle]').click();
+    await page.waitForFunction(() => window.avatarEffects.strike && window.avatarEffects.bolt);
+    assert.equal(await page.locator('.hero-words').isVisible(), true, 'the actual lightning overlay is visible');
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-phase'));
+    await page.mouse.move(300, 220);
+    await page.mouse.move(640, 320, { steps: 20 });
+    await page.locator('.fx-ember.is-on').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('.fx-embers').evaluate(canvas => {
+      const rgba = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      return rgba.some((value, i) => i % 4 === 3 && value > 0);
+    }), true, 'the original ember trail draws visible sparks');
+    assert.equal(await page.evaluate(() => window.avatarEffects.pointerPush), 0, 'restoring effects does not restore cursor distortion');
+    await page.locator('[data-motion-toggle]').click();
+    assert.equal(await page.locator('.fx-embers').isVisible(), false);
+    assert.equal(await page.locator('html').getAttribute('data-phase'), null);
+  } finally { await context.close(); }
 });
 
 test('polished homepage fits desktop and mobile, keeps text work and keyboard navigation accessible', async () => {

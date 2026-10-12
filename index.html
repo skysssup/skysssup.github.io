@@ -28,12 +28,13 @@
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=presence-1">
+<link rel="stylesheet" href="/css/craft.css?v=avatar-restored-1">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"Developer tools and interactive physics software."}</script>
 </head>
 <body class="page-home">
 <canvas class="scroll-field" data-scroll-field aria-hidden="true"></canvas>
 <nav class="scroll-waypoints" aria-label="Page sections"><span class="waypoint-line" aria-hidden="true"></span><a href="#hero" aria-label="Avatar"><span aria-hidden="true"></span><b>Avatar</b></a><a href="#work-list" aria-label="Work"><span aria-hidden="true"></span><b>Work</b></a><a href="#contact" aria-label="Contact"><span aria-hidden="true"></span><b>Contact</b></a></nav>
+<div class="fx-flash" aria-hidden="true"></div>
 <a class="skip" href="#main">Skip to content</a>
 <div class="lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 <header class="site-header">
@@ -183,14 +184,14 @@
   <span class="vh" role="status" aria-live="polite" data-index-status></span>
 </dialog>
 <span class="vh" aria-live="polite" data-announce></span>
-<script src="/js/theme.js?v=presence-1" defer></script>
-<script src="/assets/vendor/lenis.min.js?v=presence-1" defer></script>
-<script src="/js/motion.js?v=presence-1" defer></script>
-<script src="/js/blackhole.js?v=presence-1" defer></script>
-<script src="/js/hero.js?v=presence-1" defer></script>
-<script src="/js/page.js?v=presence-1" defer></script>
-<script src="/js/workbench.js?v=presence-1" defer></script>
-<script src="/js/scroll-field.js?v=presence-1" defer></script>
-<script src="/js/presence.js?v=presence-1" defer></script>
+<script src="/js/theme.js?v=avatar-restored-1" defer></script>
+<script src="/assets/vendor/lenis.min.js?v=avatar-restored-1" defer></script>
+<script src="/js/motion.js?v=avatar-restored-1" defer></script>
+<script src="/js/blackhole.js?v=avatar-restored-1" defer></script>
+<script src="/js/hero.js?v=avatar-restored-1" defer></script>
+<script src="/js/page.js?v=avatar-restored-1" defer></script>
+<script src="/js/workbench.js?v=avatar-restored-1" defer></script>
+<script src="/js/scroll-field.js?v=avatar-restored-1" defer></script>
+<script src="/js/presence.js?v=avatar-restored-1" defer></script>
 </body>
 </html>

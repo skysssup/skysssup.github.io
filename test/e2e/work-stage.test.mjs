@@ -169,7 +169,7 @@ test('red and blue avatar controls are direct, vivid, and keep the page black', 
   for (const width of [1440, 304]) {
     const { page, context, errors } = await open({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
     const paper = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
-    for (const [selector, mode, color] of [['[data-gear-toggle]', 'two', '#ff3b30'], ['[data-gear-blue]', 'blue', '#438fff']]) {
+    for (const [selector, mode, color] of [['[data-gear-toggle]', 'two', '#ff3b30'], ['[data-gear-blue]', 'blue', '#4f9bff']]) {
       await page.locator(selector).click();
       assert.equal(await page.locator('html').getAttribute('data-gear'), mode);
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()), paper);

@@ -9,7 +9,6 @@
 [data-polished] .gear-pos { min-height: 36px; }
 [data-polished] .index-open, [data-polished] .lamp { min-height: 36px; }
 [data-polished] .gear, [data-polished] .gear-cog { animation: none !important; }
-[data-polished] .fx-flash { display: none; }
 
 .page-home .hero .row { --fig: min(65svh, 590px, 100%); min-height: 0; padding: 32px 0 36px; grid-template-rows: auto auto; row-gap: 24px; }
 .page-home .hero-figure { grid-column: 1 / -1; grid-row: 1; width: var(--fig); cursor: default; touch-action: auto; user-select: none; }

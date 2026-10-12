@@ -62,7 +62,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=presence-1">
+<link rel="stylesheet" href="/css/craft.css?v=avatar-restored-1">
 ${extra}</head>`;
 }
 
@@ -145,7 +145,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=presence-1' : ''}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=avatar-restored-1' : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
@@ -177,6 +177,7 @@ function home() {
 <body class="page-home">
 <canvas class="scroll-field" data-scroll-field aria-hidden="true"></canvas>
 <nav class="scroll-waypoints" aria-label="Page sections"><span class="waypoint-line" aria-hidden="true"></span><a href="#hero" aria-label="Avatar"><span aria-hidden="true"></span><b>Avatar</b></a><a href="#work-list" aria-label="Work"><span aria-hidden="true"></span><b>Work</b></a><a href="#contact" aria-label="Contact"><span aria-hidden="true"></span><b>Contact</b></a></nav>
+<div class="fx-flash" aria-hidden="true"></div>
 ${header('home')}
 <main id="main">
   <section class="hero" id="hero" aria-labelledby="hero-name"><canvas class="hero-presence" data-presence="hero" aria-hidden="true"></canvas>
