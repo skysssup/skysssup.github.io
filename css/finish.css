@@ -1,4 +1,8 @@
 /* Final surface rules. The original avatar renderer and materials are untouched. */
+:root[data-polished], :root[data-polished][data-gear] { --paper: #090a0b; --ink: #e3e1d6; --muted: #9a9d95; --accent: #c9b975; }
+:root[data-polished][data-theme="light"], :root[data-polished][data-theme="light"][data-gear] { --paper: #fffef8; --ink: #292e2a; --muted: #505b52; --accent: #766128; }
+:root[data-polished] body { padding-top: var(--header-h); }
+:root[data-polished] .site-header { position: fixed; inset: 0 0 auto; }
 :root[data-polished] .nav a { min-height: 44px; display: inline-flex; align-items: center; font-size: 11px; }
 :root[data-polished] .nav .crest { width: 44px; min-height: 44px; }
 :root[data-polished] .header-tools .tool-button,
@@ -37,3 +41,87 @@
   :root[data-polished] .tool-button::after { display: none; }
 }
 @media (hover: none) { :root[data-polished] .tool-button::after { display: none; } }
+@media print { :root[data-polished] body { padding-top: 0; } :root[data-polished] .site-header { position: static; } }
+
+:root[data-polished] .hero-links a { font-size: 11px; }
+
+/* One reading notch for every project, with legible neighboring cards. */
+:root[data-polished] .orbit-step { width: 44px; height: 44px; }
+:root[data-polished] .orbit-window { touch-action: pan-x pan-y; }
+:root[data-polished] .orbit-status, :root[data-polished] .orbit-index { font-size: 10px; }
+:root[data-polished] .home-work .orbit-open { width: 36px; height: 36px; top: 3px; right: 2px; }
+:root[data-polished] .orbit-item:not(.is-active) .project-pick { color: var(--muted); }
+:root[data-polished] .orbit-item:not(.is-active) .project-pick:hover { color: var(--ink); border-color: var(--line-strong); }
+:root[data-polished] .orbit-item.is-active .project-pick { background: color-mix(in srgb,var(--paper) 96%,var(--ink)); }
+@media (max-width: 760px) {
+  :root[data-polished] .orbit-window { overscroll-behavior-x: contain; scroll-padding-inline: 0; }
+  :root[data-polished] .orbit-window { padding-inline: 0; }
+  :root[data-polished] .orbit-window .home-work { padding-inline: 0; }
+  :root[data-polished] .orbit-window .home-work::before,
+  :root[data-polished] .orbit-window .home-work::after { content: ""; flex: 0 0 max(0px,calc((100% - 204px) / 2 - 12px)); }
+  :root[data-polished] .home-work .orbit-open { display: none; }
+}
+
+/* The marks trace with actual reading position; actions carry a packet to a finite result. */
+:root[data-polished] .scene-svg .scroll-trace { animation: none; vector-effect: none; stroke-dasharray: 1; stroke-dashoffset: clamp(0, calc(1 - var(--scene-read,1) * 1.45 + var(--trace-order,0) * .016), 1); }
+:root[data-polished] .is-on .flow-line { animation: none; stroke-dasharray: 2 5; }
+:root[data-polished] .is-running .flow-line { animation: scene-flow 1.4s linear 1; }
+:root[data-polished] .scene-pointer { opacity: 0; }
+:root[data-polished] .is-inspecting .scene-pointer { opacity: .85; }
+.scene-courier { opacity: 0; color: var(--bench-hot); transition: opacity .18s; }
+.scene-courier circle { fill: currentColor; stroke: none; }
+.scene-courier .courier-halo { fill: none; stroke: currentColor; opacity: .35; }
+.is-running .scene-courier { opacity: 1; }
+:root[data-polished] [data-scene="airforge"] .physics-ball { animation: none; }
+:root[data-polished] .is-probed :is(.capture-dot,.recall-marker,.recall-active,.trace-span,.pulse-bar,.pulse-wave,.voter,.vote-link,.fault-marker,.blocked-route) { animation: none; transition: none; }
+:root[data-polished] .pulse-wave { vector-effect: none; }
+.work-card:not([data-scene="agentcrucible"]):not([data-scene="shipgate"]) .scene-courier { display: none; }
+:root[data-polished] .scene-toolbar { align-items: center; min-height: 70px; }
+:root[data-polished] .scene-caption { font-size: 10px; line-height: 18px; max-width: 42ch; }
+.scene-caption > span[aria-hidden] { margin: 0 6px; }
+[data-scene-status] { color: var(--muted); }
+.is-running [data-scene-status], .is-inspecting [data-scene-status] { color: var(--ink); }
+:root[data-polished] .scene-action { min-height: 44px; flex: none; font-size: 11px; }
+:root[data-polished] .work-details { min-width: 0; grid-template-columns: minmax(0,1fr); }
+:root[data-polished] .work-card { min-width: 0; }
+:root[data-polished] .scene-drawing { cursor: pointer; }
+:root[data-polished] .scene-heading { font-size: 11px; line-height: 18px; }
+:root[data-polished] .scene-number { font-size: 10px; }
+:root[data-polished] .page-home .workbench .work-card-name { font-size: 26px; line-height: 32px; }
+:root[data-polished] .page-home .workbench .work-card-desc { font-size: 15px; line-height: 24px; }
+:root[data-polished] .page-home .workbench .work-card-stack li { font-size: 10px; line-height: 18px; }
+:root[data-polished] .page-home .workbench .work-card-role { font-size: 10px; line-height: 18px; }
+:root[data-polished] .scene-links .link-ui { font-size: 11px; min-height: 44px; }
+.workbench.is-hidden .scene-svg *, html.page-hidden .scene-svg * { animation-play-state: paused !important; }
+.workbench:not(.is-drawing-visible) .scene-svg * { animation-play-state: paused !important; }
+@media (max-width: 760px) {
+  :root[data-polished] .scene-drawing { aspect-ratio: auto; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; padding-bottom: 8px; }
+  :root[data-polished] .scene-svg { width: 560px; max-width: none; height: 315px; }
+  :root[data-polished] .scene-svg text { font-size: 12px; }
+  :root[data-polished] .scene-toolbar { gap: 14px; min-height: 84px; }
+  :root[data-polished] .scene-caption { font-size: 10px; }
+  :root[data-polished] .scene-action { min-width: 112px; padding-inline: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { :root[data-polished] .scene-svg .scroll-trace { stroke-dashoffset: 0; } }
+:root[data-polished][data-motion="reduced"] .scene-svg .scroll-trace { stroke-dashoffset: 0; }
+
+/* Give the working drawing room; keep only feedback that belongs to an input. */
+:root[data-polished] .bench-body { grid-template-columns: minmax(230px,1fr) minmax(0,3fr); column-gap: clamp(32px,5vw,72px); }
+:root[data-polished] .bench-floor { min-height: 68px; padding: 12px 0; margin-bottom: 64px; }
+:root[data-polished] .bench-floor .bench-keys { visibility: visible; }
+:root[data-polished] .bench-category, :root[data-polished] .bench-floor > a { font-size: 10px; line-height: 18px; }
+:root[data-polished] .bench-keys kbd { font-size: 10px; min-height: 26px; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 1040px) and (min-width: 761px) { :root[data-polished] .bench-body { grid-template-columns: 210px minmax(0,1fr); column-gap: 32px; } }
+@media (max-width: 760px) { :root[data-polished] .bench-body { display: flex; gap: 26px; } :root[data-polished] .bench-floor { min-height: 54px; margin-bottom: 48px; } }
+
+.contact-heading p { font-size: 13px; line-height: 20px; }
+.contact-social a { min-height: 44px; }
+.contact-mail-row { align-items: center; }
+.contact-address:focus-visible::after { transform: scaleX(1); }
+:root[data-polished] .contact-copy { min-width: 104px; height: 48px; grid-template-columns: 20px 52px; }
+:root[data-polished] .contact-copy [data-copy-label] { font-size: 11px; }
+@media (max-width: 760px) {
+  .contact-mail-row { gap: 8px; }
+  :root[data-polished] .contact-copy { min-width: 48px; width: 48px; grid-template-columns: 1fr; padding: 4px; }
+  :root[data-polished] .contact-copy [data-copy-label] { font-size: 9px; }
+}

@@ -12,30 +12,30 @@ text-first work and Hermes artwork rather than borrowing its product images.
 
 ## Acceptance criteria, in order
 
-- [ ] Shared interface: consistent crest/favicon, 44px touch controls, clear keyboard
+- [x] Shared interface: consistent crest/favicon, 44px touch controls, clear keyboard
   focus, stateful theme label, delayed legible tooltips, searchable index with clear
   action and correct focus return; no overflow at 320/390/768/1440px.
-- [ ] Avatar surroundings: preserve hero.js and avatar assets byte-for-byte; keep
+- [x] Avatar surroundings: preserve hero.js and avatar assets byte-for-byte; keep
   full size, rendering resolution, movement, gold/materials/red/blue and effects.
   Margin drawings respond to input without covering the sculpture. Hidden and
   off-screen drawings pause; reduced motion retains a considered static drawing.
-- [ ] Slider: content, counter, links, focus and visible selection agree through
+- [x] Slider: content, counter, links, focus and visible selection agree through
   rapid reversals, wheel/key/button/drag interruption and bounds. A selected card
   lands precisely at the reading notch. Mobile swiping and programmatic selection
   use the same center; first/last cards can center. Touch vertical scrolling works.
-- [ ] Project illustrations: inspect and tune all eight separately. Each action
+- [x] Project illustrations: inspect and tune all eight separately. Each action
   has a distinct, finite, labeled result and reset; switching projects cancels stale
   state. Text is legible on mobile and every image is marked as an illustration.
-- [ ] Contact: repeat copies restart feedback duration; success and failure are
+- [x] Contact: repeat copies restart feedback duration; success and failure are
   announced; keyboard focus and touch targets work; concise existing copy retained.
-- [ ] AgentCrucible: hierarchy, diagram, demo, evidence/caption, links, mobile review.
-- [ ] AirForge: hierarchy, diagram, evidence/caption, links, mobile review.
-- [ ] Shipgate: hierarchy, diagram, demo, evidence/caption, links, mobile review.
-- [ ] Recall: hierarchy, diagram, demo, evidence/caption, links, mobile review.
-- [ ] Spanforge: hierarchy, diagram, evidence/caption, links, mobile review.
-- [ ] LocalPulse: hierarchy, diagram, evidence/caption, links, mobile review.
-- [ ] Ghost Notetaker: hierarchy, diagram, evidence/caption, links, mobile review.
-- [ ] MoltDAO: hierarchy, diagram, evidence/caption, links, mobile review.
+- [x] AgentCrucible: hierarchy, diagram, demo, evidence/caption, links, mobile review.
+- [x] AirForge: hierarchy, diagram, evidence/caption, links, mobile review.
+- [x] Shipgate: hierarchy, diagram, demo, evidence/caption, links, mobile review.
+- [x] Recall: hierarchy, diagram, demo, evidence/caption, links, mobile review.
+- [x] Spanforge: hierarchy, diagram, evidence/caption, links, mobile review.
+- [x] LocalPulse: hierarchy, diagram, evidence/caption, links, mobile review.
+- [x] Ghost Notetaker: hierarchy, diagram, evidence/caption, links, mobile review.
+- [x] MoltDAO: hierarchy, diagram, evidence/caption, links, mobile review.
 - [ ] Integration: opening/idle/both scroll directions/every selection/search/contact/
   appearance/light/reduced motion at desktop, tablet and narrow mobile sizes.
   Rebuild generated HTML; unit and full browser suites; direct stage commits;
@@ -54,3 +54,32 @@ motion hides every surrounding drawing. Work annotations are 8–9px. Case-study
 mobile navigation and diagram/text/table overflow need individual inspection.
 
 Record completed reviews and evidence here as stages finish.
+
+## Completed surface review
+
+The eight home illustrations now preview on entry/selection, replay by click or
+keyboard, inspect actual nodes, and run distinct finite workflows. Core objects
+move on the same clock as captions. Hidden/offscreen rendering pauses and resumes;
+reduced motion retains static drawings and immediate manual outcomes.
+
+The page palette remains dark by default and light only by explicit choice.
+Avatar appearance changes do not recolor the page. Generic globes and redundant
+workbench ornaments were removed; the original portrait renderer and assets have
+no changes against the baseline.
+
+Grok 4.7 build-fast workers implemented the diagram/reading pass and regression
+coverage. Parent review corrected mobile navigation, scene timing, endpoint
+centering, visibility lifecycle, and replay. A third worker could not connect;
+its assignment was completed locally.
+
+All eight case pages were inspected in fresh desktop captures. Narrow/tablet
+checks cover readable diagram stages, section navigation, contained overflow,
+and evidence controls. The six shorter pages remain project notes; their
+workflow illustrations use existing public descriptions and do not imply new
+implementation evidence or customer use.
+
+Validation so far: 97 unit checks; 20/21 initial focused browser checks, with the
+remaining workflow test corrected to navigate the visible wheel using Home.
+All eight workflow action/reset/cancellation checks then passed, as did automatic
+entry preview, pointer replay, keyboard replay, and reduced-motion static state.
+Full suite and publication are recorded after completion below.

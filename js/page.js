@@ -104,15 +104,21 @@
     if (times.length) { tick(); win.setInterval(tick, 15000); }
 
     /* copy */
+    var copyTimers = new WeakMap();
+    var copyRuns = new WeakMap();
     doc.addEventListener("click", function (event) {
       var button = event.target && event.target.closest ? event.target.closest("[data-copy]") : null;
       if (!button) return;
+      if (copyTimers.has(button)) win.clearTimeout(copyTimers.get(button));
+      var copyRun = (copyRuns.get(button) || 0) + 1; copyRuns.set(button, copyRun);
+      var resetCopy = function (delay) { copyTimers.set(button, win.setTimeout(function () { copyLabel("Copy"); copyTimers.delete(button); }, delay)); };
       var copyLabel = function (text) {
         var label = button.querySelector("[data-copy-label]");
         if (label) label.textContent = text; else button.textContent = text;
         button.setAttribute("data-copy-state", text === "Copied" ? "done" : text === "Copy" ? "idle" : "fallback");
       };
       var unavailable = function () {
+        if (copyRuns.get(button) !== copyRun) return;
         var address = button.parentNode.querySelector('a[href^="mailto:"]');
         if (address && win.getSelection) {
           var range = doc.createRange();
@@ -123,13 +129,14 @@
         }
         say("Automatic copying is unavailable. Select and copy the email address, or open the email link.");
         copyLabel("Select");
-        win.setTimeout(function () { copyLabel("Copy"); }, 2400);
+        resetCopy(2400);
       };
       if (!win.navigator.clipboard) { unavailable(); return; }
       win.navigator.clipboard.writeText(button.getAttribute("data-copy")).then(function () {
+        if (copyRuns.get(button) !== copyRun) return;
         copyLabel("Copied");
         say("Email address copied");
-        win.setTimeout(function () { copyLabel("Copy"); }, 1600);
+        resetCopy(1600);
       }, unavailable);
     });
 
@@ -178,7 +185,7 @@
       indexInput.addEventListener("input", searchIndex);
       if (indexClear) indexClear.addEventListener("click", function () { indexInput.value = ""; searchIndex(); indexInput.focus(); });
       index.addEventListener("close", function () {
-        if (doc.documentElement.classList.contains("index-is-open")) releaseIndex();
+        if (!index.open && doc.documentElement.classList.contains("index-is-open")) releaseIndex();
       });
       index.addEventListener("click", function (event) {
         if (event.target.closest("a[href]")) { closeIndex(); return; }
@@ -297,7 +304,8 @@
       var spy = function () {
         queued = false;
         var tops = sections.map(function (s) { return s ? s.getBoundingClientRect().top : Infinity; });
-        var current = activeSection(tops, win.innerHeight * 0.35);
+        var sectionLine = (parseFloat(win.getComputedStyle(doc.documentElement).scrollPaddingTop) || 80) + 8;
+        var current = activeSection(tops, sectionLine);
         links.forEach(function (a, i) { if (i === current) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
         if (current !== currentSection) {
           var list = toc.querySelector("ol");
@@ -333,7 +341,7 @@
       button.className = "fig-ctrl";
       video.parentNode.appendChild(button);
       var sync = function () {
-        var play = onScreen && !paused && !motion.reduced();
+        var play = onScreen && !doc.hidden && !paused && !motion.reduced();
         if (play) { video.preload = "auto"; var p = video.play(); if (p && p.catch) p.catch(function () {}); }
         else video.pause();
         button.textContent = play ? "Pause" : "Play";
@@ -348,8 +356,12 @@
       });
       new win.IntersectionObserver(function (entries) { onScreen = entries[0].isIntersecting; sync(); }, { threshold: 0.4 }).observe(video);
       motion.subscribe(sync);
+      doc.addEventListener("visibilitychange", sync);
       sync();
     });
+
+    var pageVisibility = function () { doc.documentElement.classList.toggle("page-hidden", doc.hidden); };
+    doc.addEventListener("visibilitychange", pageVisibility); pageVisibility();
 
     /* hero */
     var figure = doc.getElementById("figure");

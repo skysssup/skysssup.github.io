@@ -23,7 +23,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ASSET_VERSION = 'finish-1';
+const ASSET_VERSION = 'finish-2';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
@@ -67,6 +67,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <link rel="stylesheet" href="/css/polish.css?v=${ASSET_VERSION}">
 <link rel="stylesheet" href="/css/craft.css?v=${ASSET_VERSION}">
 <link rel="stylesheet" href="/css/finish.css?v=${ASSET_VERSION}">
+<link rel="stylesheet" href="/css/reading.css?v=${ASSET_VERSION}">
 ${extra}</head>`;
 }
 
@@ -207,19 +208,14 @@ ${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><butt
       <div class="work-details" data-work-detail>
 ${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article class="work-card${i === 0 ? ' is-on' : ''}" id="project-${p.slug}" data-scene="${p.slug}" aria-hidden="${i !== 0}"${i ? ' inert' : ''}>
           <div class="scene-heading"><span>${esc(s.label)}</span><span class="scene-number">${pad(i + 1)} / ${pad(projects.length)}</span></div>
-          <div class="scene-drawing">${s.svg}</div>
-          <div class="scene-toolbar"><span class="scene-caption">Illustration</span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="${esc(s.action)}" data-active-label="${esc(s.active)}">${esc(s.action)} <span aria-hidden="true">↗</span></button></div>
+          <div class="scene-drawing" tabindex="0" role="button" aria-label="Replay ${esc(p.name)} workflow illustration" aria-keyshortcuts="Enter Space" title="Click or press Enter to replay the illustration">${s.svg}</div>
+          <div class="scene-toolbar"><span class="scene-caption">Illustration <span aria-hidden="true">·</span> <span data-scene-status>${esc(s.idle)}</span></span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="${esc(s.action)}" data-active-label="${esc(s.active)}">${esc(s.action)} <span aria-hidden="true">↗</span></button></div>
           <div class="scene-copy"><div><h3 class="work-card-name">${esc(p.name)}</h3><p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p></div><p class="work-card-desc">${esc(p.summary || p.tagline)}</p><ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul><div class="scene-links"><a class="link-ui" href="/work/${p.slug}/">${p.placeholder ? 'Project notes' : 'Case study'}${OPEN}</a>${p.repo ? `<a class="link-ui" href="${p.repo}">Source${ARROW}</a>` : ''}</div></div>
         </article>`; }).join('\n')}
       </div>
-      <aside class="bench-profile" aria-label="Navigation">
-        <a class="profile-link" href="https://github.com/${site.github}">@${site.github}${ARROW}</a>
-        <canvas class="aside-presence" data-presence="aside" aria-hidden="true"></canvas>
-        <a class="link-ui profile-contact" href="#contact">Contact${OPEN}</a>
-      </aside>
     </div>
-    <div class="bench-floor"><canvas class="input-presence" data-presence="input" aria-hidden="true"></canvas><span class="bench-category" data-bench-category>${themesOf(projects[0])}</span><div class="bench-keys"><kbd data-echo-key="ArrowUp">↑</kbd><kbd data-echo-key="ArrowDown">↓</kbd><span>Select</span><kbd data-echo-key="Home">Home</kbd><kbd data-echo-key="End">End</kbd></div><a href="#contact" class="link-ui">Email${ARROW}</a></div>
-    <script type="application/json" id="workbench-data">${JSON.stringify(projects.map(p => ({slug:p.slug, name:p.name, category:themesOf(p)}))).replace(/</g, '\u003c')}</script>
+    <div class="bench-floor"><span class="bench-category" data-bench-category>${themesOf(projects[0])}</span><div class="bench-keys"><kbd data-echo-key="ArrowUp">↑</kbd><kbd data-echo-key="ArrowDown">↓</kbd><span>Select</span><kbd data-echo-key="Home">Home</kbd><kbd data-echo-key="End">End</kbd></div><a href="#contact" class="link-ui">Email${ARROW}</a></div>
+    <script type="application/json" id="workbench-data">${JSON.stringify(projects.map(p => ({slug:p.slug, name:p.name, category:themesOf(p), scene: { idle: scenes[p.slug].idle, steps: scenes[p.slug].steps, points: scenes[p.slug].points, inspect: scenes[p.slug].inspect } }))).replace(/</g, '\u003c')}</script>
   </section>
 
   <section class="contact-sheet" id="contact" aria-labelledby="contact-title" data-reveal>
@@ -286,17 +282,38 @@ const SECTIONS = [
   ['status', 'Status and next', 'What works now, its honest limits, and two or three next steps that follow from documented limitations. 60–120 words.'],
 ];
 
+const NOTE_FLOWS = {
+  shipgate: [['Staged changes', 'Git diff', 'The CLI scans staged Git changes.'], ['Local policies', 'scan decision', 'Configured local policies determine the scan result.'], ['Commit / push', 'Git workflow', 'That result gates the commit and push workflow.']],
+  'recall-ai': [['Practice', 'algorithms', 'Algorithm practice is the input to the review workflow.'], ['Scheduling', 'spaced repetition', 'The scheduler places the next review along the practice timeline.'], ['SQLite', 'local data', 'Scheduling data stays on the local machine in SQLite.']],
+  spanforge: [['Local proxy', 'LLM requests', 'The local trace proxy receives LLM application requests.'], ['Traces', 'request spans', 'Recorded spans describe the request timeline.'], ['Waterfall', 'inspection', 'The waterfall makes nesting and overlap visible.']],
+  localpulse: [['Call metadata', 'caller supplied', 'The caller supplies the metadata shown in the local usage view.'], ['Local storage', 'retained data', 'Collected metadata is retained locally.'], ['Usage view', 'inspection', 'The dashboard presents the recorded call series.']],
+  'ghost-notetaker': [['Quick capture', 'clipboard text', 'Clipboard text becomes a new note in the captured workflow.'], ['Markdown', 'local note', 'The note is stored as local Markdown.'], ['Workspaces', 'organization', 'Workspaces organize the captured notes.']],
+  moltdao: [['Proposal', 'local experiment', 'An agent proposes an action in the local experiment.'], ['Votes', 'agent decisions', 'Agent votes contribute to the treasury decision.'], ['Treasury', 'toy workflow', 'The workflow is an experiment, not a production-safe treasury system.']]
+};
+function noteDiagram(p) {
+  const flow = NOTE_FLOWS[p.slug];
+  if (!flow) return '';
+  const spec = { nodes: flow.map(([label, sub], i) => ({ id: 'stage-' + i, label, sub })), edges: flow.slice(1).map((_, i) => ({ from: 'stage-' + i, to: 'stage-' + (i + 1) })) };
+  return `      <section id="how" aria-labelledby="how-title">
+        <h2 id="how-title">Workflow illustration</h2>
+        <figure class="diagram wide" data-diagram>
+          <script type="application/json">${JSON.stringify(spec)}</script>
+          <ol class="diagram-steps t-small">${flow.map(([label, , explanation]) => `<li>${esc(label)}: ${esc(explanation)}</li>`).join('')}</ol>
+          <figcaption><span class="t-label muted">Fig. ${p.lead ? 2 : 1}</span><span class="t-small">Illustration of the workflow. Select a stage to follow its role.</span></figcaption>
+        </figure>
+      </section>\n`;
+}
 function evidenceOf(p) {
   const prose = `      <section id="problem" aria-labelledby="problem-title">
         <h2 id="problem-title">Overview</h2>
         <p>${esc(p.description)}</p>
       </section>
-      <section id="status" aria-labelledby="status-title">
+${noteDiagram(p)}      <section id="status" aria-labelledby="status-title">
         <h2 id="status-title">Status</h2>
         <p>${esc(p.status)}. ${p.repo ? `<a href="${p.repo}">Source on GitHub</a>.` : 'Private repository.'}</p>
       </section>`;
   const numbers = `          <dl><div><dt>${esc(p.status)}</dt><dd>Status</dd></div><div><dt>${esc(p.visibility)}</dt><dd>Repository</dd></div></dl>`;
-  return { prose, numbers, sections: [['problem', 'Overview'], ['status', 'Status']] };
+  return { prose, numbers, sections: [['problem', 'Overview'], ...(NOTE_FLOWS[p.slug] ? [['how', 'Workflow illustration']] : []), ['status', 'Status']] };
 }
 
 // A body file holds the case study's prose sections, then a `<!-- numbers -->` line, then the numbers <dl>.

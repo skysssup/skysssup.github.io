@@ -1,0 +1,197 @@
+/* Case-study reading. Linked by the page generator. Scoped to .page-case and diagrams
+   so the homepage hero, workbench, and scene styles stay untouched. */
+
+.page-case .case-body { align-items: start; }
+.page-case .prose { min-width: 0; }
+.page-case .prose p,
+.page-case .prose .decisions,
+.page-case .prose ul.list,
+.page-case .case-title p { max-width: 65ch; }
+.page-case .prose h2 { max-width: 28ch; }
+
+.page-case .prose section[id],
+.page-case .case-head,
+.page-case #stack { scroll-margin-top: 8px; }
+
+.page-case .fig figcaption,
+.page-case .diagram figcaption,
+.page-case .lead-media figcaption {
+  max-width: 68ch;
+  gap: 6px;
+}
+.page-case .fig figcaption .t-small,
+.page-case .diagram figcaption .t-small,
+.page-case .lead-media figcaption .t-small {
+  max-width: 62ch;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.page-case .prose .term,
+.page-case .prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.page-case .prose :not(pre):not(.term) > code { overflow-wrap: anywhere; }
+
+.page-case .prose table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+.page-case .prose th,
+.page-case .prose td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.page-case .prose caption {
+  caption-side: bottom;
+  padding-top: 8px;
+  text-align: left;
+  color: var(--ink);
+  font: 400 15px/24px var(--sans);
+}
+
+.page-case .fig,
+.page-case .diagram { min-width: 0; }
+.page-case .fig-frame {
+  border: 1px solid var(--line-strong);
+  background: var(--wash);
+}
+.page-case .fig-frame img,
+.page-case .fig-frame video { width: 100%; height: auto; }
+.page-case .fig-ctrl {
+  right: 8px;
+  bottom: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  z-index: 4;
+}
+.page-case .fig-ctrl:focus-visible { outline-offset: -3px; }
+
+.page-case .toc {
+  align-self: start;
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+  z-index: 12;
+  max-height: calc(100svh - var(--header-h) - 32px);
+  overflow: auto;
+  background: var(--paper);
+}
+.page-case .toc a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 6px;
+}
+.page-case .toc a:focus-visible { outline-offset: -2px; }
+.page-case .toc a[aria-current="true"] { box-shadow: inset 2px 0 0 var(--accent); }
+
+.diagram svg { overflow: visible; }
+.diagram .node { cursor: pointer; touch-action: manipulation; }
+.diagram .node rect { fill: var(--paper); }
+.diagram .node.is-route rect { stroke: var(--ink); }
+.diagram .node.is-selected rect { stroke: var(--accent); stroke-width: 1.5px; }
+.diagram .node.is-selected .label { fill: var(--accent); }
+.diagram .node:focus { outline: none; }
+.diagram .node:focus-visible rect { stroke: var(--accent); stroke-width: 2px; }
+.diagram .edge.is-route,
+.diagram .arrow.is-route { stroke: var(--accent); fill: var(--accent); }
+.diagram .edge.is-route { fill: none; }
+.diagram .edge.is-selected.is-play {
+  stroke-dasharray: 160;
+  animation: diagram-route 640ms linear 1 both;
+}
+.diagram .arrow.is-selected.is-play { animation: diagram-arrow 640ms linear 1 both; }
+.diagram.is-paused .edge.is-play,
+.diagram.is-paused .arrow.is-play,
+html.page-hidden .diagram .edge.is-play,
+html.page-hidden .diagram .arrow.is-play { animation-play-state: paused; }
+
+.diagram.is-drawn .diagram-steps {
+  position: relative !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  clip: unset !important;
+  margin-top: 16px;
+  max-width: 65ch;
+  gap: 6px;
+}
+.diagram-steps li {
+  min-height: 44px;
+  padding: 10px 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  border-left: 2px solid transparent;
+}
+.diagram-steps li.is-selected {
+  border-left-color: var(--accent);
+  background: var(--wash);
+}
+.diagram-steps li:focus-visible { outline-offset: 2px; }
+
+@keyframes diagram-route {
+  from { stroke-dashoffset: 160; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes diagram-arrow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diagram .edge.is-play,
+  .diagram .arrow.is-play { animation: none !important; }
+}
+:root[data-motion="reduced"] .diagram .edge.is-play,
+:root[data-motion="reduced"] .diagram .arrow.is-play { animation: none !important; }
+
+@media (max-width: 1199px) {
+  .page-case .toc {
+    top: var(--header-h);
+    max-height: none;
+    overflow: visible;
+  }
+  .page-case .toc ol {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px 16px;
+    overflow-x: auto;
+    scroll-padding-inline: 8px;
+    padding-bottom: 4px;
+  }
+  .page-case .toc a {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+  .page-case .prose section[id],
+  .page-case #stack { scroll-margin-top: 8px; }
+  .page-case .fig,
+  .page-case .diagram { max-width: 100%; }
+  .page-case .wide { margin-right: 0; }
+}
+
+@media (max-width: 479px) {
+  .page-case .toc ol {
+    display: flex;
+    gap: 4px 12px;
+    overflow-x: auto;
+  }
+  .page-case .toc a {
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .page-case .prose section[id],
+  .page-case #stack { scroll-margin-top: 8px; }
+}

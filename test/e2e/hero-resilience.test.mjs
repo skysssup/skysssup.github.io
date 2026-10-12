@@ -762,7 +762,8 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
   await page.evaluate(() => window.skyGear.setGear(true));
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
-  assert.deepEqual((await state(page)).uniforms.u_rip.filter((_, i) => i % 4 === 3), [0, 0, 0, 0], 'Gear Two switched on by hand calls down no lightning');
+  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.some((value, i) => i % 4 === 3 && value > 0));
+  assert.ok((await state(page)).uniforms.u_rip.some((value, i) => i % 4 === 3 && value > 0), 'a manual red appearance retains the original lightning');
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);

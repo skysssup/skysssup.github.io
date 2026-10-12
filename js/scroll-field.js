@@ -19,7 +19,7 @@
   function colors() {
     var style = getComputedStyle(document.documentElement);
     ink = style.getPropertyValue('--ink').trim();
-    hot = style.getPropertyValue('--figure-key').trim();
+    hot = style.getPropertyValue('--accent').trim();
   }
   function navigation() {
     var at = 0;

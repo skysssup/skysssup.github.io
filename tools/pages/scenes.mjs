@@ -9,7 +9,7 @@ const cross = (x, y, cls = 'faint') => `<g class="${cls}">${line(x - 3, y, x + 3
 function frame(slug, label, body) {
   const grid = Array.from({ length: 9 }, (_, i) => line(40 + i * 70, 36, 40 + i * 70, 326, 'grid')).join('') + Array.from({ length: 5 }, (_, i) => line(30, 50 + i * 60, 610, 50 + i * 60, 'grid')).join('');
   const ruler = Array.from({ length: 29 }, (_, i) => line(40 + i * 20, 337, 40 + i * 20, i % 5 ? 340 : 344, 'faint')).join('');
-  return `<svg class="scene-svg" viewBox="0 0 640 360" role="img" aria-labelledby="scene-title-${slug}" xmlns="http://www.w3.org/2000/svg"><title id="scene-title-${slug}">${label}</title><g class="scene-grid">${grid}</g><g class="scene-art">${body}</g><g class="scene-registration">${cross(18, 18)}${cross(622, 18)}${cross(18, 342)}${cross(622, 342)}${ruler}${text(38, 23, 'SCHEMATIC', 'faint')}${text(537, 23, 'ILLUSTRATION', 'faint')}</g><g class="scene-pointer" aria-hidden="true"><circle r="12"/><path d="M-18 0H-8M8 0H18M0-18V-8M0 8V18"/></g></svg>`;
+  return `<svg class="scene-svg" viewBox="0 0 640 360" role="img" aria-labelledby="scene-title-${slug}" xmlns="http://www.w3.org/2000/svg"><title id="scene-title-${slug}">${label}</title><g class="scene-grid">${grid}</g><g class="scene-art">${body}</g><g class="scene-registration">${cross(18, 18)}${cross(622, 18)}${cross(18, 342)}${cross(622, 342)}${ruler}${text(38, 23, 'SCHEMATIC', 'faint')}</g><g class="scene-pointer" aria-hidden="true"><circle r="12"/><path d="M-18 0H-8M8 0H18M0-18V-8M0 8V18"/></g><g class="scene-courier" aria-hidden="true"><circle r="4"/><circle r="9" class="courier-halo"/></g></svg>`;
 }
 
 function crucible() {
@@ -76,3 +76,26 @@ export const scenes = {
   'ghost-notetaker': { label: 'Quick capture', action: 'Capture note', active: 'Reset notes', svg: ghost() },
   moltdao: { label: 'Agent governance', action: 'Cast vote', active: 'Reset votes', svg: molt() }
 };
+
+// Timed, explanatory states. These describe the drawing, never a measured product run.
+const behavior = {
+  agentcrucible: { idle: 'Tool call → committed state → checked claim', steps: [[0, 'Tool call times out'], [520, 'Retry follows the lower route'], [1250, 'Claim checked against committed state']], points: [[85,276],[221,174],[320,302],[550,276]] },
+  airforge: { idle: 'Draw a ramp, then drop the ball', steps: [[0, 'Ball released'], [650, 'Ramp guides the fall'], [1700, 'Ball settles on the platform']], points: [[109,75],[308,226],[425,282],[535,282]] },
+  shipgate: { idle: 'Staged changes pass through the policy gate', steps: [[0, 'Read staged diff'], [450, 'Evaluate local policy'], [1050, 'Policy blocks this illustrative change']], points: [[135,162],[365,145],[528,230]] },
+  'recall-ai': { idle: 'Review shifts the next practice interval', steps: [[0, 'Review recorded'], [380, 'Retention curve updated'], [850, 'Next review moves along the timeline']], points: [[84,252],[163,252],[263,252],[408,252],[560,252]] },
+  spanforge: { idle: 'Nested spans share a request timeline', steps: [[0, 'Request begins'], [360, 'Tool and fetch spans overlap'], [1100, 'Finalize closes the request']], points: [[340,80],[280,121],[305,162],[331,203],[416,244]] },
+  localpulse: { idle: 'Call series → local store → metric views', steps: [[0, 'Call metadata collected'], [450, 'Series written locally'], [1200, 'Token and latency views receive the series']], points: [[220,130],[390,242],[505,115],[505,224]] },
+  'ghost-notetaker': { idle: 'Capture becomes a local Markdown note', steps: [[0, 'Quick capture received'], [350, 'Markdown note created'], [900, 'Note joins the workspace']], points: [[164,165],[285,169],[430,200]] },
+  moltdao: { idle: 'Proposal → votes → treasury action', steps: [[0, 'Illustrative proposal submitted'], [500, 'Agent votes converge'], [1200, 'Local experiment reaches a treasury decision']], points: [[320,62],[430,153],[271,283],[320,178]] }
+};
+const inspections = {
+  agentcrucible: ['Tool call enters the fault test', 'Injected timeout interrupts the call', 'Retry returns through the lower route', 'Claim compared with committed state'],
+  airforge: ['Ball begins above the ramp', 'Drawn stroke becomes a collision body', 'Ball reaches the platform', 'Bounce loses height before settling'],
+  shipgate: ['Only staged changes enter the scan', 'Local rules evaluate the staged diff', 'A blocked result stops publication'],
+  'recall-ai': ['First practice', 'Another attempt', 'Next scheduled review', 'A longer review interval', 'Later review, stored locally'],
+  spanforge: ['Parent request spans the timeline', 'Planning is nested in the request', 'Tool span shares its parent', 'Fetch overlaps the tool work', 'Finalize completes the request'],
+  localpulse: ['Illustrative call series', 'Metadata persists locally', 'Token view', 'Latency and cost view'],
+  'ghost-notetaker': ['Local Markdown note', 'Capture enters the workspace', 'Workspace organizes the notes'],
+  moltdao: ['Proposal enters the local experiment', 'Agent vote', 'Votes converge on the treasury', 'Toy-chain treasury decision']
+};
+Object.entries(scenes).forEach(([slug, scene]) => Object.assign(scene, behavior[slug], { inspect: inspections[slug] }));

@@ -166,11 +166,13 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
   await context.close();
 });
 
-test('color choices apply without glitches and persist independently of light mode', async () => {
+test('avatar effects settle and appearances persist independently of light mode', async () => {
   const { page, context, problems } = await open('/', { mode: 'dark' });
   for (const [selector, value] of [['[data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
     await page.locator(selector).click();
     await page.waitForFunction(value => document.documentElement.getAttribute('data-gear') === value, value);
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-phase'));
+    await page.waitForFunction(() => !document.querySelector('.fx-ring, .fx-tide'));
     assert.equal(await page.locator('html').getAttribute('data-phase'), null);
     assert.equal(await page.locator('.fx-ring, .fx-tide').count(), 0);
     await page.goto(site.origin + '/work/');
@@ -196,12 +198,15 @@ test('color modes support keyboard input and reduced motion without visual effec
   await context.close();
 });
 
-test('the pointer stays native and leaves no decorative trails in any color mode', async () => {
+test('the pointer stays native while restored avatar trails respect reduced motion', async () => {
   for (const mode of ['gear', 'blue']) {
     const { page, context } = await open('/work/', { mode });
     await page.mouse.move(200, 400);
     await page.mouse.move(800, 500, { steps: 20 });
-    assert.equal(await page.locator('.fx-embers, .fx-ember').count(), 0);
+    assert.notEqual(await page.locator('body').evaluate(el => getComputedStyle(el).cursor), 'none');
+    if (mode === 'gear') await page.locator('.fx-ember.is-on').waitFor();
+    await page.locator('[data-motion-toggle]').click();
+    assert.equal(await page.locator('.fx-embers').isVisible(), false);
     await context.close();
   }
 });

@@ -201,8 +201,9 @@ test('living drawing responds to input and stops for reduced motion', async () =
   const paused = await page.evaluate(() => SkyPresence.frames());
   await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => SkyPresence.frames()), paused);
-  assert.equal(await page.locator('[data-presence="hero"]').isVisible(), false);
+  assert.equal(await page.locator('[data-presence="hero"]').isVisible(), true, 'reduced motion retains a static margin drawing');
   await page.locator('[data-motion-toggle]').click();
+  await page.locator('#work-list').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => SkyPresence.running() && SkyPresence.frames() > 0);
   assert.ok(await page.locator('[data-presence="hero"]').evaluate(el => el.width) > 0, "resuming motion must restore the full canvas dimensions");
   assert.deepEqual(errors, []);
@@ -229,10 +230,13 @@ test('wheel selection follows visible position and a button cancels an unfinishe
   assert.ok(samples.some(([x]) => x > .1 && x < .9), 'capture the wheel while it is between projects');
   assert.ok(samples.every(([x, selected]) => Math.round(x) === selected), 'the article must follow the visible card');
   await page.mouse.wheel(0, 150);
+  const beforeButton = await page.evaluate(() => Math.round(SkyWorkbench.position()));
   await page.locator('[data-orbit-step="-1"]').click();
-  const picked = await page.evaluate(() => SkyWorkbench.selected());
   await settle(page);
+  const picked = await page.evaluate(() => SkyWorkbench.selected());
+  await page.waitForTimeout(180);
   assert.equal(await page.evaluate(() => SkyWorkbench.selected()), picked, 'an old wheel timeout cannot replace button input');
+  assert.ok(picked <= beforeButton + 1, 'previous input reverses the unfinished gesture');
   assert.deepEqual(errors, []);
   await context.close();
 });

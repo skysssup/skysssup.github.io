@@ -20,17 +20,18 @@
 <meta name="twitter:creator" content="@skysssup">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#090a0b">
-<link rel="icon" href="/favicon.ico?v=finish-1" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
-<link rel="icon" href="/assets/favicon-32.png?v=finish-1" type="image/png" sizes="32x32">
-<link rel="icon" href="/assets/favicon.svg?v=finish-1" type="image/svg+xml" sizes="any">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=finish-1" sizes="180x180">
+<link rel="icon" href="/favicon.ico?v=finish-2" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
+<link rel="icon" href="/assets/favicon-32.png?v=finish-2" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/favicon.svg?v=finish-2" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=finish-2" sizes="180x180">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
-<link rel="stylesheet" href="/css/site.css?v=finish-1">
-<link rel="stylesheet" href="/css/polish.css?v=finish-1">
-<link rel="stylesheet" href="/css/craft.css?v=finish-1">
-<link rel="stylesheet" href="/css/finish.css?v=finish-1">
+<link rel="stylesheet" href="/css/site.css?v=finish-2">
+<link rel="stylesheet" href="/css/polish.css?v=finish-2">
+<link rel="stylesheet" href="/css/craft.css?v=finish-2">
+<link rel="stylesheet" href="/css/finish.css?v=finish-2">
+<link rel="stylesheet" href="/css/reading.css?v=finish-2">
 </head>
 <body class="page-case" data-project="recall-ai">
 <a class="skip" href="#main">Skip to content</a>
@@ -80,6 +81,7 @@
       <div class="reading-track" aria-hidden="true"><span data-reading-bar></span></div>
       <ol data-lenis-prevent>
         <li><a href="#problem">Overview</a></li>
+        <li><a href="#how">Workflow illustration</a></li>
         <li><a href="#status">Status</a></li>
         <li><a href="#stack">Stack and links</a></li>
       </ol>
@@ -88,6 +90,14 @@
       <section id="problem" aria-labelledby="problem-title">
         <h2 id="problem-title">Overview</h2>
         <p>Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode result capture.</p>
+      </section>
+      <section id="how" aria-labelledby="how-title">
+        <h2 id="how-title">Workflow illustration</h2>
+        <figure class="diagram wide" data-diagram>
+          <script type="application/json">{"nodes":[{"id":"stage-0","label":"Practice","sub":"algorithms"},{"id":"stage-1","label":"Scheduling","sub":"spaced repetition"},{"id":"stage-2","label":"SQLite","sub":"local data"}],"edges":[{"from":"stage-0","to":"stage-1"},{"from":"stage-1","to":"stage-2"}]}</script>
+          <ol class="diagram-steps t-small"><li>Practice: Algorithm practice is the input to the review workflow.</li><li>Scheduling: The scheduler places the next review along the practice timeline.</li><li>SQLite: Scheduling data stays on the local machine in SQLite.</li></ol>
+          <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">Illustration of the workflow. Select a stage to follow its role.</span></figcaption>
+        </figure>
       </section>
       <section id="status" aria-labelledby="status-title">
         <h2 id="status-title">Status</h2>
@@ -148,10 +158,10 @@
   <span class="vh" role="status" aria-live="polite" data-index-status></span>
 </dialog>
 <span class="vh" aria-live="polite" data-announce></span>
-<script src="/js/theme.js?v=finish-1" defer></script>
-<script src="/assets/vendor/lenis.min.js?v=finish-1" defer></script>
-<script src="/js/motion.js?v=finish-1" defer></script>
-<script src="/js/diagram.js?v=finish-1" defer></script>
-<script src="/js/page.js?v=finish-1" defer></script>
+<script src="/js/theme.js?v=finish-2" defer></script>
+<script src="/assets/vendor/lenis.min.js?v=finish-2" defer></script>
+<script src="/js/motion.js?v=finish-2" defer></script>
+<script src="/js/diagram.js?v=finish-2" defer></script>
+<script src="/js/page.js?v=finish-2" defer></script>
 </body>
 </html>
