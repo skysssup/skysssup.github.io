@@ -308,7 +308,16 @@
     if (typeof osReduced.addEventListener === "function") osReduced.addEventListener("change", applyMotion);
 
     // Cross-document transitions are declared in CSS; skip them when motion is reduced on the site.
-    var skip = function (event) { if (event.viewTransition && reduced()) event.viewTransition.skipTransition(); };
+    var skip = function (event) {
+      var transition = event.viewTransition;
+      if (!transition) return;
+      // A navigation can abort when its destination is ineligible or a newer navigation wins.
+      // Those expected lifecycle rejections must not surface as page errors.
+      if (transition.ready && transition.ready.catch) transition.ready.catch(function () {});
+      if (transition.finished && transition.finished.catch) transition.finished.catch(function () {});
+      if (transition.updateCallbackDone && transition.updateCallbackDone.catch) transition.updateCallbackDone.catch(function () {});
+      if (reduced()) transition.skipTransition();
+    };
     win.addEventListener("pageswap", skip);
     win.addEventListener("pagereveal", skip);
 

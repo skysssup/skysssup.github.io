@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { scenes } from './scenes.mjs';
 
 const SRC = path.dirname(fileURLToPath(import.meta.url));
 const BODIES = path.join(SRC, 'bodies');
@@ -61,10 +62,12 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
+<link rel="stylesheet" href="/css/craft.css">
 ${extra}</head>`;
 }
 
-const BOOT = `(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
+// Embedded browsers may decline a cross-document transition after navigation starts.
+const BOOT = `(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);`;
 
 // The home page preloads the still that covers the figure until it is drawn, for the paper the page opens on (the
 // boot script has just set the theme and the gear): it is stippled from the ink map on light paper and from the light
@@ -87,41 +90,25 @@ function header(active) {
   const cur = name => (active === name ? ' aria-current="page"' : '');
   return `<a class="skip" href="#main">Skip to content</a>
 ${LINES}
-<div class="fx-flash" aria-hidden="true"></div>
 <header class="site-header">
-  ${LINES}
   <div class="row">
     <nav class="nav" aria-label="Primary">
-      <a class="home" href="/"${cur('home')}>Aakash Dahal</a>
+      <a class="home crest" href="/" aria-label="Home"${cur('home')}><svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><path d="M14 3v22M3 14h22M6 6l16 16M6 22 22 6"/><circle cx="14" cy="14" r="5"/></svg></a>
       <a href="/work/"${cur('work')}>Work</a>
       <a class="contact-link" href="/#contact">Contact</a>
     </nav>
-    <div class="header-mid">
-      <div class="gear" role="group" aria-label="Gear shift">
-        <button class="gear-pos glitch-text" type="button" data-gear-toggle><span class="vh">Gear </span>Two</button>
-        <button class="gear-pos glitch-text" type="button" data-gear-blue>Tide</button>
-        <span class="gear-gate" aria-hidden="true">${cog()}</span>
-      </div>
-      <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<span>Index</span><kbd aria-hidden="true">/</kbd></button>
-    </div>
-    <div class="header-end">
-      <button class="lamp" type="button" aria-pressed="true" aria-label="Lights" data-lamp><span class="lamp-label" aria-hidden="true">Lights</span><span class="lamp-track" aria-hidden="true"><span class="lamp-knob"></span></span></button>
+    <div class="header-tools">
+      <div class="palette-menu" role="group" aria-label="Color palette"><button class="tool-button palette-spot palette-rose" type="button" aria-label="Rose palette" aria-pressed="false" data-gear-toggle><span aria-hidden="true"></span></button><button class="tool-button palette-spot palette-blue" type="button" aria-label="Blue palette" aria-pressed="false" data-gear-blue><span aria-hidden="true"></span></button></div>
+      <span class="tool-divider" aria-hidden="true"></span>
+      <button class="tool-button theme-switch" type="button" aria-pressed="false" aria-label="Light theme" data-lamp><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/><path class="theme-rays" d="M10 1v2M10 17v2M1 10h2M17 10h2M3.6 3.6 5 5M15 15l1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg></button>
+      <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<kbd aria-hidden="true">/</kbd></button>
     </div>
   </div>
 </header>`;
 }
 
 function footer() {
-  const source = `https://github.com/${site.github}/${site.github}.github.io`;
-  return `<footer class="site-footer">
-  <div class="row sign-off rule">
-    <p class="sign-name">${site.name}${DOT}${year}</p>
-    <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="#main">Back to top${UP}</a></p>
-    <div class="sign-toggles">
-      <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
-    </div>
-  </div>
-</footer>
+  return `<footer class="site-footer"><div class="row footer-prefs"><button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button></div></footer>
 ${siteIndex()}`;
 }
 
@@ -155,7 +142,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=polish-2' : ''}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=craft-1' : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
@@ -183,9 +170,11 @@ function home() {
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
   return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
 <body class="page-home">
+<canvas class="scroll-field" data-scroll-field aria-hidden="true"></canvas>
+<nav class="scroll-waypoints" aria-label="Page sections"><span class="waypoint-line" aria-hidden="true"></span><a href="#hero" aria-label="Avatar"><span aria-hidden="true"></span><b>Avatar</b></a><a href="#work-list" aria-label="Work"><span aria-hidden="true"></span><b>Work</b></a><a href="#contact" aria-label="Contact"><span aria-hidden="true"></span><b>Contact</b></a></nav>
 ${header('home')}
 <main id="main">
-  <section class="hero" aria-labelledby="hero-name">
+  <section class="hero" id="hero" aria-labelledby="hero-name">
     <div class="row">
       <h1 class="vh" id="hero-name">Aakash Dahal</h1>
       <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles." data-still>
@@ -195,44 +184,43 @@ ${header('home')}
     </div>
   </section>
 
-  <section class="section work-stage" id="work-list" aria-labelledby="work-title" data-reveal>
-    <div class="row">
-      <div class="work-heading"><h2 id="work-title">Selected work</h2><a class="link-ui" href="/work/">All projects${OPEN}</a></div>
-      <div class="work-stage-body">
-        <div class="work-cylinder" data-work-cylinder>
-          <ol class="home-work">
-${projects.map((p, i) => `            <li style="--i:${i}"><div class="work-tilt"><a href="/work/${p.slug}/" data-work-link${vt(p)}><span class="idx">${pad(i + 1)}.</span><span class="name">${esc(p.name)}</span><span class="role">${esc(p.status)}</span><span class="work-arrow" aria-hidden="true">↗</span></a></div></li>`).join('\n')}
-          </ol>
-        </div>
-        <div class="work-details" data-work-detail>
-${projects.map((p, i) => `          <article class="work-card${i === 0 ? ' is-on' : ''}" aria-hidden="${i !== 0}"${i === 0 ? '' : ' inert'}>
-            <p class="work-card-count">${pad(i + 1)} / ${pad(projects.length)}</p>
-                        <h3 class="work-card-name">${esc(p.name)}</h3>
-            <p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p>
-            <p class="work-card-desc">${tie(esc(p.summary || p.tagline))}</p>
-            <ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
-            <a class="link-ui" href="/work/${p.slug}/">Case study${OPEN}</a>
-          </article>`).join('\n')}
-        </div>
+  <section class="workbench" id="work-list" aria-labelledby="work-title" data-workbench>
+    <div class="bench-title"><h2 id="work-title">Selected work</h2><a class="link-ui" href="/work/">All projects${OPEN}</a></div>
+    <div class="bench-body">
+      <nav class="project-orbit" aria-label="Select a project" data-orbit>
+        <canvas class="orbit-lattice" aria-hidden="true"></canvas>
+        <div class="orbit-window"><ol class="home-work">
+${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><button type="button" class="project-pick" disabled data-work-pick="${i}" aria-pressed="${i === 0}" aria-controls="project-${p.slug}"><span class="orbit-index">${pad(i + 1)}</span><span class="orbit-symbol" aria-hidden="true">${['✳','⌁','◇','↻','≋','⌇','▱','⟁'][i]}</span><span class="orbit-name">${esc(p.name)}</span><span class="orbit-status">${esc(p.status)}</span></button><a class="orbit-open" href="/work/${p.slug}/" aria-label="Open ${esc(p.name)}" data-work-link>↗</a></li>`).join('\n')}
+        </ol></div>
+        <div class="orbit-footer"><button type="button" class="orbit-step" aria-label="Previous project" data-orbit-step="-1">↑</button><output data-orbit-count aria-label="Selected project">01 / ${pad(projects.length)}</output><button type="button" class="orbit-step" aria-label="Next project" data-orbit-step="1">↓</button></div>
+      </nav>
+      <div class="work-details" data-work-detail>
+${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article class="work-card${i === 0 ? ' is-on' : ''}" id="project-${p.slug}" data-scene="${p.slug}" aria-hidden="${i !== 0}"${i ? ' inert' : ''}>
+          <div class="scene-heading"><span>${esc(s.label)}</span><span class="scene-number">${pad(i + 1)} / ${pad(projects.length)}</span></div>
+          <div class="scene-drawing">${s.svg}</div>
+          <div class="scene-toolbar"><span class="scene-caption">Interactive illustration</span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="${esc(s.action)}" data-active-label="${esc(s.active)}">${esc(s.action)} <span aria-hidden="true">↗</span></button></div>
+          <div class="scene-copy"><div><h3 class="work-card-name">${esc(p.name)}</h3><p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p></div><p class="work-card-desc">${esc(p.summary || p.tagline)}</p><ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul><div class="scene-links"><a class="link-ui" href="/work/${p.slug}/">${p.placeholder ? 'Project notes' : 'Case study'}${OPEN}</a>${p.repo ? `<a class="link-ui" href="${p.repo}">Source${ARROW}</a>` : ''}</div></div>
+        </article>`; }).join('\n')}
       </div>
+      <aside class="bench-profile" aria-label="Navigation">
+        <a class="profile-link" href="https://github.com/${site.github}">@${site.github}${ARROW}</a>
+        <div class="input-compass" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="39"/><circle cx="60" cy="60" r="20"/><path d="M60 10V110M10 60H110M24 24L96 96M24 96L96 24"/><g data-compass-pointer><circle cx="60" cy="60" r="3"/><path d="M55 60H65M60 55V65"/></g></svg></div>
+        <a class="link-ui profile-contact" href="#contact">Contact${OPEN}</a>
+      </aside>
     </div>
+    <div class="bench-floor"><span class="bench-category" data-bench-category>${themesOf(projects[0])}</span><div class="bench-keys"><kbd data-echo-key="ArrowUp">↑</kbd><kbd data-echo-key="ArrowDown">↓</kbd><span>Select</span><kbd data-echo-key="Home">Home</kbd><kbd data-echo-key="End">End</kbd></div><a href="#contact" class="link-ui">Email${ARROW}</a></div>
+    <script type="application/json" id="workbench-data">${JSON.stringify(projects.map(p => ({slug:p.slug, name:p.name, category:themesOf(p)}))).replace(/</g, '\u003c')}</script>
   </section>
 
-  <section class="section" id="contact" aria-labelledby="contact-title">
-    <div class="row band rule contact" data-reveal>
-      <h2 class="band-title" id="contact-title">Contact</h2>
-      <p class="band-note" data-contact-note>Email reaches me&nbsp;fastest.</p>
-      <ul class="hang-list contact-lines">
-        <li><span>Email</span><span><a href="mailto:${site.email}">${site.email}</a> <button class="copy" type="button" data-copy="${site.email}">Copy</button></span></li>
-        <li><span>X</span><span><a href="https://x.com/${site.x}">@${site.x}${ARROW}</a></span></li>
-        <li><span>GitHub</span><span><a href="https://github.com/${site.github}">${site.github}${ARROW}</a></span></li>
-      </ul>
-    </div>
+  <section class="contact-sheet" id="contact" aria-labelledby="contact-title" data-reveal>
+    <div class="contact-heading"><h2 id="contact-title">Contact</h2><p data-contact-note>Email reaches me fastest.</p></div>
+    <div class="contact-mail-row"><a class="contact-address" href="mailto:${site.email}"><span data-email-text>${site.email}</span><span aria-hidden="true">↗</span></a><button class="copy contact-copy" type="button" aria-label="Copy email address" data-copy="${site.email}"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M7 6V3h10v10h-3M3 7h10v10H3Z"/></svg><span data-copy-label>Copy</span></button></div>
+    <nav class="contact-social" aria-label="Elsewhere"><a href="https://github.com/${site.github}">GitHub <span aria-hidden="true">↗</span></a><a href="https://x.com/${site.x}">X <span aria-hidden="true">↗</span></a></nav>
   </section>
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js', '/js/workbench.js', '/js/scroll-field.js'])}
 </body>
 </html>
 `;
@@ -289,44 +277,16 @@ const SECTIONS = [
 ];
 
 function evidenceOf(p) {
-  const repo = p.repo
-    ? `The source is <a href="${p.repo}">${esc(p.repo.replace('https://', ''))}</a>.`
-    : 'The repository is private, so this page does not link it.';
-  const recording = p.lead
-    ? `The recording on this page is the evidence: ${esc(p.lead.caption)}`
-    : 'This project has no product recording on the site. The summary, status, and source are the evidence.';
-  const stack = p.stack.map(esc).join(', ');
   const prose = `      <section id="problem" aria-labelledby="problem-title">
-        <h2 id="problem-title">The problem</h2>
-        <p>${tie(esc(p.summary))} Status: ${esc(p.status)}. Visibility: ${esc(p.visibility)}.</p>
-      </section>
-      <section id="built" aria-labelledby="built-title">
-        <h2 id="built-title">What I built</h2>
-        <p>${tie(esc(p.description))} The stack named on this page is ${stack}.</p>
-      </section>
-      <section id="how" aria-labelledby="how-title">
-        <h2 id="how-title">How it works</h2>
-        <p>${tie(recording)} I am not publishing a reconstructed architecture here. ${repo}</p>
-      </section>
-      <section id="decisions" aria-labelledby="decisions-title">
-        <h2 id="decisions-title">Key decisions</h2>
-        <p>${tie('The public evidence is the summary, the media, and the source. A longer design narrative is not written yet, and this page does not invent one.')}</p>
-      </section>
-      <section id="hard" aria-labelledby="hard-title">
-        <h2 id="hard-title">What’s hard</h2>
-        <p>${tie(esc(p.tagline))} What is hard beyond that is in the repository, not restated here as an unverified claim.</p>
+        <h2 id="problem-title">Overview</h2>
+        <p>${esc(p.description)}</p>
       </section>
       <section id="status" aria-labelledby="status-title">
-        <h2 id="status-title">Status and next</h2>
-        <p>${tie(`Labeled ${p.status}. A full case narrative is in progress. This page keeps the verified summary, the real media, and the source link.`)}</p>
+        <h2 id="status-title">Status</h2>
+        <p>${esc(p.status)}. ${p.repo ? `<a href="${p.repo}">Source on GitHub</a>.` : 'Private repository.'}</p>
       </section>`;
-  const numbers = `          <dl>
-            <div><dt>${esc(p.status)}</dt><dd>Status labeled on this page</dd></div>
-            <div><dt>${esc(p.visibility)}</dt><dd>Repository visibility</dd></div>
-            <div><dt>${p.stack.length}</dt><dd>Named parts of the stack, listed below</dd></div>
-          </dl>`;
-  const sections = [...prose.matchAll(/<section id="([a-z-]+)" aria-labelledby="\1-title">\s*<h2 id="\1-title">([^<]+)<\/h2>/g)].map(m => [m[1], m[2]]);
-  return { prose, numbers, sections };
+  const numbers = `          <dl><div><dt>${esc(p.status)}</dt><dd>Status</dd></div><div><dt>${esc(p.visibility)}</dt><dd>Repository</dd></div></dl>`;
+  return { prose, numbers, sections: [['problem', 'Overview'], ['status', 'Status']] };
 }
 
 // A body file holds the case study's prose sections, then a `<!-- numbers -->` line, then the numbers <dl>.
@@ -356,10 +316,7 @@ function caseStudy(p, i) {
         <div class="fig-frame" data-reveal>${media(lead, { eager: true })}</div>
         <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie(esc(lead.caption))}</span></figcaption>
       </figure>`
-    : `<figure class="fig c2-4">
-        <div class="fig-frame type-plate"><div class="media-type plate-type"><span class="type-kicker">Type plate · no screenshot</span><span class="type-line">${tie(esc(p.summary))}</span></div></div>
-        <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie('Recall has no product screenshot on this site. The plate is the summary, on purpose.')}</span></figcaption>
-      </figure>`;
+    : '';
   const preload = lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '';
   return `${head({ title: `${p.name} — Aakash Dahal`, description: p.summary, url, image: `/assets/og/${p.slug}.png`, imageAlt: `${p.name}: ${p.tagline}`, type: 'article', extra: preload })}
 <body class="page-case" data-project="${p.slug}">
@@ -383,9 +340,7 @@ ${header('work')}
     </div>
   </div>
 
-  <div class="row lead-media">
-    ${leadFig}
-  </div>
+${leadFig ? `<div class="row lead-media">${leadFig}</div>` : ''}
 
   <div class="row case-body">
     <nav class="toc" aria-label="On this page">

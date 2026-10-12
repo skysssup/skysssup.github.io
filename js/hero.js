@@ -2006,7 +2006,7 @@
       // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
       var switching = live && now < glitchUntil;
       // a tear is drawn for at least one frame, even when frames come slower than 24 fps
-      var tearing = !switching && live && gear && !(touch && touch.dragging) && tear !== null && now >= tear.from &&
+      var tearing = !opts.noPointer && !switching && live && gear && !(touch && touch.dragging) && tear !== null && now >= tear.from &&
         (now < tear.until || (!tear.drawn && now < tear.until + 250));
       if (tearing) tear.drawn = true;
       var glitch = switching ? 1 : tearing ? tear.glitch : 0;
@@ -2257,6 +2257,7 @@
     }
 
     el.addEventListener("pointermove", function (e) {
+      if (opts.noPointer) return;
       if (!canInteract()) return;
       if (e.pointerType === "touch") {
         if (!touch || e.pointerId !== touch.id) return;
@@ -2292,6 +2293,7 @@
       } else pointer.inside = false;
     });
     el.addEventListener("pointerdown", function (e) {
+      if (opts.noPointer) return;
       if (!canInteract() || touch || (e.pointerType === "touch" && !e.isPrimary)) return;
       setPointer(e);
       if (e.pointerType === "touch") {

@@ -91,11 +91,12 @@ test('the header and footer are identical on every page apart from the current-p
   assert.match(html['work/index.html'], /<a href="\/work\/" aria-current="page">Work<\/a>/);
 });
 
-test('every case study has the full section structure, stack, and code link', () => {
+test('case studies retain their authored sections or concise project notes, stack, and code link', () => {
   for (const p of caseStudies) {
     const doc = html[p];
-    for (const id of ['problem', 'built', 'how', 'decisions', 'hard', 'status', 'stack']) assert.match(doc, new RegExp(`<section id="${id}"`), `${p} #${id}`);
-    for (const id of ['problem', 'built', 'how', 'decisions', 'hard', 'status', 'stack']) assert.match(doc, new RegExp(`<a href="#${id}">`), `${p} index links #${id}`);
+    const sections = fs.existsSync(path.join(root, 'tools/pages/bodies', p.split('/')[1] + '.html')) ? ['problem', 'built', 'how', 'decisions', 'hard', 'status', 'stack'] : ['problem', 'status', 'stack'];
+    for (const id of sections) assert.match(doc, new RegExp(`<section id="${id}"`), `${p} #${id}`);
+    for (const id of sections) assert.match(doc, new RegExp(`<a href="#${id}">`), `${p} index links #${id}`);
     assert.match(doc, /<dt class="t-label">Code<\/dt><dd>(<a href="https:\/\/github\.com\/skysssup\/[a-z-]+">|Private repository)/, `${p} code link`);
     assert.match(doc, /<nav class="row pager" aria-label="More projects">/, p);
   }
@@ -105,7 +106,7 @@ test('the work index lists every case study once, and the home page lists each o
   const listed = [...html['work/index.html'].matchAll(/<h2><a href="\/work\/([a-z-]+)\/"[^>]*>/g)].map(m => m[1]);
   assert.deepEqual([...listed].sort(), caseStudies.map(p => p.split('/')[1]).sort());
   const home = [...html['index.html'].matchAll(/<ol class="home-work">([\s\S]*?)<\/ol>/g)][0][1];
-  const slugs = [...home.matchAll(/<a href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]);
+  const slugs = [...home.matchAll(/<a\b[^>]*href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]);
   assert.deepEqual([...slugs].sort(), caseStudies.map(p => p.split('/')[1]).sort());
   assert.deepEqual(slugs, ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']);
   assert.doesNotMatch(html['index.html'], /Work by theme/);

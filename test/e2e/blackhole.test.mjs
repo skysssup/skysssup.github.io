@@ -32,7 +32,7 @@ test('only the black-hole animation plays automatically, then leaves the origina
     await page.waitForFunction(() => document.querySelector('#figure').classList.contains('is-live') || document.querySelector('#figure').classList.contains('is-fallback'));
     assert.equal(await page.locator('#figure').getAttribute('data-intro'), null, 'do not chain the old automatic gear intro');
     await page.locator('#work-list').scrollIntoViewIfNeeded();
-    await page.locator('[data-work-link]').first().focus();
+    await page.locator('[data-work-pick]').first().focus();
     assert.equal(await page.locator('.work-card.is-on h3').innerText(), 'AgentCrucible');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);

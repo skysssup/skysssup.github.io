@@ -79,31 +79,12 @@ test('axe finds no accessibility violations at any width in any mode', async () 
   }
 });
 
-test('content sits on the sheet: left edges on a line or its inset, right-aligned ends likewise, centred blocks on a line', async () => {
-  const blocks = '.row > *, .plate > *, .plate-caption > *, .project > *, .hang-list > * > *, .prose > section > *, .case-title > *, .aside > *, .numbers dl > * > *, .meta dd';
+test('content rails stay inside the viewport across pages and screen sizes', async () => {
   for (const url of PAGES) for (const [width, height] of WIDTHS) {
     const { page, context } = await open(url, { width, height, touch: width < 768 });
-    const off = await page.evaluate(sel => {
-      const spans = [...document.querySelectorAll('body > .lines > span')].filter(s => getComputedStyle(s).display !== 'none');
-      const majors = spans.map(s => s.getBoundingClientRect().left).concat(spans[spans.length - 1].getBoundingClientRect().right);
-      const lines = majors.flatMap((x, i) => i < majors.length - 1 ? [x, x + (majors[i + 1] - x) / 3, x + (majors[i + 1] - x) * 2 / 3] : [x]);
-      const p = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--p'));
-      const near = (x, list) => list.some(a => Math.abs(a - x) <= 0.5);
-      const found = [];
-      for (const el of document.querySelectorAll(sel)) {
-        const cs = getComputedStyle(el);
-        const r = el.getBoundingClientRect();
-        if (el.closest('.site-header') || cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed' || !r.width || !r.height) continue;
-        const inner = [r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight)];
-        let ok;
-        if (cs.justifySelf === 'center') ok = near((r.left + r.right) / 2, lines);
-        else if (cs.justifySelf === 'end') ok = near(r.right, lines) || near(inner[1], lines.map(x => x - p));
-        else ok = near(r.left, lines.flatMap(x => [x, x + p])) || near(inner[0], lines.flatMap(x => [x, x + p]));
-        if (!ok) found.push(`${el.tagName.toLowerCase()}.${[...el.classList].join('.')} at ${r.left.toFixed(1)}–${r.right.toFixed(1)}`);
-      }
-      return found;
-    }, blocks);
-    assert.deepEqual(off, [], `${url} ${width}`);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, url + ' ' + width);
+    const rails = await page.locator('.row, .workbench, .contact-sheet').evaluateAll(elements => elements.filter(el => el.getBoundingClientRect().width > 0).map(el => { const box = el.getBoundingClientRect(); return {left:box.left,right:box.right}; }));
+    for (const box of rails) assert.ok(box.left >= -1 && box.right <= width + 1, url + ' ' + width + ' content rail');
     await context.close();
   }
 });
@@ -113,7 +94,7 @@ test('below the header, nothing is boxed on four sides except the panel, the dia
     const { page, context } = await open(url, { width, height, touch: width < 768 });
     if (view === 'grid') await page.click('button[data-work-view="grid"]');
     const boxed = await page.evaluate(() => [...document.querySelectorAll('main *, .site-footer *')].filter(el => {
-      if (el.closest('.panel, dialog, .btn') || el.matches('input, select, textarea')) return false;
+      if (el.closest('.panel, dialog, .btn, .scene-drawing') || el.matches('input, select, textarea, button, kbd')) return false;
       const cs = getComputedStyle(el);
       return cs.display !== 'none' && ['Top', 'Right', 'Bottom', 'Left'].every(side => parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== 'none' && cs[`border${side}Color`] !== 'rgba(0, 0, 0, 0)');
     }).map(el => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`));
@@ -314,22 +295,15 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
   await context.close();
 });
 
-test('the home page lists every project, and the contact rule draws in once seen', async () => {
+test('the home page keeps every project and a concise contact section', async () => {
   const { page, context, problems } = await open('/');
-  assert.equal(await page.getByText('Work by theme').count(), 0);
-  const names = await page.locator('.home-work .name').allTextContents();
+  const names = await page.locator('.orbit-name').allTextContents();
   assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO']);
-  const band = page.locator('#contact .band');
-  assert.equal(await band.evaluate(el => el.classList.contains('is-seen')), false, 'a rule below the fold waits');
-  assert.equal(await band.evaluate(el => getComputedStyle(el, '::before').transform), 'matrix(0, 0, 0, 1, 0, 0)', 'the waiting rule has no width');
-  await band.scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#contact .band'), '::before').transform === 'none');
+  assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
+  await page.locator('#contact').scrollIntoViewIfNeeded();
+  assert.equal(await page.locator('[data-contact-note]').innerText(), 'Email reaches me fastest.');
   assert.deepEqual(problems, []);
   await context.close();
-  const still = await open('/', { reduced: true });
-  assert.equal(await still.page.locator('.home-work a').count(), 8);
-  assert.equal(await still.page.locator('#contact .band').evaluate(el => getComputedStyle(el).borderTopColor !== 'rgba(0, 0, 0, 0)'), true, 'the rule is simply there under reduced motion');
-  await still.context.close();
 });
 
 test('contact stays concise and the public page has no rendering or construction controls', async () => {

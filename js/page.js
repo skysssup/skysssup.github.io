@@ -107,24 +107,28 @@
     doc.addEventListener("click", function (event) {
       var button = event.target && event.target.closest ? event.target.closest("[data-copy]") : null;
       if (!button) return;
+      var copyLabel = function (text) {
+        var label = button.querySelector("[data-copy-label]");
+        if (label) label.textContent = text; else button.textContent = text;
+      };
       var unavailable = function () {
         var address = button.parentNode.querySelector('a[href^="mailto:"]');
         if (address && win.getSelection) {
           var range = doc.createRange();
-          range.selectNodeContents(address);
+          range.selectNodeContents(address.querySelector("[data-email-text]") || address);
           var selection = win.getSelection();
           selection.removeAllRanges();
           selection.addRange(range);
         }
         say("Automatic copying is unavailable. Select and copy the email address, or open the email link.");
-        button.textContent = "Select";
-        win.setTimeout(function () { button.textContent = "Copy"; }, 2400);
+        copyLabel("Select");
+        win.setTimeout(function () { copyLabel("Copy"); }, 2400);
       };
       if (!win.navigator.clipboard) { unavailable(); return; }
       win.navigator.clipboard.writeText(button.getAttribute("data-copy")).then(function () {
-        button.textContent = "Copied";
+        copyLabel("Copied");
         say("Email address copied");
-        win.setTimeout(function () { button.textContent = "Copy"; }, 1600);
+        win.setTimeout(function () { copyLabel("Copy"); }, 1600);
       }, unavailable);
     });
 
@@ -348,7 +352,7 @@
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
         line: "",
-        still: true,
+        noPointer: true,
         motion: motion,
         intro: false
       });

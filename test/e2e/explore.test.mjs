@@ -25,6 +25,7 @@ async function open(url = '/work/', { width = 1440, mode = 'light', reduced = tr
     reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: width < 768, isMobile: width < 768, javaScriptEnabled,
   });
   await context.addInitScript(() => sessionStorage.setItem('sky-intro', 'seen'));
+  await context.addInitScript(m => localStorage.setItem('sky-theme', m === 'light' ? 'light' : 'dark'), mode);
   if (mode === 'gear') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'two'));
   if (mode === 'blue') await context.addInitScript(() => sessionStorage.setItem('sky-gear', 'blue'));
   if (seed) await context.addInitScript(seed);
@@ -214,7 +215,7 @@ test('printing from an open index restores the complete page and hides navigatio
   assert.equal(await page.locator('dialog').isVisible(), false);
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
   assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'visible');
-  assert.equal(await page.locator('.contact-lines').isVisible(), true);
+  assert.equal(await page.locator('.contact-sheet').isVisible(), true);
   await context.close();
 });
 
@@ -222,7 +223,7 @@ test('the caption offers no lightning to call down, and the still covers the fig
   const { page, context, errors } = await open('/', { reduced: false });
   await page.waitForFunction(() => document.querySelector('#figure').classList.contains('is-live'));
   assert.equal(await page.locator('[data-hero-ripple]').count(), 0);
-  assert.doesNotMatch(await page.locator('.fig-note').textContent(), /lightning/i);
+  assert.equal(await page.locator('.fig-note').count(), 0);
   const box = await page.locator('#figure').boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(300);

@@ -41,6 +41,7 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
           // Exercise the renderer's optional interactive mode independently of the still homepage.
           document.documentElement.removeAttribute('data-polished');
           args[1].still = false;
+          args[1].noPointer = false;
           args[1].line = 'Aakash Dahal';
           window.__heroApi = mount.apply(this, args);
           return window.__heroApi;
