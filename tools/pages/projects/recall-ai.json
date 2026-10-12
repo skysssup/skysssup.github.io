@@ -1,8 +1,8 @@
 {
  "slug": "recall-ai",
  "name": "Recall",
- "visibility": "Public",
- "repo": "https://github.com/skysssup/recall-ai",
+ "visibility": "Private",
+ "repo": null,
  "themes": [
   "developer-tools"
  ],
