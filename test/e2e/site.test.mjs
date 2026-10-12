@@ -204,7 +204,16 @@ test('the pointer stays native while restored avatar trails respect reduced moti
     await page.mouse.move(200, 400);
     await page.mouse.move(800, 500, { steps: 20 });
     assert.notEqual(await page.locator('body').evaluate(el => getComputedStyle(el).cursor), 'none');
-    if (mode === 'gear') await page.locator('.fx-ember.is-on').waitFor();
+    if (mode === 'gear') {
+      // This zero-size anchor paints a 220px pseudo-element, so inspect its paint.
+      await page.waitForFunction(() => {
+        const glow = document.querySelector('.fx-ember.is-on');
+        if (!glow) return false;
+        const anchor = getComputedStyle(glow), paint = getComputedStyle(glow, '::before');
+        return Number(anchor.opacity) > 0 && anchor.display !== 'none' && paint.visibility === 'visible' && parseFloat(paint.width) >= 220 && parseFloat(paint.height) >= 220 && paint.backgroundImage !== 'none';
+      });
+      assert.equal(await page.locator('.fx-embers').isVisible(), true);
+    }
     await page.locator('[data-motion-toggle]').click();
     assert.equal(await page.locator('.fx-embers').isVisible(), false);
     await context.close();

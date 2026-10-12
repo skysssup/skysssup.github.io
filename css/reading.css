@@ -11,7 +11,7 @@
 
 .page-case .prose section[id],
 .page-case .case-head,
-.page-case #stack { scroll-margin-top: 8px; }
+.page-case #stack { scroll-margin-top: 0; }
 
 .page-case .fig figcaption,
 .page-case .diagram figcaption,
@@ -63,7 +63,8 @@
 .page-case .fig,
 .page-case .diagram { min-width: 0; }
 .page-case .fig-frame {
-  border: 1px solid var(--line-strong);
+  border: 0;
+  border-block: 1px solid var(--line-strong);
   background: var(--wash);
 }
 .page-case .fig-frame img,
