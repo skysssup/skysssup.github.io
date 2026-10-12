@@ -204,6 +204,25 @@ test('mobile first and last cards center, and narrow pages do not overflow', asy
   });
 });
 
+test('resizing during mobile keyboard selection preserves its requested endpoint', async () => {
+  await withPage({ url: '/#work-list', reduced: false }, async (page, errors) => {
+    await readyBench(page);
+    await page.locator('[data-work-pick="1"]').click();
+    await settle(page);
+    await page.setViewportSize({width:390,height:844});
+    await page.locator('[data-work-pick="1"]').focus();
+    await page.keyboard.press('End');
+    await page.setViewportSize({width:391,height:844});
+    await page.waitForFunction(() => SkyWorkbench.selected()===7 && SkyWorkbench.settled());
+    const offset=await page.evaluate(() => {
+      const card=document.querySelector('.orbit-item.is-active').getBoundingClientRect(), viewport=document.querySelector('.orbit-window').getBoundingClientRect();
+      return (card.left+card.right-viewport.left-viewport.right)/2;
+    });
+    assert.ok(Math.abs(offset)<1, `resized endpoint is ${offset}px off center`);
+    assert.deepEqual(errors,[]);
+  });
+});
+
 test('narrow pages do not grow a horizontal scrollbar', async () => {
   await withPage({ url: '/work/', width: 390, height: 800, touch: true }, async (page, errors) => {
     for (const width of [320, 390]) {

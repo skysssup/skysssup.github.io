@@ -23,7 +23,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ASSET_VERSION = 'finish-3';
+const ASSET_VERSION = 'finish-4';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';

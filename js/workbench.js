@@ -282,7 +282,7 @@
     });
     lattice.width = Math.round(width * dpr); lattice.height = Math.round(height * dpr);
     latticeInk = getComputedStyle(bench).getPropertyValue('--bench-ink').trim() || '#d4d0b0';
-    x = target; velocity = 0; if (followingWheel) select(Math.round(x), false); connectionBounds = connectionGeometry = null; sceneBounds = sceneTransform = null; pose(); feedback();
+    x = target; velocity = 0; select(Math.round(x), false); connectionBounds = connectionGeometry = null; sceneBounds = sceneTransform = null; pose(); feedback();
     sceneLayout(); revealScene();
     automaticPreview();
     if (mobile.matches && selected >= 0) viewport.scrollTo({ left: items[selected].offsetLeft + items[selected].offsetWidth / 2 - viewport.clientWidth / 2, behavior: 'instant' });
