@@ -20,16 +20,17 @@
 <meta name="twitter:creator" content="@skysssup">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#090a0b">
-<link rel="icon" href="/favicon.ico?v=crest-1" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
-<link rel="icon" href="/assets/favicon-32.png?v=crest-1" type="image/png" sizes="32x32">
-<link rel="icon" href="/assets/favicon.svg?v=crest-1" type="image/svg+xml" sizes="any">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=crest-1" sizes="180x180">
+<link rel="icon" href="/favicon.ico?v=finish-1" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
+<link rel="icon" href="/assets/favicon-32.png?v=finish-1" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/favicon.svg?v=finish-1" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=finish-1" sizes="180x180">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);</script>
-<link rel="stylesheet" href="/css/site.css?v=crest-1">
-<link rel="stylesheet" href="/css/polish.css?v=crest-1">
-<link rel="stylesheet" href="/css/craft.css?v=crest-1">
+<link rel="stylesheet" href="/css/site.css?v=finish-1">
+<link rel="stylesheet" href="/css/polish.css?v=finish-1">
+<link rel="stylesheet" href="/css/craft.css?v=finish-1">
+<link rel="stylesheet" href="/css/finish.css?v=finish-1">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"Developer tools and interactive physics software."}</script>
 </head>
 <body class="page-home">
@@ -52,7 +53,7 @@
       </div>
       <span class="tool-divider" aria-hidden="true"></span>
       <button class="tool-button theme-switch" type="button" aria-pressed="false" aria-label="Light theme" data-lamp><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/><path class="theme-rays" d="M10 1v2M10 17v2M1 10h2M17 10h2M3.6 3.6 5 5M15 15l1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg></button>
-      <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><kbd aria-hidden="true">/</kbd></button>
+      <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><kbd aria-hidden="true">/</kbd></button>
     </div>
   </div>
 </header>
@@ -156,7 +157,7 @@
     <div><p class="t-label muted">Navigate</p><h2 id="index-title">Site index</h2></div>
     <button class="index-close" type="button" aria-label="Close site index (Esc)" data-index-close><span class="t-label">Esc</span><span aria-hidden="true">×</span></button>
   </div>
-  <label class="index-search" for="index-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search></label>
+  <div class="index-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search><button type="button" aria-label="Clear index search" data-index-clear hidden>×</button></div>
   <div class="index-content" data-lenis-prevent>
     <nav class="index-pages" aria-label="Pages">
       <a href="/" data-index-item data-search="home aakash dahal">Home <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a>
@@ -185,14 +186,14 @@
   <span class="vh" role="status" aria-live="polite" data-index-status></span>
 </dialog>
 <span class="vh" aria-live="polite" data-announce></span>
-<script src="/js/theme.js?v=crest-1" defer></script>
-<script src="/assets/vendor/lenis.min.js?v=crest-1" defer></script>
-<script src="/js/motion.js?v=crest-1" defer></script>
-<script src="/js/blackhole.js?v=crest-1" defer></script>
-<script src="/js/hero.js?v=crest-1" defer></script>
-<script src="/js/page.js?v=crest-1" defer></script>
-<script src="/js/workbench.js?v=crest-1" defer></script>
-<script src="/js/scroll-field.js?v=crest-1" defer></script>
-<script src="/js/presence.js?v=crest-1" defer></script>
+<script src="/js/theme.js?v=finish-1" defer></script>
+<script src="/assets/vendor/lenis.min.js?v=finish-1" defer></script>
+<script src="/js/motion.js?v=finish-1" defer></script>
+<script src="/js/blackhole.js?v=finish-1" defer></script>
+<script src="/js/hero.js?v=finish-1" defer></script>
+<script src="/js/page.js?v=finish-1" defer></script>
+<script src="/js/workbench.js?v=finish-1" defer></script>
+<script src="/js/scroll-field.js?v=finish-1" defer></script>
+<script src="/js/presence.js?v=finish-1" defer></script>
 </body>
 </html>

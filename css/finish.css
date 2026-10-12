@@ -1,0 +1,39 @@
+/* Final surface rules. The original avatar renderer and materials are untouched. */
+:root[data-polished] .nav a { min-height: 44px; display: inline-flex; align-items: center; font-size: 11px; }
+:root[data-polished] .nav .crest { width: 44px; min-height: 44px; }
+:root[data-polished] .header-tools .tool-button,
+:root[data-polished] .avatar-modes .avatar-mode { width: 44px; min-width: 44px; height: 44px; }
+:root[data-polished] .header-tools .search-switch { width: auto; min-width: 44px; }
+:root[data-polished] .tool-button::after { top: 48px; padding: 7px 10px; color: var(--ink); line-height: 16px; z-index: 2; transition-delay: 0s; }
+:root[data-polished] .tool-button:hover::after { transition-delay: .35s; }
+:root[data-polished] .tool-button:focus-visible::after { transition-delay: 0s; }
+:root[data-polished] .header-tools .tool-button::before { bottom: 4px; }
+:root[data-polished] :is(a,button,input):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.index-projects a:focus-visible { outline-offset: -3px; background: var(--wash); }
+.index-search input::-webkit-search-cancel-button { display: none; }
+.index-search [data-index-clear] { flex: none; width: 44px; height: 44px; font-size: 22px; color: var(--muted); }
+.index-search [data-index-clear]:hover { color: var(--ink); }
+.index-search:focus-within { outline-width: 1px; }
+:root[data-polished] .index-search input:focus-visible { outline: none; }
+.index-pages a, .index-motion, .index-close, .footer-prefs .motion-toggle { min-height: 44px; }
+.footer-prefs .motion-toggle { font-size: 10px; }
+.index-project-name > span { font-size: 11px; line-height: 18px; margin-top: 2px; }
+.index-footer { padding-top: 8px; padding-bottom: 8px; }
+.index-projects a svg { stroke-width: 1; }
+@media (max-width: 760px) {
+  :root[data-polished] { --header-h: 56px; }
+  :root[data-polished] .site-header .row { gap: 4px; }
+  :root[data-polished] .nav { gap: 8px; }
+  :root[data-polished] .nav .crest { width: 36px; }
+  :root[data-polished] .header-tools .search-switch { width: 44px; }
+  .tool-divider { margin: 0 3px; }
+  .avatar-modes .avatar-mode svg { width: 22px; height: 22px; }
+}
+@media (max-width: 359px) {
+  :root[data-polished] { --header-h: 100px; }
+  :root[data-polished] .site-header .row { flex-wrap: wrap; align-content: center; justify-content: center; gap: 0; }
+  :root[data-polished] .nav { width: 100%; justify-content: space-between; border-bottom: 1px solid var(--line); }
+  :root[data-polished] .header-tools { width: 100%; justify-content: space-between; }
+  :root[data-polished] .tool-button::after { display: none; }
+}
+@media (hover: none) { :root[data-polished] .tool-button::after { display: none; } }

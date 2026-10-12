@@ -23,7 +23,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ASSET_VERSION = 'crest-1';
+const ASSET_VERSION = 'finish-1';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
@@ -66,6 +66,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <link rel="stylesheet" href="/css/site.css?v=${ASSET_VERSION}">
 <link rel="stylesheet" href="/css/polish.css?v=${ASSET_VERSION}">
 <link rel="stylesheet" href="/css/craft.css?v=${ASSET_VERSION}">
+<link rel="stylesheet" href="/css/finish.css?v=${ASSET_VERSION}">
 ${extra}</head>`;
 }
 
@@ -107,7 +108,7 @@ ${LINES}
       </div>
       <span class="tool-divider" aria-hidden="true"></span>
       <button class="tool-button theme-switch" type="button" aria-pressed="false" aria-label="Light theme" data-lamp><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/><path class="theme-rays" d="M10 1v2M10 17v2M1 10h2M17 10h2M3.6 3.6 5 5M15 15l1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg></button>
-      <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<kbd aria-hidden="true">/</kbd></button>
+      <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<kbd aria-hidden="true">/</kbd></button>
     </div>
   </div>
 </header>`;
@@ -124,7 +125,7 @@ function siteIndex() {
     <div><p class="t-label muted">Navigate</p><h2 id="index-title">Site index</h2></div>
     <button class="index-close" type="button" aria-label="Close site index (Esc)" data-index-close><span class="t-label">Esc</span><span aria-hidden="true">×</span></button>
   </div>
-  <label class="index-search" for="index-search">${SEARCH}<input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search></label>
+  <div class="index-search">${SEARCH}<input id="index-search" type="search" placeholder="Find a project, page, or technology" aria-label="Search the site index" autocomplete="off" spellcheck="false" enterkeyhint="go" data-index-search><button type="button" aria-label="Clear index search" data-index-clear hidden>×</button></div>
   <div class="index-content" data-lenis-prevent>
     <nav class="index-pages" aria-label="Pages">
       <a href="/" data-index-item data-search="home aakash dahal">Home ${NEXT}</a>
