@@ -112,12 +112,11 @@ test('section links land each section just under the header, with smooth scrolli
       await link.scrollIntoViewIfNeeded();
       await page.waitForTimeout(100);
       await link.click();
-      for (let last = -1, i = 0; i < 50; i++) {
-        await page.waitForTimeout(100);
-        const y = await page.evaluate(() => scrollY);
-        if (y === last && i >= 3) break;
-        last = y;
-      }
+      await page.waitForFunction(({ id, header }) => {
+        const top = document.getElementById(id).getBoundingClientRect().top;
+        const bottom = scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
+        return Math.abs(top - (header + 24)) <= 2 || (bottom && top >= header);
+      }, { id, header }, { timeout: 10000 });
       const { top, bottom } = await page.evaluate(i => ({ top: document.getElementById(i).getBoundingClientRect().top, bottom: scrollY + innerHeight >= document.documentElement.scrollHeight - 2 }), id);
       if (!bottom) assert.ok(Math.abs(top - (header + 24)) <= 2, `#${id} ${reduced ? 'reduced' : 'smooth'}: top at ${top}, expected ${header + 24}`);
       else assert.ok(top >= header, `#${id} hidden under the header at the end of the page`);

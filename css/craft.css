@@ -446,3 +446,6 @@ html[data-motion="reduced"] .is-probed .physics-ball { transform: translate(426p
   .contact-copy [data-copy-label] { font-size: 9px; }
   .scene-svg text { font-size: 14px; }
 }
+
+:root[data-polished] .home-work .orbit-open { right: 4px; top: 5px; border: 0; background: transparent; color: var(--bench-dim); }
+:root[data-polished] .home-work .orbit-open:hover { color: var(--bench-hot); }

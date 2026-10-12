@@ -17,7 +17,7 @@
   var pointer = { x: .5, y: .5, tx: .5, ty: .5, inside: false }, sceneBounds = null, sceneTransform = null;
   var compass = bench.querySelector('[data-compass-pointer]'), announcement = document.querySelector('[data-announce]');
   var connections = bench.querySelector("[data-bench-connections]"), connectionContext = connections && connections.getContext("2d");
-  var connectionBounds = null;
+  var connectionBounds = null, connectionGeometry = null;
   var keyTimers = new Map(), latticeInk = '#d4d0b0';
   var echoKeys = new Map(Array.from(bench.querySelectorAll('[data-echo-key]')).map(function (key) { return [key.dataset.echoKey, key]; }));
   var wheelTimer = 0, mobileScrollTimer = 0, suppressClickUntil = 0;
@@ -31,7 +31,7 @@
     next = clamp(Math.round(next), 0, items.length - 1);
     if (next === selected) return;
     var old = selected;
-    selected = next; posedX = NaN;
+    selected = next; posedX = NaN; connectionGeometry = null;
     cards.forEach(function (card, i) {
       var on = i === selected;
       card.classList.toggle('is-on', on);
@@ -88,17 +88,25 @@
   }
   function drawConnections() {
     if (!connectionContext || mobile.matches || selected < 0) return;
-    var body = bench.querySelector('.bench-body'), rect = body.getBoundingClientRect();
-    // Read geometry once per animation frame, after the wheel's transforms have been written.
-    if (!connectionBounds || connectionBounds.width !== rect.width || connectionBounds.height !== rect.height) {
-      connectionBounds = { width: rect.width, height: rect.height };
-      connections.width = Math.round(rect.width * dpr); connections.height = Math.round(rect.height * dpr);
+    if (!connectionGeometry) {
+      var rect = bench.querySelector('.bench-body').getBoundingClientRect();
+      var rail = viewport.getBoundingClientRect();
+      var to = cards[selected].querySelector('.scene-drawing').getBoundingClientRect();
+      connectionGeometry = { width: rect.width, height: rect.height, sourceX: rail.left - rect.left, sourceY: rail.top - rect.top, railWidth: viewport.clientWidth, toX: to.left - rect.left, toY: to.top - rect.top + 26 };
+      if (!connectionBounds || connectionBounds.width !== rect.width || connectionBounds.height !== rect.height) {
+        connectionBounds = { width: rect.width, height: rect.height };
+        connections.width = Math.round(rect.width * dpr); connections.height = Math.round(rect.height * dpr);
+      }
     }
-    var c = connectionContext, from = picks[selected].getBoundingClientRect();
-    var to = cards[selected].querySelector('.scene-drawing').getBoundingClientRect();
-    var ax = from.right - rect.left + 4, ay = from.top - rect.top + from.height / 2;
-    var bx = to.left - rect.left, by = to.top - rect.top + 26, elbow = ax + Math.max(6, (bx - ax) * .5);
-    c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,rect.width,rect.height);
+    // Project the card's centre with the same perspective as the wheel.
+    // Geometry is read on selection/resize, rather than forcing layout every frame.
+    var g = connectionGeometry, delta = selected - x, distance = Math.abs(delta);
+    var proximity = Math.max(0,1 - distance / 3), shift = Math.pow(Math.min(3,distance),1.5) * -4;
+    var projection = 900 / (900 - proximity * 12);
+    var ax = g.sourceX + g.railWidth / 2 + (g.railWidth / 2 + shift) * projection + 4;
+    var ay = g.sourceY + height / 2 + (focusY + delta * spacing - height / 2) * projection;
+    var bx = g.toX, by = g.toY, elbow = ax + Math.max(6,(bx - ax) * .5), c = connectionContext;
+    c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,g.width,g.height);
     c.strokeStyle = latticeInk; c.lineWidth = .65; c.globalAlpha = .35;
     c.beginPath(); c.moveTo(ax,ay); c.lineTo(elbow,ay); c.lineTo(elbow,by); c.lineTo(bx,by); c.stroke();
     c.globalAlpha = .8; c.fillStyle = latticeInk;
@@ -153,7 +161,7 @@
     dpr = Math.min(devicePixelRatio || 1, 1.5);
     lattice.width = Math.round(width * dpr); lattice.height = Math.round(height * dpr);
     latticeInk = getComputedStyle(bench).getPropertyValue('--bench-ink').trim() || '#d4d0b0';
-    x = target; velocity = 0; if (followingWheel) select(Math.round(x), false); connectionBounds = null; sceneBounds = sceneTransform = null; pose(); feedback();
+    x = target; velocity = 0; if (followingWheel) select(Math.round(x), false); connectionBounds = connectionGeometry = null; sceneBounds = sceneTransform = null; pose(); feedback();
   }
   picks.forEach(function (pick, i) {
     pick.disabled = false;

@@ -62,7 +62,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=craft-2">
+<link rel="stylesheet" href="/css/craft.css?v=craft-3">
 ${extra}</head>`;
 }
 
@@ -149,7 +149,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=craft-2' : ''}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=craft-3' : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }

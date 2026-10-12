@@ -29,6 +29,9 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
   await context.addInitScript(() => { try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {} });
   await context.addInitScript(theme => localStorage.setItem('sky-theme', theme), scheme);
   await context.addInitScript(() => {
+    // Page snapshot transitions pause rAF; isolate shader timing from that lifecycle.
+    // Native navigation and theme transitions are covered by site and motion checks.
+    Object.defineProperty(document, 'startViewTransition', { configurable: true, value: undefined });
     const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [], u_life: [], u_ember: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
     let api;
     Object.defineProperty(window, 'SkyHero', {
@@ -463,12 +466,14 @@ test('Tide comes in with a vortex that settles as a sheen crosses it, then keeps
   const { page } = await open(t, { scheme: 'dark' });
   await live(page);
   await page.waitForTimeout(500);
+  await page.locator('[data-palette-open]').click();
   const clicked = await page.evaluate(() => { document.querySelector('[data-gear-blue]').click(); return performance.now(); });
   const after = (series, at) => series.filter(([time]) => time > at);
   await page.waitForFunction(at => { const s = window.__heroProbe.series.u_vortex.filter(([time]) => time > at); return s.some(([, v]) => v > 0.5) && s.at(-1)[1] === 0; }, clicked, { timeout: 8000 });
   const vortex = after((await state(page)).series.u_vortex, clicked), peak = vortex.findIndex(([, v]) => v > 0.5);
   const settled = vortex.slice(peak).find(([, v]) => v === 0);
   assert.ok(settled[0] - clicked < 1600, `the dots lift into a vortex and settle within 1.6 s of the click (${Math.round(settled[0] - clicked)} ms)`);
+  await page.waitForFunction(at => window.__heroProbe.series.u_sheen.some(([time, value]) => time > at && value > .02 && value < .98), clicked, { timeout: 3000 });
   assert.ok(after((await state(page)).series.u_sheen, clicked).some(([, x]) => x > 0.02 && x < 0.98), 'and a sheen crosses the blue figure as it settles');
   await page.waitForTimeout(6000);
   const { series, uniforms } = await state(page);

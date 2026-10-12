@@ -28,7 +28,7 @@
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r){var m=/[?&]theme=(ai-systems|developer-tools|physics-software)(&|$)/.exec(location.search);if(m)r.setAttribute("data-filter",m[1]);try{if(localStorage.getItem("sky-work-view")==="grid")r.setAttribute("data-work-view","grid")}catch(e){}})(document.documentElement);</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css?v=craft-2">
+<link rel="stylesheet" href="/css/craft.css?v=craft-3">
 </head>
 <body class="page-work">
 <a class="skip" href="#main">Skip to content</a>
@@ -152,9 +152,9 @@
   <span class="vh" role="status" aria-live="polite" data-index-status></span>
 </dialog>
 <span class="vh" aria-live="polite" data-announce></span>
-<script src="/js/theme.js?v=craft-2" defer></script>
-<script src="/assets/vendor/lenis.min.js?v=craft-2" defer></script>
-<script src="/js/motion.js?v=craft-2" defer></script>
-<script src="/js/page.js?v=craft-2" defer></script>
+<script src="/js/theme.js?v=craft-3" defer></script>
+<script src="/assets/vendor/lenis.min.js?v=craft-3" defer></script>
+<script src="/js/motion.js?v=craft-3" defer></script>
+<script src="/js/page.js?v=craft-3" defer></script>
 </body>
 </html>
