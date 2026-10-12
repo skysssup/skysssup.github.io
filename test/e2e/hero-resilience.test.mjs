@@ -33,6 +33,8 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
     // Native navigation and theme transitions are covered by site and motion checks.
     Object.defineProperty(document, 'startViewTransition', { configurable: true, value: undefined });
     const probe = window.__heroProbe = { draws: 0, programs: 0, buffers: 0, arrays: 0, uploads: [], uniforms: {}, series: { u_sheen: [], u_glitch: [], u_tint: [], u_flow: [], u_swap: [], u_bank: [], u_vortex: [], u_beat: [], u_tide: [], u_life: [], u_ember: [] }, firstDraws: [], touches: [], capture: false, pixels: null };
+    probe.series.u_stir = [];
+    probe.series.u_rip = [];
     let api;
     Object.defineProperty(window, 'SkyHero', {
       configurable: true,
@@ -78,7 +80,7 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
         const result = original.call(this, location, ...values);
         const name = locations.get(location);
         if (hero(this)) probe.uniforms[name] = method === 'uniform4fv' ? Array.from(values[0]) : values;
-        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_flow' ? values[1] : name === 'u_swap' || name === 'u_tide' ? values.slice() : values[0]]);
+        if (hero(this) && probe.series[name]) probe.series[name].push([performance.now(), name === 'u_rip' ? Array.from(values[0]) : name === 'u_flow' ? values[1] : name === 'u_swap' || name === 'u_tide' || name === 'u_stir' ? values.slice() : values[0]]);
         return result;
       };
     }
@@ -372,11 +374,13 @@ test('horizontal touch drags rotate through the springs and cancellation release
   const touch = await touchAt(context, page);
   const scroll = await page.evaluate(() => scrollY);
   await touch.send('touchStart');
+  const beforeRight = (await state(page)).draws;
   await touch.send('touchMove', touch.x + 140, touch.y + 10);
-  await page.waitForTimeout(650);
+  // Observe rendered spring frames rather than elapsed host time on software GPUs.
+  await page.waitForFunction(n => window.__heroProbe.draws >= n + 12, beforeRight);
   const right = (await state(page)).uniforms.u_rot[0];
   for (const dx of [70, 14, 0, -14, -70, -140]) await touch.send('touchMove', touch.x + dx, touch.y + 10);
-  await page.waitForTimeout(850);
+  await page.waitForFunction(yaw => yaw - window.__heroProbe.uniforms.u_rot[0] > 0.06, right);
   const left = await state(page);
   assert.ok(right - left.uniforms.u_rot[0] > 0.06, `a horizontal drag must change yaw (${right} -> ${left.uniforms.u_rot[0]})`);
   assert.equal(left.uniforms.u_pointer[2], 0);
@@ -734,9 +738,11 @@ test('the cursor stirs the dots, slow or quick, and blows none off the figure', 
   await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.55);
   for (let i = 1; i <= 8; i++) { await page.mouse.move(box.x + box.width * (0.55 + i * 0.005), box.y + box.height * 0.55); await page.waitForTimeout(120); }
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_pointer[2] > 0.5);
+  const sweepAt = await page.evaluate(() => performance.now());
   await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.45, { steps: 4 });
   await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.6, { steps: 4 });
-  await page.waitForFunction(() => Math.hypot(window.__heroProbe.uniforms.u_stir[0], window.__heroProbe.uniforms.u_stir[1]) > 200);
+  // The stir is transient: assert the actual rendered peak, even after it settles.
+  await page.waitForFunction(at => window.__heroProbe.series.u_stir.some(([time, value]) => time >= at && Math.hypot(value[0], value[1]) > 200), sweepAt);
   assert.equal((await state(page)).uniforms.u_puff, undefined, 'a quick sweep drags the dots with it and leaves no dust');
 });
 
@@ -760,10 +766,10 @@ test('the figure wears its materials\' colors, keeps 40% of them in Gear Two, an
   const painted = await capture(page);
   assert.ok(painted.colored > 300, `${painted.colored} colored pixels: the wings and the caduceus should carry gold`);
   assert.deepEqual((await state(page)).uniforms.u_tint, [1]);
-  await page.evaluate(() => window.skyGear.setGear(true));
+  const redAt = await page.evaluate(() => { const at = performance.now(); window.skyGear.setGear(true); return at; });
   await page.waitForFunction(() => Math.abs(window.__heroProbe.uniforms.u_tint[0] - 0.4) < 1e-6, null, { timeout: 3000 });
-  await page.waitForFunction(() => window.__heroProbe.uniforms.u_rip.some((value, i) => i % 4 === 3 && value > 0));
-  assert.ok((await state(page)).uniforms.u_rip.some((value, i) => i % 4 === 3 && value > 0), 'a manual red appearance retains the original lightning');
+  await page.waitForFunction(at => window.__heroProbe.series.u_rip.some(([time, values]) => time >= at && values.some((value, i) => i % 4 === 3 && value > 0)), redAt);
+  assert.ok((await state(page)).series.u_rip.some(([time, values]) => time >= redAt && values.some((value, i) => i % 4 === 3 && value > 0)), 'a manual red appearance renders the original lightning before it settles');
   await page.waitForFunction(() => window.__heroProbe.uniforms.u_positive[0] === 1, null, { timeout: 10000 });
   const plain = await open(t, { setup: page => page.route('**/assets/hero/color.webp', route => route.abort()) });
   await live(plain.page);
