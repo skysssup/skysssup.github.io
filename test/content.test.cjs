@@ -21,7 +21,7 @@ function resolve(url) {
 
 test('every page has a title, description, canonical URL, and complete share tags', () => {
   for (const [p, doc] of Object.entries(html)) {
-    assert.match(doc, /<html lang="en">/, p);
+    assert.match(doc, /<html\b[^>]*\blang="en"[^>]*>/, p);
     assert.match(doc, /<title>[^<]{5,}<\/title>/, p);
     assert.ok((meta(doc, 'description') || '').length > 30, `${p} description`);
     if (p === '404.html') { assert.match(doc, /<meta name="robots" content="noindex">/); continue; }

@@ -234,6 +234,10 @@
       press(next);
       if (next === mode) return;
       if (reduced()) { setGear(next, transient); return; }
+      if (root.getAttribute("data-polished") !== null) {
+        fade(function () { if (run === seq) setGear(next, transient); });
+        return;
+      }
       if (next === "two") {
         shockwave(origin);
         root.setAttribute("data-phase", "flash");

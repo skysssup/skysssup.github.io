@@ -1236,6 +1236,9 @@
 
   function mount(el, opts) {
     var motion = opts.motion || { reduced: function () { return false; }, subscribe: function () {} };
+    // A still portrait redraws for resize/theme changes, but never responds to pointer input
+    // or starts an ambient animation loop. Page transitions keep their own motion setting.
+    if (opts.still) motion = { reduced: function () { return true; }, subscribe: function () {} };
     var base = opts.base || "/assets/hero/";
     var line = (opts.line || "").toUpperCase();
     var canvas = document.createElement("canvas");

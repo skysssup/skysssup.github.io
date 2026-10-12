@@ -32,7 +32,7 @@ const NEXT = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke
 
 function head({ title, description, url, image, imageAlt, type = 'website', boot = '', extra = '' }) {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-polished>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -60,6 +60,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/polish.css">
 ${extra}</head>`;
 }
 
@@ -101,7 +102,6 @@ ${LINES}
         <button class="gear-pos glitch-text" type="button" data-gear-blue>Tide</button>
         <span class="gear-gate" aria-hidden="true">${cog()}</span>
       </div>
-      <button class="grid-switch" type="button" aria-pressed="false" aria-keyshortcuts="g" data-grid-toggle>Grid</button>
       <button class="index-open" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<span>Index</span><kbd aria-hidden="true">/</kbd></button>
     </div>
     <div class="header-end">
@@ -116,9 +116,8 @@ function footer() {
   return `<footer class="site-footer">
   <div class="row sign-off rule">
     <p class="sign-name">${site.name}${DOT}${year}</p>
-    <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="${source}/blob/main/docs/design-spec.md">Design spec${ARROW}</a><a href="#main">Back to top${UP}</a></p>
+    <p class="sign-links"><a href="${source}">Source${ARROW}</a><a href="#main">Back to top${UP}</a></p>
     <div class="sign-toggles">
-      <button class="grid-toggle" type="button" aria-pressed="false" aria-label="Construction grid" data-grid-toggle><span aria-hidden="true">Grid</span> <b aria-hidden="true" data-grid-state>Off</b></button>
       <button class="motion-toggle" type="button" aria-pressed="false" aria-label="Reduce motion Off" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
     </div>
   </div>
@@ -156,7 +155,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=polish-2' : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
@@ -188,35 +187,27 @@ ${header('home')}
 <main id="main">
   <section class="hero" aria-labelledby="hero-name">
     <div class="row">
-      <div class="intro">
-        <h1 class="vh" id="hero-name">Aakash Dahal</h1>
-        <div class="intro-actions"><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
-      </div>
-      <div class="hero-figure" id="figure" role="img" aria-label="My GitHub avatar, a winged statue raising a caduceus, drawn as a turning sculpture of dots inside a ring that reads: ${esc(site.ringLine)}." data-ring="${esc(site.ringLine)}">
+      <h1 class="vh" id="hero-name">Aakash Dahal</h1>
+      <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles." data-still>
         <div class="still" aria-hidden="true"></div>
       </div>
-      <aside class="essentially panel" aria-labelledby="why-title">
-        <h2 class="panel-head" id="why-title">${esc(site.why.title)}</h2>
-        <p class="panel-body">${tie(esc(site.why.body))}</p>
-      </aside>
-      <div class="fig-note"><p class="t-label muted">Fig. 0${DOT}Interactive sculpture</p><p class="t-small">My GitHub avatar as <span data-dot-count>${site.dots}</span> dots in five materials, lifted into 3D with a monocular depth map. <span class="fine">Move the cursor to stir them.</span><span class="coarse">Drag sideways to turn it.</span></p><p class="fig-telemetry t-label muted num" data-hero-telemetry aria-hidden="true" hidden></p></div>
+      <div class="hero-links"><a class="link-ui" href="#work-list">Selected work <span class="go" aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
     </div>
   </section>
 
   <section class="section work-stage" id="work-list" aria-labelledby="work-title" data-reveal>
     <div class="row">
-      <h2 class="vh" id="work-title">Work</h2>
+      <div class="work-heading"><h2 id="work-title">Selected work</h2><a class="link-ui" href="/work/">All projects${OPEN}</a></div>
       <div class="work-stage-body">
         <div class="work-cylinder" data-work-cylinder>
           <ol class="home-work">
-${projects.map((p, i) => `            <li style="--i:${i}"><div class="work-tilt"><a href="/work/${p.slug}/" data-work-link${vt(p)}><span class="idx">${pad(i + 1)}.</span><span class="name">${esc(p.name)}</span><span class="role">${esc(p.status)}</span></a></div></li>`).join('\n')}
+${projects.map((p, i) => `            <li style="--i:${i}"><div class="work-tilt"><a href="/work/${p.slug}/" data-work-link${vt(p)}><span class="idx">${pad(i + 1)}.</span><span class="name">${esc(p.name)}</span><span class="role">${esc(p.status)}</span><span class="work-arrow" aria-hidden="true">↗</span></a></div></li>`).join('\n')}
           </ol>
         </div>
         <div class="work-details" data-work-detail>
 ${projects.map((p, i) => `          <article class="work-card${i === 0 ? ' is-on' : ''}" aria-hidden="${i !== 0}"${i === 0 ? '' : ' inert'}>
             <p class="work-card-count">${pad(i + 1)} / ${pad(projects.length)}</p>
-            <span class="work-card-accent" aria-hidden="true"></span>
-            <h3 class="work-card-name">${esc(p.name)}</h3>
+                        <h3 class="work-card-name">${esc(p.name)}</h3>
             <p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p>
             <p class="work-card-desc">${tie(esc(p.summary || p.tagline))}</p>
             <ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
@@ -241,7 +232,7 @@ ${projects.map((p, i) => `          <article class="work-card${i === 0 ? ' is-on
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js?v=blackhole-1'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js'])}
 </body>
 </html>
 `;

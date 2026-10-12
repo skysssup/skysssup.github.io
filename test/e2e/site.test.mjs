@@ -185,135 +185,42 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
   await context.close();
 });
 
-test('Gear Two flashes, glitches, settles, turns the page red, and survives navigation', async () => {
+test('color modes crossfade without glitches and persist across navigation', async () => {
   const { page, context, problems } = await open('/');
-  await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
-  await page.waitForTimeout(1500);
-  const gear = page.locator('[data-gear-toggle]');
-  await page.evaluate(() => {
-    const root = document.documentElement;
-    window.phases = [];
-    window.ringSeen = false;
-    new MutationObserver(() => window.phases.push([root.getAttribute('data-phase'), root.getAttribute('data-gear')])).observe(root, { attributes: true, attributeFilter: ['data-phase'] });
-    new MutationObserver(records => { for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains('fx-ring')) window.ringSeen = true; }).observe(document.body, { childList: true });
-  });
-  await gear.click();
-  await page.waitForFunction(() => window.phases.length >= 4);
-  assert.deepEqual(await page.evaluate(() => window.phases), [['flash', null], ['glitch', 'two'], ['settle', 'two'], [null, 'two']]);
-  assert.equal(await gear.getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.evaluate(() => window.ringSeen), true, 'a shockwave ring leaves the switch');
-  await page.waitForFunction(() => !document.querySelector('.fx-ring'), null, { timeout: 3000 });
-  assert.match(await page.evaluate(() => document.documentElement.style.getPropertyValue('--beat-delay')), /^-0\.\d+s$/, 'CSS pulses are phased to the heartbeat clock');
-  const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-  assert.equal(accent.toLowerCase(), '#ff3b30');
-  assert.equal(await page.evaluate(() => document.getElementById('figure').classList.contains('is-live')), true, 'the hero keeps drawing through the glitch');
-  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.hero-figure'), '::before').backgroundImage), 'none', 'the figure glows in Gear Two');
-  await page.click('a[href="/work/"]');
-  await page.waitForLoadState('networkidle');
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
-  await page.locator('[data-gear-toggle]').click();
-  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-gear'));
-  assert.deepEqual(problems, []);
-  await context.close();
-});
-
-test('Tide is reached from the gear shift: it surges, turns the page blue, survives navigation, gives way to the lights, and is instant under reduced motion', async () => {
-  const { page, context, problems } = await open('/');
-  await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
-  await page.waitForTimeout(1500);
-  const tide = page.locator('[data-gear-blue]'), two = page.locator('[data-gear-toggle]');
-  assert.equal(await tide.getAttribute('aria-pressed'), 'false');
-  await page.evaluate(() => {
-    const root = document.documentElement;
-    window.phases = [];
-    window.ringSeen = false;
-    new MutationObserver(() => window.phases.push([root.getAttribute('data-phase'), root.getAttribute('data-gear')])).observe(root, { attributes: true, attributeFilter: ['data-phase', 'data-gear'] });
-    new MutationObserver(records => { for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains('fx-tide')) window.ringSeen = true; }).observe(document.body, { childList: true });
-  });
-  await tide.click();
-  assert.equal(await tide.getAttribute('aria-pressed'), 'true', 'the knob moves to Tide as it is pressed');
-  assert.equal(await two.getAttribute('aria-pressed'), 'false');
-  await page.waitForFunction(() => window.phases.length >= 3);
-  assert.deepEqual(await page.evaluate(() => window.phases), [['surge', null], ['surge', 'blue'], [null, 'blue']], 'the palette turns during the surge, then the surge clears');
-  assert.equal(await page.evaluate(() => window.ringSeen), true, 'a ring of light leaves the gear shift');
-  await page.waitForFunction(() => !document.querySelector('.fx-tide'), null, { timeout: 3000 });
-  assert.match(await page.evaluate(() => document.documentElement.style.getPropertyValue('--tide-delay')), /^-\d\.\d{3}s$/, 'CSS pulses are phased to the tide\'s clock');
-  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().toLowerCase()), '#3d8bff');
-  assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#060a14');
-  assert.equal(await page.getAttribute('[data-lamp]', 'aria-pressed'), 'false', 'Tide reads as lights off');
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.gear')).animationName), 'gear-tide', 'the gear shift breathes with the tide');
-  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), 'blue');
-  assert.equal(await page.evaluate(() => document.getElementById('figure').classList.contains('is-live')), true, 'the hero keeps drawing');
-  await page.click('a[href="/work/"]');
-  await page.waitForLoadState('networkidle');
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'blue', 'it lasts for the session');
-  assert.equal(await page.getAttribute('[data-gear-blue]', 'aria-pressed'), 'true');
+  for (const [selector, value] of [['[data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
+    await page.locator(selector).click();
+    await page.waitForFunction(value => document.documentElement.getAttribute('data-gear') === value, value);
+    assert.equal(await page.locator('html').getAttribute('data-phase'), null);
+    assert.equal(await page.locator('.fx-ring, .fx-tide').count(), 0);
+    await page.goto(site.origin + '/work/');
+    assert.equal(await page.locator('html').getAttribute('data-gear'), value);
+  }
   await page.locator('[data-lamp]').click();
-  await page.waitForTimeout(950);
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the lights leave Tide');
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'light');
-  assert.equal(await page.evaluate(() => sessionStorage.getItem('sky-gear')), null);
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light');
+  assert.equal(await page.locator('html').getAttribute('data-gear'), null);
   assert.deepEqual(problems, []);
   await context.close();
-
-  const still = await open('/work/', { reduced: true });
-  await still.page.locator('[data-gear-blue]').focus();
-  await still.page.keyboard.press('Enter');
-  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'blue', 'reached by keyboard, at once');
-  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-phase')), null);
-  assert.equal(await still.page.locator('.fx-tide').count(), 0);
-  assert.match(await still.page.evaluate(() => { const s = getComputedStyle(document.activeElement); return s.outlineStyle + ' ' + s.outlineWidth; }), /solid 2px/);
-  await still.page.keyboard.press('Space');
-  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-gear')), null, 'the engaged gear pressed again is neutral');
-  await still.page.locator('[data-gear-toggle]').click();
-  await still.page.locator('[data-gear-blue]').click();
-  assert.equal(await still.page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'blue', 'straight from Gear Two to Tide');
-  assert.deepEqual(await still.page.$$eval('.gear-pos', bs => bs.map(b => b.getAttribute('aria-pressed'))), ['false', 'true']);
-  assert.deepEqual(still.problems, []);
-  await still.context.close();
 });
 
-test('in Gear Two embers follow a fine pointer and stop when it rests; never in Tide, on touch, under reduced motion, or in print', async () => {
-  const sweep = async page => { for (let i = 0; i <= 40; i++) await page.mouse.move(200 + i * 22, 420 + Math.sin(i / 5) * 120); };
-  const count = page => page.evaluate(() => {
-    const proto = CanvasRenderingContext2D.prototype, arc = proto.arc;
-    window.__embers = 0;
-    proto.arc = function (...args) { if (this.canvas.classList.contains('fx-embers')) window.__embers++; return arc.apply(this, args); };
-  });
-  const { page, context, problems } = await open('/work/', { mode: 'gear' });
-  await count(page);
-  await sweep(page);
-  await page.waitForTimeout(150);
-  assert.ok(await page.evaluate(() => window.__embers) > 20, 'a sweep sheds embers');
-  assert.equal(await page.locator('.fx-embers').isVisible(), true);
-  assert.equal(await page.locator('.fx-ember').evaluate(el => el.classList.contains('is-on') && el.getAttribute('aria-hidden') === 'true'), true, 'the glow follows the pointer, hidden from assistive technology');
-  assert.equal(await page.locator('.fx-embers').evaluate(el => getComputedStyle(el).pointerEvents), 'none');
-  await page.waitForTimeout(1800);
-  const settled = await page.evaluate(() => window.__embers);
-  await page.waitForTimeout(600);
-  assert.equal(await page.evaluate(() => window.__embers), settled, 'nothing is drawn once the pointer rests and the embers have faded');
-  assert.equal(await page.locator('.fx-embers').evaluate(c => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0)), false, 'and the canvas is clear');
-  await page.emulateMedia({ media: 'print' });
-  assert.equal(await page.locator('.fx-embers').isVisible(), false, 'none in print');
-  assert.equal(await page.locator('.fx-ember').evaluate(el => getComputedStyle(el).display), 'none');
-  await page.emulateMedia({ media: 'screen' });
-  await page.locator('[data-gear-blue]').click();
-  await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'blue');
-  assert.equal(await page.locator('.fx-embers').isVisible(), false, 'gone the moment Gear Two ends');
-  const before = await page.evaluate(() => window.__embers);
-  await sweep(page);
-  await page.waitForTimeout(150);
-  assert.equal(await page.evaluate(() => window.__embers), before, 'none in Tide');
-  assert.deepEqual(problems, []);
+test('color modes support keyboard input and reduced motion without visual effects', async () => {
+  const { page, context } = await open('/work/', { reduced: true });
+  await page.locator('[data-gear-blue]').focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('html').getAttribute('data-gear'), 'blue');
+  assert.equal(await page.locator('html').getAttribute('data-phase'), null);
+  assert.equal(await page.locator('.fx-tide').count(), 0);
+  await page.keyboard.press('Space');
+  assert.equal(await page.locator('html').getAttribute('data-gear'), null);
   await context.close();
+});
 
-  for (const options of [{ mode: 'gear', reduced: true }, { mode: 'gear', width: 390, height: 844, touch: true }]) {
-    const other = await open('/work/', options);
-    await other.page.mouse.move(100, 400);
-    await other.page.mouse.move(300, 420);
-    await other.page.waitForTimeout(150);
-    assert.equal(await other.page.locator('.fx-embers, .fx-ember').count(), 0, `none ${options.reduced ? 'under reduced motion' : 'on touch'}`);
-    await other.context.close();
+test('the pointer stays native and leaves no decorative trails in any color mode', async () => {
+  for (const mode of ['gear', 'blue']) {
+    const { page, context } = await open('/work/', { mode });
+    await page.mouse.move(200, 400);
+    await page.mouse.move(800, 500, { steps: 20 });
+    assert.equal(await page.locator('.fx-embers, .fx-ember').count(), 0);
+    await context.close();
   }
 });
 
@@ -353,48 +260,8 @@ test('the theme filter on /work shows matching projects, updates the URL, and re
   await context.close();
 });
 
-test('hovering a project on the home list brightens the ring for a moment, and the figure takes a click', async () => {
-  const { page, context, problems } = await open('/');
-  await page.waitForFunction(() => document.getElementById('figure').classList.contains('is-live'));
-  assert.match(await page.getAttribute('#figure', 'aria-label'), new RegExp(`a ring that reads: ${await page.getAttribute('#figure', 'data-ring')}\\.$`));
-  await page.waitForTimeout(2200);
-  // per frame, how strongly the ring draws its glyphs (the sum of their alphas): steady while it turns, higher while brightened
-  await page.evaluate(() => {
-    const proto = CanvasRenderingContext2D.prototype, fill = proto.fillText, clear = proto.clearRect;
-    let sum = 0;
-    window.__ring = [];
-    proto.clearRect = function (...args) {
-      if (this.canvas.classList.contains('hero-words')) { if (sum) window.__ring.push([performance.now(), sum]); sum = 0; }
-      return clear.apply(this, args);
-    };
-    proto.fillText = function (...args) {
-      if (this.canvas.classList.contains('hero-words')) sum += this.globalAlpha;
-      return fill.apply(this, args);
-    };
-  });
-  await page.waitForTimeout(600);
-  // measured from the moment the link is entered: Playwright's hover waits for the link to hold still over two frames
-  // first, which under software rendering can take most of a second
-  await page.evaluate(() => document.querySelector('[data-work-link]').addEventListener('mouseenter', () => { window.__entered = performance.now(); }, { once: true }));
-  await page.hover('[data-work-link]');
-  await page.waitForTimeout(1100);
-  const hovered = await page.evaluate(() => window.__entered);
-  const frames = await page.evaluate(() => window.__ring);
-  const median = list => list.slice().sort((a, b) => a - b)[list.length >> 1];
-  const rest = median(frames.filter(([time]) => time < hovered).map(([, v]) => v));
-  const peak = Math.max(...frames.filter(([time]) => time > hovered && time < hovered + 500).map(([, v]) => v));
-  const after = median(frames.filter(([time]) => time > hovered + 700).map(([, v]) => v));
-  assert.ok(peak > rest * 1.3, `hovering a project brightens the ring (${rest.toFixed(1)} -> ${peak.toFixed(1)})`);
-  assert.ok(after < rest * 1.1, `and it settles back within 400 ms (${peak.toFixed(1)} -> ${after.toFixed(1)})`);
-  const fig = page.locator('#figure');
-  const box = await fig.boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 5 });
-  await page.mouse.down();
-  await page.mouse.up();
-  await page.waitForTimeout(400);
-  assert.deepEqual(problems, []);
-  await context.close();
-});
+// Still portrait input and idle rendering are covered in polish.test.mjs.
+
 
 test('case-study videos play on screen, pause on request, and stay still under reduced motion', async () => {
   const { page, context } = await open('/work/agentcrucible/');
@@ -465,19 +332,10 @@ test('the home page lists every project, and the contact rule draws in once seen
   await still.context.close();
 });
 
-test('contact stays concise, and G draws the construction grid for the session', async () => {
+test('contact stays concise and the public page has no rendering or construction controls', async () => {
   const { page, context, problems } = await open('/');
-  assert.equal(await page.textContent('[data-contact-note]'), 'Email reaches me fastest.');
-  assert.equal(await page.locator('[data-dial]').count(), 0, 'the time dial is removed');
-  await page.keyboard.press('g');
-  assert.equal(await page.getAttribute('html', 'data-grid'), 'on');
-  assert.deepEqual(await page.$$eval('[data-grid-toggle]', bs => bs.map(b => b.getAttribute('aria-pressed'))), ['true', 'true']);
-  assert.notEqual(await page.locator('body > .lines span').first().evaluate(el => getComputedStyle(el, '::before').content), 'none', 'the minor columns and insets are drawn');
-  await page.reload({ waitUntil: 'networkidle' });
-  assert.equal(await page.getAttribute('html', 'data-grid'), 'on', 'it lasts for the session');
-  await page.locator('.sign-off [data-grid-toggle]').click();
-  assert.equal(await page.getAttribute('html', 'data-grid'), null);
-  assert.equal(await page.textContent('.sign-off [data-grid-state]'), 'Off');
+  assert.equal((await page.textContent('[data-contact-note]')).replace(/\s+/g, ' '), 'Email reaches me fastest.');
+  assert.equal(await page.locator('[data-dial], [data-grid-toggle], [data-hero-telemetry], .essentially').count(), 0);
   assert.deepEqual(problems, []);
   await context.close();
 });

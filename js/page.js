@@ -345,53 +345,12 @@
     var hero = null;
     function mountHero() {
       if (!figure || !win.SkyHero) return;
-      var counters = doc.querySelectorAll("[data-dot-count]");
-      var telemetry = doc.querySelector("[data-hero-telemetry]");
-      var degrees = function (rad) { var d = rad * 180 / Math.PI; return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + "°"; };
-      // The opening (js/hero.js INTRO) plays when the page is opened: once a tab, again on a reload, never under
-      // reduced motion. It takes the page into Gear Two and back without saving it, and any press, key, or scroll
-      // ends it; a press on a gear or the lights then acts on the page as it is.
-      var opening = false;
-      if (!motion.reduced() && !win.SkyBlackHole) {
-        try {
-          var arrival = win.performance && win.performance.getEntriesByType ? win.performance.getEntriesByType("navigation")[0] : null;
-          opening = !win.sessionStorage.getItem("sky-intro") || !!(arrival && arrival.type === "reload");
-          win.sessionStorage.setItem("sky-intro", "seen");
-        } catch (e) { opening = true; }
-      }
-      var interrupts = ["pointerdown", "keydown", "wheel"];
-      var interrupt = function (event) {
-        var target = event.target;
-        if (hero) hero.skipIntro(!!(target && target.closest && target.closest("[data-gear-toggle], [data-gear-blue], [data-lamp]")));
-      };
       hero = win.SkyHero.mount(figure, {
         base: "/assets/hero/",
-        line: figure.getAttribute("data-ring") || "",
+        line: "",
+        still: true,
         motion: motion,
-        intro: opening,
-        onIntro: function (step) {
-          if ((step === "red" || step === "back") && win.skyGear) win.skyGear.switchGear(step === "red", figure, true);
-          if (step === "done") interrupts.forEach(function (type) { doc.removeEventListener(type, interrupt, true); });
-        },
-        onCount: function (n) {
-          var text = n.toLocaleString("en-US");
-          for (var i = 0; i < counters.length; i++) { counters[i].textContent = text; counters[i].setAttribute("data-final", text); }
-        },
-        onTelemetry: function (state) {
-          if (!telemetry) return;
-          var parts = ["yaw " + degrees(state.yaw), "pitch " + degrees(state.pitch)];
-          if (state.live) parts.push((state.ms < 0.05 ? "<0.1" : state.ms.toFixed(1)) + " ms/frame");
-          if (state.gear) parts.push(Math.round(60 / win.skyGear.BEAT) + " bpm");
-          telemetry.textContent = "";
-          parts.forEach(function (text) { var span = doc.createElement("span"); span.textContent = text; telemetry.appendChild(span); });
-          telemetry.hidden = false;
-        }
-      });
-      if (opening) interrupts.forEach(function (type) { doc.addEventListener(type, interrupt, { capture: true, passive: true }); });
-      // hovering or focusing a piece of work brightens the ring for a moment
-      Array.prototype.forEach.call(doc.querySelectorAll("[data-work-link]"), function (link) {
-        link.addEventListener("mouseenter", function () { hero.highlight(); });
-        link.addEventListener("focus", function () { hero.highlight(); });
+        intro: false
       });
     }
 
@@ -403,7 +362,7 @@
        -ember, -cool, -glow), so another gear could take its own. Nothing runs under reduced motion or without a fine
        pointer that hovers, and nothing is drawn once the pointer rests and the last ember has faded. */
     var finePointer = win.matchMedia ? win.matchMedia("(hover: hover) and (pointer: fine)") : null;
-    if (finePointer && win.requestAnimationFrame) {
+    if (finePointer && win.requestAnimationFrame && !doc.documentElement.hasAttribute("data-polished")) {
       var EMBERS = 56, SPACING = 9;
       var trail = null, embers = [], spark = { x: 0, y: 0, gx: 0, gy: 0, at: 0, carry: 0, shown: false }, sparkRaf = 0, sparkLast = 0, dirty = null;
       var rgbOf = function (ctx, css) {
@@ -758,8 +717,8 @@
             tilt.style.opacity = "";
           } else {
             var delta = i - aim, dist = Math.abs(delta);
-            tilt.style.transform = "rotateX(" + Math.max(-18, Math.min(18, 5 * delta)).toFixed(2) + "deg) translateZ(" + (12 - Math.min(4, dist) * 7).toFixed(2) + "px)";
-            tilt.style.opacity = String(Math.max(0.48, 1 - 0.13 * dist));
+            tilt.style.transform = "rotateX(" + Math.max(-18, Math.min(18, 2 * delta)).toFixed(2) + "deg) translateZ(" + (4 - Math.min(4, dist) * 2).toFixed(2) + "px)";
+            tilt.style.opacity = String(Math.max(0.7, 1 - 0.07 * dist));
           }
           links[i].classList.toggle("is-active", i === hot);
         });
