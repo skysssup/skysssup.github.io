@@ -137,12 +137,12 @@ test('browser history restores filters and saved views keep matching rows', asyn
   await page.reload({ waitUntil: 'networkidle' });
   assert.equal(await page.locator('html').getAttribute('data-work-view'), 'grid');
   assert.equal(await page.locator('button[data-work-view="grid"]').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('.project[data-project="airforge"] img').getAttribute('sizes'), '(max-width: 767px) 100vw, 50vw');
+  assert.equal(await page.locator('.project[data-project="airforge"] h2 a').getAttribute('href'), '/work/airforge/');
   assert.deepEqual(await visibleProjects(page), ['airforge']);
   await page.locator('button[data-work-view="list"]').click();
   await page.locator('[data-work-search]').fill('rapier');
   assert.equal(await page.locator('html').getAttribute('data-work-view'), 'list');
-  assert.equal(await page.locator('.project[data-project="airforge"] img').getAttribute('sizes'), '(max-width: 767px) 50vw, 25vw');
+  assert.equal(await page.locator('.project[data-project="airforge"] img').count(), 0);
   await context.close();
 });
 

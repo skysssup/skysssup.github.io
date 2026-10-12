@@ -62,7 +62,7 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css">
+<link rel="stylesheet" href="/css/craft.css?v=craft-2">
 ${extra}</head>`;
 }
 
@@ -98,7 +98,14 @@ ${LINES}
       <a class="contact-link" href="/#contact">Contact</a>
     </nav>
     <div class="header-tools">
-      <div class="palette-menu" role="group" aria-label="Color palette"><button class="tool-button palette-spot palette-rose" type="button" aria-label="Rose palette" aria-pressed="false" data-gear-toggle><span aria-hidden="true"></span></button><button class="tool-button palette-spot palette-blue" type="button" aria-label="Blue palette" aria-pressed="false" data-gear-blue><span aria-hidden="true"></span></button></div>
+      <div class="palette-menu">
+        <button class="tool-button palette-trigger" type="button" aria-label="Color palette" aria-expanded="false" aria-controls="palette-options" data-palette-open><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12"/><path class="palette-needle" d="M7 3v4M13 8v4M9 13v4"/></svg></button>
+        <div class="palette-options" id="palette-options" role="group" aria-label="Choose color palette" hidden>
+          <button class="palette-option palette-stone" type="button" aria-label="Stone palette" aria-pressed="true" data-gear-neutral><span aria-hidden="true"></span>Stone<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
+          <button class="palette-option palette-rose" type="button" aria-label="Rose palette" aria-pressed="false" data-gear-toggle><span aria-hidden="true"></span>Rose<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
+          <button class="palette-option palette-blue" type="button" aria-label="Blue palette" aria-pressed="false" data-gear-blue><span aria-hidden="true"></span>Blue<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
+        </div>
+      </div>
       <span class="tool-divider" aria-hidden="true"></span>
       <button class="tool-button theme-switch" type="button" aria-pressed="false" aria-label="Light theme" data-lamp><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/><path class="theme-rays" d="M10 1v2M10 17v2M1 10h2M17 10h2M3.6 3.6 5 5M15 15l1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg></button>
       <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open>${SEARCH}<kbd aria-hidden="true">/</kbd></button>
@@ -142,7 +149,7 @@ ${projects.map((p, i) => `        <li data-index-item data-search="${esc([p.name
 }
 
 function scripts(list) {
-  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=craft-1' : ''}" defer></script>`).join('\n');
+  return list.map(s => `<script src="${s}${s.endsWith('.js') ? '?v=craft-2' : ''}" defer></script>`).join('\n');
 }
 
 function themesOf(p, sep = ' · ') { return p.themes.map(t => themeName[t]).join(sep); }
@@ -166,6 +173,8 @@ function cover(p, sizes, priority = '') {
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
 /* ── home ─────────────────────────────────────────── */
+const PROJECT_MARKS = ["<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4 18.4 5.6\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m3 17 8-11 10 11H3ZM3 21h18M11 6v11\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 8 4v6c0 4-4 7-8 9-4-2-8-5-8-9V7l8-4Z\"/><path d=\"m8 12 3 3 5-6\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M19 8a8 8 0 1 0 1 7M19 3v5h-5\"/><path d=\"M12 7v6l4 2\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M3 10h12M7 15h14M11 20h10\"/><path d=\"M3 3v4M7 8v4M11 13v4M15 18v4\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 12h4l3-7 5 14 3-7h5\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 3h10l4 4v14H5Z\"/><path d=\"M15 3v5h4M8 12h8M8 16h6\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 9 16H3L12 3ZM12 3v16M3 19l13-9M21 19 8 10\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/></svg>"];
+
 function home() {
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
   return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
@@ -177,7 +186,7 @@ ${header('home')}
   <section class="hero" id="hero" aria-labelledby="hero-name">
     <div class="row">
       <h1 class="vh" id="hero-name">Aakash Dahal</h1>
-      <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles." data-still>
+      <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles.">
         <div class="still" aria-hidden="true"></div>
       </div>
       <div class="hero-links"><a class="link-ui" href="#work-list">Selected work <span class="go" aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
@@ -186,11 +195,11 @@ ${header('home')}
 
   <section class="workbench" id="work-list" aria-labelledby="work-title" data-workbench>
     <div class="bench-title"><h2 id="work-title">Selected work</h2><a class="link-ui" href="/work/">All projects${OPEN}</a></div>
-    <div class="bench-body">
+    <div class="bench-body"><canvas class="bench-connections" data-bench-connections aria-hidden="true"></canvas>
       <nav class="project-orbit" aria-label="Select a project" data-orbit>
         <canvas class="orbit-lattice" aria-hidden="true"></canvas>
         <div class="orbit-window"><ol class="home-work">
-${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><button type="button" class="project-pick" disabled data-work-pick="${i}" aria-pressed="${i === 0}" aria-controls="project-${p.slug}"><span class="orbit-index">${pad(i + 1)}</span><span class="orbit-symbol" aria-hidden="true">${['✳','⌁','◇','↻','≋','⌇','▱','⟁'][i]}</span><span class="orbit-name">${esc(p.name)}</span><span class="orbit-status">${esc(p.status)}</span></button><a class="orbit-open" href="/work/${p.slug}/" aria-label="Open ${esc(p.name)}" data-work-link>↗</a></li>`).join('\n')}
+${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><button type="button" class="project-pick" disabled data-work-pick="${i}" aria-pressed="${i === 0}" aria-controls="project-${p.slug}"><span class="orbit-index">${pad(i + 1)}</span><span class="orbit-symbol" aria-hidden="true">${PROJECT_MARKS[i]}</span><span class="orbit-name">${esc(p.name)}</span><span class="orbit-status">${esc(p.status)}</span></button><a class="orbit-open" href="/work/${p.slug}/" aria-label="Open ${esc(p.name)}" data-work-link>↗</a></li>`).join('\n')}
         </ol></div>
         <div class="orbit-footer"><button type="button" class="orbit-step" aria-label="Previous project" data-orbit-step="-1">↑</button><output data-orbit-count aria-label="Selected project">01 / ${pad(projects.length)}</output><button type="button" class="orbit-step" aria-label="Next project" data-orbit-step="1">↓</button></div>
       </nav>
@@ -198,7 +207,7 @@ ${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><butt
 ${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article class="work-card${i === 0 ? ' is-on' : ''}" id="project-${p.slug}" data-scene="${p.slug}" aria-hidden="${i !== 0}"${i ? ' inert' : ''}>
           <div class="scene-heading"><span>${esc(s.label)}</span><span class="scene-number">${pad(i + 1)} / ${pad(projects.length)}</span></div>
           <div class="scene-drawing">${s.svg}</div>
-          <div class="scene-toolbar"><span class="scene-caption">Interactive illustration</span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="${esc(s.action)}" data-active-label="${esc(s.active)}">${esc(s.action)} <span aria-hidden="true">↗</span></button></div>
+          <div class="scene-toolbar"><span class="scene-caption">Illustration</span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="${esc(s.action)}" data-active-label="${esc(s.active)}">${esc(s.action)} <span aria-hidden="true">↗</span></button></div>
           <div class="scene-copy"><div><h3 class="work-card-name">${esc(p.name)}</h3><p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p></div><p class="work-card-desc">${esc(p.summary || p.tagline)}</p><ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul><div class="scene-links"><a class="link-ui" href="/work/${p.slug}/">${p.placeholder ? 'Project notes' : 'Case study'}${OPEN}</a>${p.repo ? `<a class="link-ui" href="${p.repo}">Source${ARROW}</a>` : ''}</div></div>
         </article>`; }).join('\n')}
       </div>

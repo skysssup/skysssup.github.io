@@ -1,4 +1,4 @@
-/* Scroll-driven ink ribbons. No idle animation loop, no pointer replacement. */
+/* Engraved contour margins: scroll moves the drawing, selection changes its relief. */
 (function () {
   'use strict';
   var canvas = document.querySelector('[data-scroll-field]');
@@ -8,15 +8,11 @@
   if (!ctx) { canvas.remove(); return; }
   var motion = window.SkyMotion || { reduced: function () { return false; }, subscribe: function () {} };
   var coarse = matchMedia('(pointer: coarse)'), w = 0, h = 0, dpr = 1;
-  var actual = scrollY, position = actual, lastActual = actual, wind = 0, desiredWind = 0;
-  var pointer = { x: .5, y: .5, tx: .5, ty: .5 }, raf = 0, last = 0, ink, hot, draws = 0;
+  var actual = scrollY, position = actual;
+  var raf = 0, last = 0, ink, hot, draws = 0, relief = 0, reliefTarget = 0;
   var rail = document.querySelector('.scroll-waypoints'), links = Array.from(rail.querySelectorAll('a'));
   var sections = links.map(function (link) { return document.querySelector(link.getAttribute('href')); });
   var tops = [], maxScroll = 1;
-  var stars = Array.from({ length: 135 }, function (_, i) {
-    function hash(n) { return (Math.sin(n * 127.1 + 311.7) * 43758.5453) % 1; }
-    return { x: Math.abs(hash(i + 3)), y: Math.abs(hash(i + 157)), z: .2 + Math.abs(hash(i + 303)) * .8 };
-  });
   function queue() {
     if (!raf && !document.hidden && !motion.reduced()) { last = performance.now(); raf = requestAnimationFrame(frame); }
   }
@@ -37,51 +33,50 @@
   function paint() {
     draws++;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
-    var phase = position * .0017, momentum = Math.max(-1, Math.min(1, wind / 40));
-    var heroPart = Math.max(0, 1 - position / Math.max(h, 1));
-    var lines = coarse.matches ? 16 : 26, steps = coarse.matches ? 38 : 58;
-    var lanes = [.10, .90], radius = Math.min(w * .105, 150);
-    ctx.lineWidth = .55;
-    for (var lane = 0; lane < lanes.length; lane++) {
-      var axis = w * lanes[lane], mirror = lane ? -1 : 1;
-      for (var strand = 0; strand < lines; strand++) {
-        var spread = (strand / (lines - 1) - .5), r = radius * (1 + spread * .55);
-        ctx.strokeStyle = strand % 7 ? ink : hot;
-        ctx.globalAlpha = .025 + (1 - Math.abs(spread) * 1.5) * (.07 + heroPart * .035);
+    // Restrict the marks to the page margins; the portrait and writing stay clear.
+    var mobile = w <= 760, margin = mobile ? 12 : Math.max(18, Math.min(120, (w - 1200) / 2 - 12));
+    var progress = Math.min(1, position / Math.max(1, tops[1] || h));
+    var travel = position * .12, phase = position * .0007;
+    ctx.lineWidth = .6;
+    for (var side = 0; side < 2; side++) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(side ? w - margin : 0, 0, margin, h); ctx.clip();
+      for (var line = 0; line < (mobile ? 7 : 30); line++) {
+        ctx.strokeStyle = line % 6 === 0 ? hot : ink;
+        ctx.globalAlpha = line % 6 === 0 ? .2 : .075;
         ctx.beginPath();
-        for (var step = 0; step <= steps; step++) {
-          var u = step / steps, angle = u * Math.PI * 2.4 + phase * mirror + spread * .7;
-          var depth = Math.sin(angle) * r, perspective = 800 / (800 + depth);
-          var bend = Math.sin(u * Math.PI) * momentum * 32;
-          var px = axis + (Math.cos(angle) * r + bend + (pointer.x - .5) * 16) * perspective * mirror;
-          var py = (u * h * 1.5 - h * .25 - h / 2) * perspective + h / 2 + spread * 16 + (pointer.y - .5) * 8;
-          if (!step) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        for (var step = 0; step <= 72; step++) {
+          var y = step * h / 72;
+          var u = (y + travel) / Math.max(h, 1);
+          var wave = Math.sin(u * 5.2 + phase + side * 1.6 + relief * .18);
+          var shoulder = Math.exp(-Math.pow((u % 1.5 - .55) * 4, 2));
+          var distance = line * (mobile ? 3 : 5.4) - 20 + shoulder * (28 + relief * 2) + wave * (10 + 18 * (1 - progress));
+          var xx = side ? w - distance : distance;
+          if (!step) ctx.moveTo(xx, y); else ctx.lineTo(xx, y);
         }
         ctx.stroke();
       }
+      // Fine registration ticks carry the same scroll direction as the contours.
+      ctx.strokeStyle = ink; ctx.globalAlpha = .22;
+      var stride = mobile ? 120 : 84, offset = ((travel % stride) + stride) % stride;
+      for (var tick = -1; tick < h / stride + 1; tick++) {
+        var yy = tick * stride - offset + stride, edge = side ? w - 7 : 7, sign = side ? -1 : 1;
+        ctx.beginPath(); ctx.moveTo(edge, yy); ctx.lineTo(edge + sign * 4, yy);
+        ctx.moveTo(edge, yy - 2); ctx.lineTo(edge, yy + 2); ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.fillStyle = hot;
-    stars.forEach(function (star, i) {
-      var sx = star.x * w + (pointer.x - .5) * 12 * star.z;
-      var sy = ((star.y * h - position * star.z * .06) % h + h) % h;
-      var edge = Math.abs(sx / w - .5) * 2;
-      ctx.globalAlpha = (.04 + star.z * .1) * (.3 + edge * .7);
-      var size = i % 11 === 0 ? 1.2 : .65;
-      ctx.fillRect(sx, sy, size, size);
-    });
     ctx.globalAlpha = 1;
   }
   function frame(now) {
     raf = 0;
     if (document.hidden || motion.reduced()) return;
     var dt = Math.min(.04, Math.max(.001, (now - last) / 1000)); last = now;
-    var follow = 1 - Math.exp(-dt * 12), calm = Math.exp(-dt * 6);
+    var follow = 1 - Math.exp(-dt * 12);
     position += (actual - position) * follow;
-    wind += (desiredWind - wind) * follow; desiredWind *= calm;
-    pointer.x += (pointer.tx - pointer.x) * follow;
-    pointer.y += (pointer.ty - pointer.y) * follow;
+    relief += (reliefTarget - relief) * follow;
     paint();
-    if (Math.abs(actual - position) > .1 || Math.abs(wind) > .03 || Math.abs(desiredWind) > .03 || Math.abs(pointer.tx - pointer.x) + Math.abs(pointer.ty - pointer.y) > .001) raf = requestAnimationFrame(frame);
+    if (Math.abs(reliefTarget - relief) > .001 || Math.abs(actual - position) > .1) raf = requestAnimationFrame(frame);
   }
   function layout() {
     w = innerWidth; h = innerHeight; dpr = Math.min(devicePixelRatio || 1, coarse.matches ? 1.25 : 1.5);
@@ -93,17 +88,17 @@
     if (!motion.reduced()) paint();
   }
   window.addEventListener('scroll', function () {
-    actual = scrollY; desiredWind = Math.max(-90, Math.min(90, desiredWind + (actual - lastActual) * .28)); lastActual = actual;
+    actual = scrollY;
     navigation(); queue();
   }, { passive: true });
-  window.addEventListener('pointermove', function (event) {
-    if (event.pointerType === 'touch' || coarse.matches || motion.reduced()) return;
-    pointer.tx = event.clientX / Math.max(w, 1); pointer.ty = event.clientY / Math.max(h, 1); queue();
-  }, { passive: true });
+  document.addEventListener('sky:workselect', function (event) {
+    reliefTarget = event.detail.index;
+    if (motion.reduced()) relief = reliefTarget; else queue();
+  });
   window.addEventListener('resize', layout, { passive: true });
   document.addEventListener('visibilitychange', function () { cancelAnimationFrame(raf); raf = 0; if (!document.hidden) layout(); });
   new MutationObserver(function () { colors(); if (!motion.reduced()) paint(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-gear'] });
-  motion.subscribe(function () { cancelAnimationFrame(raf); raf = 0; wind = desiredWind = 0; layout(); });
+  motion.subscribe(function () { cancelAnimationFrame(raf); raf = 0; layout(); });
   if (window.SkyBlackHole) window.SkyBlackHole.after(layout); else layout();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
   window.SkyScrollField = { settled: function () { return !raf; }, draws: function () { return draws; } };

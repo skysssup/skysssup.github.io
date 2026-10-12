@@ -157,3 +157,66 @@ test('mobile scrolling selects a project naturally and header/contact controls r
   assert.deepEqual(errors, []);
   await context.close();
 });
+
+test('palette disclosure works on narrow screens and colors remain accessible in light and dark', async () => {
+  for (const width of [1440, 304]) {
+    const { page, context, errors } = await open({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+    for (const light of [false, true]) {
+      if (light) await page.locator('[data-lamp]').click();
+      for (const [selector, mode, name] of [['[data-gear-toggle]', 'two', 'rose'], ['[data-gear-blue]', 'blue', 'blue'], ['[data-gear-neutral]', null, 'stone']]) {
+        await page.locator('[data-palette-open]').click();
+        assert.equal(await page.locator('[data-palette-open]').getAttribute('aria-expanded'), 'true');
+        await page.locator(selector).click();
+        assert.equal(await page.locator('html').getAttribute('data-gear'), mode);
+        assert.equal(await page.locator('[data-lamp]').getAttribute('aria-pressed'), String(light));
+        assert.equal(await page.locator('.palette-options').isVisible(), false);
+        assert.equal(await page.locator('.palette-option[aria-pressed="true"]').count(), 1);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        if (name === 'rose' || name === 'blue') {
+          const accessibility = await new AxeBuilder({ page }).analyze();
+          assert.deepEqual(accessibility.violations.map(v => v.id + ':' + v.nodes.map(n => n.target).join('|')), [], name + ' at ' + width);
+          if (process.env.CRAFT_SHOTS && width === 1440) {
+            await page.screenshot({ path: path.join(process.env.CRAFT_SHOTS, name + (light ? '-light' : '-dark') + '.png') });
+          }
+        }
+      }
+    }
+    await page.locator('[data-palette-open]').click();
+    await page.locator('[data-gear-neutral]').focus();
+    await page.keyboard.press('ArrowDown');
+    assert.equal(await page.evaluate(() => document.activeElement.hasAttribute('data-gear-toggle')), true);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('[data-palette-open]').getAttribute('aria-expanded'), 'false');
+    assert.equal(await page.evaluate(() => document.activeElement.hasAttribute('data-palette-open')), true);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+});
+
+test('wheel selection follows visible position and a button cancels an unfinished wheel gesture', async () => {
+  const { page, context, errors } = await open();
+  await page.evaluate(() => {
+    window.wheelSamples = [];
+    let left = 40;
+    function sample() {
+      window.wheelSamples.push([SkyWorkbench.position(), SkyWorkbench.selected()]);
+      if (--left) requestAnimationFrame(sample);
+    }
+    requestAnimationFrame(sample);
+  });
+  const orbit = await page.locator('[data-orbit]').boundingBox();
+  await page.mouse.move(orbit.x + 80, orbit.y + 240);
+  await page.mouse.wheel(0, 140);
+  await settle(page);
+  await page.waitForTimeout(350);
+  const samples = await page.evaluate(() => window.wheelSamples);
+  assert.ok(samples.some(([x]) => x > .1 && x < .9), 'capture the wheel while it is between projects');
+  assert.ok(samples.every(([x, selected]) => Math.round(x) === selected), 'the article must follow the visible card');
+  await page.mouse.wheel(0, 150);
+  await page.locator('[data-orbit-step="-1"]').click();
+  const picked = await page.evaluate(() => SkyWorkbench.selected());
+  await settle(page);
+  assert.equal(await page.evaluate(() => SkyWorkbench.selected()), picked, 'an old wheel timeout cannot replace button input');
+  assert.deepEqual(errors, []);
+  await context.close();
+});

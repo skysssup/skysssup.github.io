@@ -130,7 +130,7 @@
     }
     // The positions in the header show the gear a switch is heading for at once, so the knob moves as it is pressed.
     function press(gear) {
-      [["[data-gear-toggle]", "two"], ["[data-gear-blue]", "blue"]].forEach(function (position) {
+      [["[data-gear-neutral]", null], ["[data-gear-toggle]", "two"], ["[data-gear-blue]", "blue"]].forEach(function (position) {
         var buttons = doc.querySelectorAll(position[0]);
         for (var i = 0; i < buttons.length; i++) buttons[i].setAttribute("aria-pressed", gear === position[1] ? "true" : "false");
       });
@@ -235,7 +235,7 @@
       if (next === mode) return;
       if (reduced()) { setGear(next, transient); return; }
       if (root.getAttribute("data-polished") !== null) {
-        fade(function () { if (run === seq) setGear(next, transient); });
+        setGear(next, transient);
         return;
       }
       if (next === "two") {
@@ -265,6 +265,10 @@
 
     /* light switch: a soft circle grows from the switch (View Transitions where available); it leaves either gear */
     win.skyThemeTransition = function (apply, current, origin) {
+      if (root.getAttribute("data-polished") !== null) {
+        fade(function () { apply(current === "dark" ? "light" : "dark"); });
+        return;
+      }
       var target = mode || heading ? "light" : current === "dark" ? "light" : "dark";
       reveal(origin, function () {
         clearPhases();
@@ -302,6 +306,7 @@
       var two = t.closest("[data-gear-toggle]"), blue = !two && t.closest("[data-gear-blue]");
       if (two) toggleGear(two, "two");
       else if (blue) toggleGear(blue, "blue");
+      else if (t.closest("[data-gear-neutral]")) switchGear(null, t.closest("[data-gear-neutral]"));
       else if (t.closest("[data-motion-toggle]")) setMotion(reduced() ? "full" : "reduced");
     });
 

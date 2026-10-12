@@ -166,9 +166,10 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
   await context.close();
 });
 
-test('color modes crossfade without glitches and persist across navigation', async () => {
-  const { page, context, problems } = await open('/');
+test('color choices apply without glitches and persist independently of light mode', async () => {
+  const { page, context, problems } = await open('/', { mode: 'dark' });
   for (const [selector, value] of [['[data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
+    await page.locator('[data-palette-open]').click();
     await page.locator(selector).click();
     await page.waitForFunction(value => document.documentElement.getAttribute('data-gear') === value, value);
     assert.equal(await page.locator('html').getAttribute('data-phase'), null);
@@ -178,18 +179,21 @@ test('color modes crossfade without glitches and persist across navigation', asy
   }
   await page.locator('[data-lamp]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light');
-  assert.equal(await page.locator('html').getAttribute('data-gear'), null);
+  assert.equal(await page.locator('html').getAttribute('data-gear'), 'blue');
   assert.deepEqual(problems, []);
   await context.close();
 });
 
 test('color modes support keyboard input and reduced motion without visual effects', async () => {
   const { page, context } = await open('/work/', { reduced: true });
+  await page.locator('[data-palette-open]').click();
   await page.locator('[data-gear-blue]').focus();
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('html').getAttribute('data-gear'), 'blue');
   assert.equal(await page.locator('html').getAttribute('data-phase'), null);
   assert.equal(await page.locator('.fx-tide').count(), 0);
+  await page.locator('[data-palette-open]').click();
+  await page.locator('[data-gear-blue]').focus();
   await page.keyboard.press('Space');
   assert.equal(await page.locator('html').getAttribute('data-gear'), null);
   await context.close();
@@ -205,7 +209,7 @@ test('the pointer stays native and leaves no decorative trails in any color mode
   }
 });
 
-test('the light switch flips and saves the theme, and turning the lights on leaves Gear Two', async () => {
+test('the light switch saves its choice without clearing the selected palette', async () => {
   const { page, context } = await open('/work/');
   const lamp = page.locator('[data-lamp]');
   assert.equal(await lamp.getAttribute('aria-pressed'), 'true');
@@ -214,11 +218,12 @@ test('the light switch flips and saves the theme, and turning the lights on leav
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'dark');
   assert.equal(await page.evaluate(() => localStorage.getItem('sky-theme')), 'dark');
   assert.equal(await lamp.getAttribute('aria-pressed'), 'false');
+  await page.locator('[data-palette-open]').click();
   await page.locator('[data-gear-toggle]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-gear') === 'two');
   await lamp.click();
   await page.waitForTimeout(950);
-  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), null);
+  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'light');
   await context.close();
 });
@@ -270,6 +275,7 @@ test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Tw
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
   assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
   assert.equal(await page.getAttribute('[data-motion-toggle]', 'aria-pressed'), 'true');
+  await page.locator('[data-palette-open]').click();
   await page.click('[data-gear-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-phase')), null);

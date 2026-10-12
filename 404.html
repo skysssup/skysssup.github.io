@@ -28,7 +28,7 @@
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);</script>
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/polish.css">
-<link rel="stylesheet" href="/css/craft.css">
+<link rel="stylesheet" href="/css/craft.css?v=craft-2">
 </head>
 <body class="page-404">
 <a class="skip" href="#main">Skip to content</a>
@@ -41,7 +41,14 @@
       <a class="contact-link" href="/#contact">Contact</a>
     </nav>
     <div class="header-tools">
-      <div class="palette-menu" role="group" aria-label="Color palette"><button class="tool-button palette-spot palette-rose" type="button" aria-label="Rose palette" aria-pressed="false" data-gear-toggle><span aria-hidden="true"></span></button><button class="tool-button palette-spot palette-blue" type="button" aria-label="Blue palette" aria-pressed="false" data-gear-blue><span aria-hidden="true"></span></button></div>
+      <div class="palette-menu">
+        <button class="tool-button palette-trigger" type="button" aria-label="Color palette" aria-expanded="false" aria-controls="palette-options" data-palette-open><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12"/><path class="palette-needle" d="M7 3v4M13 8v4M9 13v4"/></svg></button>
+        <div class="palette-options" id="palette-options" role="group" aria-label="Choose color palette" hidden>
+          <button class="palette-option palette-stone" type="button" aria-label="Stone palette" aria-pressed="true" data-gear-neutral><span aria-hidden="true"></span>Stone<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
+          <button class="palette-option palette-rose" type="button" aria-label="Rose palette" aria-pressed="false" data-gear-toggle><span aria-hidden="true"></span>Rose<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
+          <button class="palette-option palette-blue" type="button" aria-label="Blue palette" aria-pressed="false" data-gear-blue><span aria-hidden="true"></span>Blue<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></button>
+        </div>
+      </div>
       <span class="tool-divider" aria-hidden="true"></span>
       <button class="tool-button theme-switch" type="button" aria-pressed="false" aria-label="Light theme" data-lamp><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/><path class="theme-rays" d="M10 1v2M10 17v2M1 10h2M17 10h2M3.6 3.6 5 5M15 15l1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg></button>
       <button class="tool-button index-open search-switch" type="button" aria-label="Open site index" aria-haspopup="dialog" aria-controls="site-index" aria-keyshortcuts="Control+k Meta+k /" data-index-open><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><kbd aria-hidden="true">/</kbd></button>
@@ -91,8 +98,8 @@
   </div>
   <span class="vh" role="status" aria-live="polite" data-index-status></span>
 </dialog>
-<script src="/js/theme.js?v=craft-1" defer></script>
-<script src="/js/motion.js?v=craft-1" defer></script>
-<script src="/js/page.js?v=craft-1" defer></script>
+<script src="/js/theme.js?v=craft-2" defer></script>
+<script src="/js/motion.js?v=craft-2" defer></script>
+<script src="/js/page.js?v=craft-2" defer></script>
 </body>
 </html>

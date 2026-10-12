@@ -26,12 +26,13 @@
 
     function paint() {
       var gear = root.getAttribute("data-gear");
-      var paper = gear === "two" ? COLORS.gear : gear === "blue" ? COLORS.blue : null;
+      var polished = root.getAttribute("data-polished") !== null;
+      var paper = polished ? null : gear === "two" ? COLORS.gear : gear === "blue" ? COLORS.blue : null;
       var on = !paper && current() === "light";
       var lamps = doc.querySelectorAll("[data-lamp]");
       for (var i = 0; i < lamps.length; i++) lamps[i].setAttribute("aria-pressed", on ? "true" : "false");
       var meta = doc.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", paper || (on ? COLORS.light : COLORS.dark));
+      if (meta) meta.setAttribute("content", polished && typeof win.getComputedStyle === "function" ? win.getComputedStyle(root).getPropertyValue("--paper").trim() : paper || (on ? COLORS.light : COLORS.dark));
     }
 
     function set(theme) {

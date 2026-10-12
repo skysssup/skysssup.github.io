@@ -42,6 +42,9 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
           document.documentElement.removeAttribute('data-polished');
           args[1].still = false;
           args[1].noPointer = false;
+          args[1].finish = null;
+          args[0].style.pointerEvents = "auto";
+          args[0].style.touchAction = "pan-y";
           args[1].line = 'Aakash Dahal';
           window.__heroApi = mount.apply(this, args);
           return window.__heroApi;

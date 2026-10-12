@@ -1961,7 +1961,7 @@
         yaw.v = pitch.v = pushK.x = pushK.v = 0;
       }
       // the cloud bank comes in under Gear Two's switch and leaves over 0.3 s as it ends
-      var bankTo = gear ? 1 : 0;
+      var bankTo = gear && opts.finish !== "matte" ? 1 : 0;
       bankNow = live ? (bankNow < bankTo ? Math.min(bankTo, bankNow + dt / 0.3) : Math.max(bankTo, bankNow - dt / 0.3)) : bankTo;
       emberNow = live ? (emberNow < bankTo ? Math.min(bankTo, emberNow + dt / 0.3) : Math.max(bankTo, emberNow - dt / 0.3)) : bankTo;
       if (inkAt) {
@@ -1976,10 +1976,10 @@
       for (var i = 0; live && i < ripples.length; i++) {
         if (ripples[i][3] > 0 && t - ripples[i][2] <= STRIKE) ripFlat.set(ripples[i], strikes++ * 4);
       }
-      var beat = gear && live ? heartbeat(t) : 0;
+      var beat = gear && live && opts.finish !== "matte" ? heartbeat(t) : 0;
       // a sheen and a burst of stars at each turn of the sway (in Gear Two the burst also tears one frame), and one
       // as the dots finish assembling, which they do on the wall clock: the sway's clock runs slow where frames do
-      if (live) {
+      if (live && opts.finish !== "matte") {
         var turn = sheenPhase(clock);
         if (sheenIndex < 0 && turn.index < 0 && built >= SHEEN_FIRST) turn = sheenPhase(SHEEN_FIRST);
         if (turn.index > sheenIndex) {
@@ -2000,11 +2000,11 @@
         }
       }
       var sheenAge = (now - sheenAt) / 1000;
-      var sheening = live && sheenDir !== 0 && sheenAge < sheenSweep + SHEEN_AFTER;
+      var sheening = opts.finish !== "matte" && live && sheenDir !== 0 && sheenAge < sheenSweep + SHEEN_AFTER;
       // on light and dark paper the band is a little wider, with a few more stars and a little more dust
       var bright = !gear;
       // the switch's own glitch window, or a tear while Gear Two is on (never during a touch drag)
-      var switching = live && now < glitchUntil;
+      var switching = opts.finish !== "matte" && live && now < glitchUntil;
       // a tear is drawn for at least one frame, even when frames come slower than 24 fps
       var tearing = !opts.noPointer && !switching && live && gear && !(touch && touch.dragging) && tear !== null && now >= tear.from &&
         (now < tear.until || (!tear.drawn && now < tear.until + 250));
@@ -2088,15 +2088,15 @@
       gl.uniform4f(U.u_ember, emberNow, emberColor[0], emberColor[1], emberColor[2]);
       gl.uniform3fv(U.u_paper, paper);
       gl.uniform3fv(U.u_silk, silks);
-      gl.uniform1f(U.u_silkw, SILK * ease);
+      gl.uniform1f(U.u_silkw, opts.finish === "matte" ? 0 : SILK * ease);
       gl.uniform1f(U.u_under, UNDER * 1.5);
       // Tide's entrance (vortex()), and as it settles a sheen crosses the blue figure
       var va = vortexAt && live ? (now - vortexAt) / 1000 : 0;
       if (vortexShine && va >= VORTEX.shine) { vortexShine = false; shine(now, 1, SHEEN_SWEEP, false, ++bursts + 200); }
       if (va >= VORTEX.rise + VORTEX.settle || !live) vortexAt = 0;
-      gl.uniform1f(U.u_vortex, vortex(va));
+      gl.uniform1f(U.u_vortex, opts.finish === "matte" ? 0 : vortex(va));
       // while Tide is on, its tide (tide()) rises through the figure on the page's clock
-      var tideNow = colors.blue && live && !still ? tide(now / 1000) : [0, 0];
+      var tideNow = opts.finish !== "matte" && colors.blue && live && !still ? tide(now / 1000) : [0, 0];
       gl.uniform2f(U.u_tide, tideNow[0], tideNow[1]);
       // the dots stand for light on dark paper; while the paper's turn swaps them, the new map's appear behind a band
       // of light and the old map's give way ahead of it

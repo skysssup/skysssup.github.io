@@ -16,10 +16,12 @@
   var raf = 0, last = 0, visible = true, height = 460, width = 250, dpr = 1;
   var pointer = { x: .5, y: .5, tx: .5, ty: .5, inside: false }, sceneBounds = null, sceneTransform = null;
   var compass = bench.querySelector('[data-compass-pointer]'), announcement = document.querySelector('[data-announce]');
+  var connections = bench.querySelector("[data-bench-connections]"), connectionContext = connections && connections.getContext("2d");
+  var connectionBounds = null;
   var keyTimers = new Map(), latticeInk = '#d4d0b0';
   var echoKeys = new Map(Array.from(bench.querySelectorAll('[data-echo-key]')).map(function (key) { return [key.dataset.echoKey, key]; }));
   var wheelTimer = 0, mobileScrollTimer = 0, suppressClickUntil = 0;
-  var drag = null;
+  var drag = null, followingWheel = false, spacing = 100, focusY = 250, posedX = NaN;
   function clamp(n, low, high) { return Math.max(low, Math.min(high, n)); }
   function reduced() { return motion.reduced(); }
   function queue() {
@@ -29,7 +31,7 @@
     next = clamp(Math.round(next), 0, items.length - 1);
     if (next === selected) return;
     var old = selected;
-    selected = next;
+    selected = next; posedX = NaN;
     cards.forEach(function (card, i) {
       var on = i === selected;
       card.classList.toggle('is-on', on);
@@ -53,52 +55,71 @@
     orbit.querySelector('[data-orbit-step="-1"]').disabled = selected === 0;
     orbit.querySelector('[data-orbit-step="1"]').disabled = selected === items.length - 1;
     bench.setAttribute('data-selected', data[selected].slug);
+    document.dispatchEvent(new CustomEvent('sky:workselect', { detail: { index: selected } }));
     if (announce && announcement) announcement.textContent = data[selected].name + ' selected';
     sceneBounds = sceneTransform = null;
+    pointer.inside = false; cards.forEach(function (card) { card.classList.remove("is-pointed"); });
   }
-  function move(next, focus, announce) {
+  function move(next, focus, announce, gesture) {
     target = clamp(next, 0, items.length - 1);
-    select(target, announce);
+    followingWheel = !!gesture;
+    if (!gesture) { clearTimeout(wheelTimer); wheelTimer = 0; }
+    if (!gesture || reduced() || mobile.matches) select(target, announce);
     if (focus) picks[selected].focus({ preventScroll: true });
     if (mobile.matches) items[selected].scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced() ? 'instant' : 'smooth' });
     if (reduced()) { x = target; velocity = 0; pose(); }
     else queue();
   }
   function pose() {
+    if (posedX === x) return;
+    posedX = x;
+    focusY = height / 2 - 92 * Math.exp(-x / 1.1) + 92 * Math.exp(-(items.length - 1 - x) / 1.1);
     items.forEach(function (item, i) {
       if (mobile.matches) { item.style.transform = ''; item.style.opacity = ''; item.style.zIndex = ''; return; }
       var delta = i - x, distance = Math.abs(delta);
-      item.style.transform = 'translate3d(' + (18 - Math.min(4, distance) * 9).toFixed(2) + 'px,' + (height / 2 + delta * 88 - 44).toFixed(2) + 'px,' + (24 - Math.min(4, distance) * 14).toFixed(2) + 'px) rotateX(' + clamp(delta * -9, -32, 32).toFixed(2) + 'deg) rotateZ(' + clamp(delta * -3, -9, 9).toFixed(2) + 'deg)';
-      item.style.opacity = String(Math.max(.85, 1 - distance * .04));
+      var proximity = Math.max(0, 1 - distance / 3), shift = Math.pow(Math.min(3, distance), 1.5) * -4;
+      item.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + (focusY + delta * spacing - 48).toFixed(2) + 'px,' + (proximity * 12).toFixed(2) + 'px) rotateX(' + clamp(delta * -5, -18, 18).toFixed(2) + 'deg)';
+      item.style.opacity = '1';
+      item.style.setProperty('--proximity', proximity.toFixed(3));
       item.style.zIndex = String(20 - Math.round(distance));
     });
     drawLattice();
+    drawConnections();
+  }
+  function drawConnections() {
+    if (!connectionContext || mobile.matches || selected < 0) return;
+    var body = bench.querySelector('.bench-body'), rect = body.getBoundingClientRect();
+    // Read geometry once per animation frame, after the wheel's transforms have been written.
+    if (!connectionBounds || connectionBounds.width !== rect.width || connectionBounds.height !== rect.height) {
+      connectionBounds = { width: rect.width, height: rect.height };
+      connections.width = Math.round(rect.width * dpr); connections.height = Math.round(rect.height * dpr);
+    }
+    var c = connectionContext, from = picks[selected].getBoundingClientRect();
+    var to = cards[selected].querySelector('.scene-drawing').getBoundingClientRect();
+    var ax = from.right - rect.left + 4, ay = from.top - rect.top + from.height / 2;
+    var bx = to.left - rect.left, by = to.top - rect.top + 26, elbow = ax + Math.max(6, (bx - ax) * .5);
+    c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,rect.width,rect.height);
+    c.strokeStyle = latticeInk; c.lineWidth = .65; c.globalAlpha = .35;
+    c.beginPath(); c.moveTo(ax,ay); c.lineTo(elbow,ay); c.lineTo(elbow,by); c.lineTo(bx,by); c.stroke();
+    c.globalAlpha = .8; c.fillStyle = latticeInk;
+    c.fillRect(ax - 1,ay - 1,2,2); c.fillRect(bx - 1,by - 1,2,2); c.globalAlpha = 1;
   }
   function drawLattice() {
     if (!ctx || mobile.matches) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    var ink = latticeInk;
-    ctx.strokeStyle = ink;
-    ctx.lineWidth = .65;
-    var middle = height * .5, tilt = (pointer.x - .5) * 6;
-    for (var i = 0; i < 66; i++) {
-      var y = (i / 65) * height, bend = Math.sin(i * 1.91 + x * .3) * 13;
-      var delta = Math.abs(y - middle), reach = 20 + Math.pow(Math.cos(delta / height * Math.PI), 5) * 22;
-      ctx.globalAlpha = .16 + Math.exp(-delta / 90) * .38;
-      ctx.beginPath();
-      ctx.moveTo(12 + Math.sin(y * .032 + x * .4) * 5, y);
-      ctx.bezierCurveTo(24 + tilt, y + bend, 36 + tilt, y - bend * .6, reach + tilt, y + bend * .3);
-      ctx.stroke();
-      if (i % 3 === 0) { ctx.fillStyle = ink; ctx.fillRect(reach + tilt - .5, y + bend * .3 - .5, 1, 1); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0,0,width,height);
+    ctx.strokeStyle = latticeInk; ctx.fillStyle = latticeInk; ctx.lineWidth = .6;
+    // Ticks travel with the actual wheel, while the focus notch stays in the centre.
+    var middle = focusY, step = spacing / 5;
+    ctx.globalAlpha = .2;
+    ctx.beginPath(); ctx.moveTo(20,18); ctx.lineTo(20,height - 18); ctx.stroke();
+    for (var i = -18; i <= 18; i++) {
+      var y = middle + i * step - (x % 1) * spacing;
+      if (y < 18 || y > height - 18) continue;
+      var major = i % 5 === 0, intensity = Math.max(.08, .5 * (1 - Math.abs(y - middle) / middle));
+      ctx.globalAlpha = intensity; ctx.beginPath(); ctx.moveTo(20,y); ctx.lineTo(major ? 31 : 25,y); ctx.stroke();
     }
-    ctx.globalAlpha = .6;
-    ctx.beginPath();
-    for (var j = 0; j <= 64; j++) {
-      var yy = j * height / 64, xx = 12 + Math.sin(yy * .032 + x * .4) * 5;
-      if (!j) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
-    }
-    ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.globalAlpha = .85; ctx.beginPath(); ctx.moveTo(17,middle - 3); ctx.lineTo(20,middle); ctx.lineTo(17,middle + 3); ctx.stroke();
+    ctx.globalAlpha = 1;
   }
   function feedback() {
     var card = cards[selected], mark = card.querySelector('.scene-pointer');
@@ -112,25 +133,27 @@
     if (reduced()) { x = target; velocity = 0; pointer.x = pointer.tx; pointer.y = pointer.ty; }
     else {
       // Analytic critically damped spring: stable across slow frames and rapid reversals.
-      var omega = 15, offset = x - target, c = velocity + omega * offset, decay = Math.exp(-omega * dt);
+      var omega = followingWheel ? 23 : 17, offset = x - target, c = velocity + omega * offset, decay = Math.exp(-omega * dt);
       x = target + (offset + c * dt) * decay;
       velocity = (velocity - omega * c * dt) * decay;
       var follow = 1 - Math.exp(-dt * 22);
       pointer.x += (pointer.tx - pointer.x) * follow;
       pointer.y += (pointer.ty - pointer.y) * follow;
     }
+    if (followingWheel) select(Math.round(x), false);
     pose(); feedback();
     var moving = Math.abs(x - target) > .001 || Math.abs(velocity) > .005;
     var tracking = Math.abs(pointer.x - pointer.tx) + Math.abs(pointer.y - pointer.ty) > .001;
     if (!reduced() && (moving || tracking)) raf = requestAnimationFrame(frame);
-    else { x = target; velocity = 0; pose(); }
+    else { x = target; velocity = 0; if (followingWheel) { select(Math.round(x), true); followingWheel = false; } pose(); }
   }
   function layout() {
+    posedX = NaN;
     height = viewport.clientHeight || 460; width = lattice.clientWidth || 250;
     dpr = Math.min(devicePixelRatio || 1, 1.5);
     lattice.width = Math.round(width * dpr); lattice.height = Math.round(height * dpr);
     latticeInk = getComputedStyle(bench).getPropertyValue('--bench-ink').trim() || '#d4d0b0';
-    x = target; velocity = 0; sceneBounds = sceneTransform = null; pose(); feedback();
+    x = target; velocity = 0; if (followingWheel) select(Math.round(x), false); connectionBounds = null; sceneBounds = sceneTransform = null; pose(); feedback();
   }
   picks.forEach(function (pick, i) {
     pick.disabled = false;
@@ -149,9 +172,9 @@
     var delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height : 1);
     if (!delta || (target <= 0 && delta < 0) || (target >= items.length - 1 && delta > 0)) return;
     event.preventDefault();
-    move(target + clamp(delta / 140, -1.4, 1.4), false, false);
+    move(target + clamp(delta / 140, -1.4, 1.4), false, false, true);
     clearTimeout(wheelTimer);
-    wheelTimer = setTimeout(function () { move(Math.round(target), false, true); }, 130);
+    wheelTimer = setTimeout(function () { wheelTimer = 0; move(Math.round(target), false, true, true); }, 110);
   }, { passive: false });
   viewport.addEventListener('scroll', function () {
     if (!mobile.matches) return;
@@ -177,14 +200,14 @@
     drag.moved = true;
     orbit.setPointerCapture(event.pointerId);
     orbit.classList.add('is-dragging');
-    move(drag.start - dy / 88, false, false);
+    move(drag.start - dy / spacing, false, false, true);
   });
   function endDrag(event) {
     if (!drag || drag.id !== event.pointerId) return;
     var moved = drag.moved;
     drag = null; orbit.classList.remove('is-dragging');
     if (orbit.hasPointerCapture(event.pointerId)) orbit.releasePointerCapture(event.pointerId);
-    if (moved) { suppressClickUntil = performance.now() + 120; move(Math.round(target), false, true); }
+    if (moved) { suppressClickUntil = performance.now() + 120; move(Math.round(target), false, true, true); }
   }
   orbit.addEventListener('pointerup', endDrag);
   orbit.addEventListener('pointercancel', endDrag);
@@ -234,7 +257,7 @@
   window.addEventListener('scroll', function () { sceneBounds = sceneTransform = null; }, { passive: true });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
-      cancelAnimationFrame(raf); raf = 0; clearTimeout(wheelTimer); clearTimeout(mobileScrollTimer);
+      cancelAnimationFrame(raf); raf = 0; clearTimeout(wheelTimer); clearTimeout(mobileScrollTimer); wheelTimer = mobileScrollTimer = 0;
       target = Math.round(target);
       keyTimers.forEach(function (timer, key) { clearTimeout(timer); key.classList.remove('is-pressed'); }); keyTimers.clear();
       if (drag && orbit.hasPointerCapture(drag.id)) orbit.releasePointerCapture(drag.id);
@@ -249,11 +272,11 @@
     else layout();
   }, { rootMargin: '80px' }).observe(bench);
   new MutationObserver(function () {
-    latticeInk = getComputedStyle(bench).getPropertyValue('--bench-ink').trim() || '#d4d0b0'; drawLattice();
+    latticeInk = getComputedStyle(bench).getPropertyValue('--bench-ink').trim() || '#d4d0b0'; drawLattice(); drawConnections();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-gear'] });
   mobile.addEventListener('change', layout);
   motion.subscribe(function () { cancelAnimationFrame(raf); raf = 0; layout(); });
   bench.classList.add('is-ready');
   select(0, false); layout();
-  window.SkyWorkbench = { select: function (index) { move(index, false, true); }, selected: function () { return selected; }, settled: function () { return !raf; } };
+  window.SkyWorkbench = { select: function (index) { move(index, false, true); }, selected: function () { return selected; }, settled: function () { return !raf && !wheelTimer; }, position: function () { return x; } };
 })();
