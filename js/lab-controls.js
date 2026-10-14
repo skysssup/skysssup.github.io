@@ -130,24 +130,24 @@
   ];
 
   function traceLayout(duration, parallel) {
-    var scale = clamp(duration, 80, 420) / 220;
+    var toolMs = clamp(duration, 80, 420);
     var sideBySide = !!parallel;
-    var tool = { name: 'tool', depth: 2, x: 105, w: 221 * scale };
-    var fetchX = sideBySide ? 259 : tool.x + tool.w * (0.65 / 0.6) + 18;
-    var fetch = { name: 'fetch', depth: 2, x: fetchX, w: 78 * scale };
-    var plan = { name: 'plan', depth: 1, x: 41, w: 305 * scale };
-    var finalizeX = Math.max(tool.x + tool.w, fetch.x + fetch.w) + 28;
-    var finalize = { name: 'finalize', depth: 1, x: finalizeX, w: 170 * scale };
-    var request = { name: 'request', depth: 0, x: 22, w: Math.max(575 * scale, finalize.x + finalize.w - 22) };
+    var tool = { name: 'tool', depth: 2, x: 140, w: toolMs };
+    var fetch = { name: 'fetch', depth: 2, x: sideBySide ? 160 : 140 + toolMs + 16, w: 100 };
+    var finishAt = Math.max(tool.x + tool.w, fetch.x + fetch.w) + 28;
+    var plan = { name: 'plan', depth: 1, x: 30, w: finishAt - 30 };
+    var finalize = { name: 'finalize', depth: 1, x: finishAt, w: 120 };
+    var request = { name: 'request', depth: 0, x: 0, w: finishAt + 120 };
+    var axisMax = Math.ceil(request.w / 100) * 100;
+    var scale = 450 / axisMax;
     return {
-      duration: clamp(duration, 80, 420),
+      duration: toolMs,
+      axisMax: axisMax,
       parallel: sideBySide,
       request: request.w,
       spans: [request, plan, tool, fetch, finalize].map(function (span) {
-        var x = round(150 + span.x * 0.6);
-        var width = round(Math.max(8, span.w * 0.65));
-        if (x > 612) x = 612;
-        if (x + width > 624) width = round(Math.max(8, 624 - x));
+        var x = round(150 + span.x * scale);
+        var width = round(span.w * scale);
         return { name: span.name, depth: span.depth, x: x, width: width, y: 0 };
       }),
     };
@@ -711,8 +711,14 @@
         return node.getAttribute('y') === '314';
       });
       ticks.forEach(function (tick, index) {
-        var mark = Math.round(layout.duration * index / Math.max(1, ticks.length - 1));
+        var mark = Math.round(layout.axisMax * index / Math.max(1, ticks.length - 1));
         tick.textContent = String(mark);
+        tick.setAttribute('x', String(150 + 450 * index / Math.max(1, ticks.length - 1)));
+        tick.setAttribute('text-anchor', index === ticks.length - 1 ? 'end' : 'middle');
+      });
+      svg.querySelectorAll('.scene-art path.grid').forEach(function (rule, index) {
+        var x = 150 + 450 * index / Math.max(1, ticks.length - 1);
+        rule.setAttribute('d', 'M' + x + ' 54V290');
       });
       setText(root.querySelector('#lab-spanforge-duration-value'), Math.round(layout.duration) + ' ms');
       report(traceMessage(layout));
@@ -752,14 +758,20 @@
         text.setAttribute('y', '176');
         text.setAttribute('class', 'lab-note');
         text.setAttribute('aria-label', note.text);
-        var preview = note.text.slice(0, 75);
-        for (var line = 0; line < Math.ceil(preview.length / 15); line += 1) {
+        var remaining = note.text;
+        for (var line = 0; line < 5 && remaining.length; line += 1) {
+          var end = Math.min(15, remaining.length), newline = remaining.indexOf('\n');
+          if (newline >= 0 && newline < end) end = newline + 1;
+          else if (end < remaining.length && remaining.lastIndexOf(' ', end - 1) > 0) end = remaining.lastIndexOf(' ', end - 1) + 1;
           var row = document.createElementNS(SVG_NS, 'tspan');
           row.setAttribute('x', '345'); row.setAttribute('dy', line ? '19' : '0');
-          row.textContent = preview.slice(line * 15, (line + 1) * 15);
+          row.textContent = remaining.slice(0, end); remaining = remaining.slice(end);
           text.appendChild(row);
         }
-        if (note.text.length > 75) text.lastChild.textContent = text.lastChild.textContent.slice(0, 14) + '…';
+        if (remaining.length) text.lastChild.textContent = text.lastChild.textContent.slice(0, 14) + '…';
+        svg.querySelectorAll('.scene-art path.faint').forEach(function (rule) {
+          if (/^M345 (171|183|195|207|219|231|243)/.test(rule.getAttribute('d') || '')) rule.style.opacity = '0';
+        });
         art.appendChild(text);
         created.push(text);
       }

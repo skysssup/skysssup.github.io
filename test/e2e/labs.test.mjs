@@ -203,6 +203,10 @@ test('compact lab controls change the workbench drawings', {
         await incline.fill(await incline.getAttribute('max'));
         await fire(incline);
         const first = (await readCard(page, 'airforge')).ball;
+        const ballBox = await page.locator('#project-airforge .physics-ball').boundingBox();
+        const drawingBox = await page.locator('#project-airforge .scene-drawing').boundingBox();
+        assert.ok(ballBox.x >= drawingBox.x && ballBox.x + ballBox.width <= drawingBox.x + drawingBox.width, 'the real ball is horizontally inside its drawing');
+        assert.ok(ballBox.y >= drawingBox.y && ballBox.y + ballBox.height <= drawingBox.y + drawingBox.height, 'the real ball is vertically inside its drawing');
         await frames(page, 3);
         const held = (await readCard(page, 'airforge')).ball;
         assert.deepEqual(held, first, 'reduced motion does not keep integrating the ramp');

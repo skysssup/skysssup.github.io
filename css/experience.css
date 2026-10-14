@@ -6,6 +6,7 @@
 .bench-live span { color: var(--accent); }
 .bench-live:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 .is-lab-active .scene-pointer { opacity: 0 !important; }
+:root[data-polished] .is-lab-active :is(.physics-ball,.recall-marker,.recall-active) { transform: none !important; }
 .is-lab-active .scene-caption { display: none; }
 .is-lab-active .scene-toolbar { min-height: 44px; padding-top: 0; justify-content: flex-end; }
 :root[data-polished] .bench-body { grid-template-columns: 190px minmax(0,1fr); gap: 32px; }

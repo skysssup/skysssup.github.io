@@ -108,3 +108,11 @@ existing finish checks, then the corrected offscreen check. The original ember
 pixel test now samples successive native pointer moves during the spark lifetime;
 its visual thresholds and avatar assertions are unchanged. Full CI is required
 before marking publication verified.
+
+Visual review covered all eight active drawings at desktop, plus mobile and
+tablet AirForge and explicit light mode. It caught inherited reduced-motion
+transforms placing the new ball outside the SVG; active models now use only
+their own coordinates, and the browser test checks the ball's visible bounds.
+Trace geometry and ticks now share one millisecond scale that fits the complete
+request. Notes wrap at word/newline boundaries, with the full text retained in
+the editable field and the copy action.
