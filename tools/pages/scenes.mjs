@@ -13,11 +13,8 @@ function frame(slug, label, body) {
 }
 
 function crucible() {
-  const contours = Array.from({ length: 22 }, (_, i) => {
-    const y = 97 + i * 6.2;
-    return path(`M40 ${y}C112 ${y},106 ${y - 21},164 ${y - 21}S207 ${y + 20},256 ${y + 20}S325 ${y - 48},383 ${y - 48}S451 ${y},520 ${y}L599 ${y}`, `contour ${i % 5 === 0 ? 'major' : ''}`);
-  }).join('');
-  return frame('agentcrucible', 'Fault injection, retry, committed state, and claim checking', `${contours}<g class="scene-flow">${path('M85 276H220V302H370V276H550', 'flow-line')}${dot(85, 276)}${dot(220, 276)}${dot(370, 276)}${dot(550, 276)}</g>${text(52, 265, 'tool call')}${text(191, 265, 'fault')}${text(286, 319, 'retry', 'accent')}${text(337, 265, 'committed')}${text(498, 265, 'checked')}${line(221, 56, 221, 212, 'fault-marker')}${text(232, 66, 'timeout', 'fault-marker accent')}${dot(221, 174, 5, 'fault-marker accent-fill')}${path('M72 67H168M472 67H566', 'faint')}${text(72, 57, 'request')}${text(486, 57, 'claim')}${path('M554 88V236H390', 'faint dashed')}${text(428, 232, 'compare state', 'faint')}`);
+  const nodes = box(38,92,122,88,'tool call') + box(184,92,122,88,'retry') + box(350,92,122,88,'state') + box(506,92,100,88,'check');
+  return frame('agentcrucible', 'Fault injection, retry, committed state, and claim checking', `${nodes}<g class="scene-flow">${path('M100 180H245H410H556', 'flow-line')}${dot(100,180)}${dot(245,180)}${dot(410,180)}${dot(556,180)}</g>${path('M245 180V272H410V180','flow-line')}${text(267,300,'retry before checking','accent')}${line(245,48,245,180,'fault-marker')}${text(255,65,'timeout','fault-marker accent')}${dot(245,180,5,'fault-marker accent-fill')}${text(38,54,'request')}${text(505,54,'claim')}${path('M556 182V232H410','faint dashed')}${text(421,254,'compare state','faint')}`);
 }
 
 function airforge() {
@@ -79,7 +76,7 @@ export const scenes = {
 
 // Timed, explanatory states. These describe the drawing, never a measured product run.
 const behavior = {
-  agentcrucible: { idle: 'Tool call → committed state → checked claim', steps: [[0, 'Tool call times out'], [520, 'Retry follows the lower route'], [1250, 'Claim checked against committed state']], points: [[85,276],[221,174],[320,302],[550,276]] },
+  agentcrucible: { idle: 'Tool call → committed state → checked claim', steps: [[0, 'Tool call times out'], [520, 'Retry follows the lower route'], [1250, 'Claim checked against committed state']], points: [[100,180],[245,180],[330,272],[556,180]] },
   airforge: { idle: 'Draw a ramp, then drop the ball', steps: [[0, 'Ball released'], [650, 'Ramp guides the fall'], [1700, 'Ball settles on the platform']], points: [[109,75],[308,226],[425,282],[535,282]] },
   shipgate: { idle: 'Staged changes pass through the policy gate', steps: [[0, 'Read staged diff'], [450, 'Evaluate local policy'], [1050, 'Policy blocks this illustrative change']], points: [[135,162],[365,145],[528,230]] },
   'recall-ai': { idle: 'Review shifts the next practice interval', steps: [[0, 'Review recorded'], [380, 'Retention curve updated'], [850, 'Next review moves along the timeline']], points: [[84,252],[163,252],[263,252],[408,252],[560,252]] },

@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scenes } from './scenes.mjs';
+import { labControls } from './labs.mjs';
 import { headerMark, favicon } from './mark.mjs';
 
 const SRC = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +24,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ASSET_VERSION = 'finish-4';
+const ASSET_VERSION = 'experience-2';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
@@ -68,6 +69,8 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <link rel="stylesheet" href="/css/craft.css?v=${ASSET_VERSION}">
 <link rel="stylesheet" href="/css/finish.css?v=${ASSET_VERSION}">
 <link rel="stylesheet" href="/css/reading.css?v=${ASSET_VERSION}">
+<link rel="stylesheet" href="/css/experience.css?v=${ASSET_VERSION}">
+<link rel="stylesheet" href="/css/lab-controls.css?v=${ASSET_VERSION}">
 ${extra}</head>`;
 }
 
@@ -196,7 +199,7 @@ ${header('home')}
   </section>
 
   <section class="workbench" id="work-list" aria-labelledby="work-title" data-workbench>
-    <div class="bench-title"><h2 id="work-title">Selected work</h2><a class="link-ui" href="/work/">All projects${OPEN}</a></div>
+    <div class="bench-title"><h2 id="work-title">Selected work</h2><div class="bench-options"><button type="button" class="bench-live" data-bench-live aria-pressed="true">Pause examples <span aria-hidden="true">Ⅱ</span></button><a class="link-ui" href="/work/">All projects${OPEN}</a></div></div>
     <div class="bench-body"><canvas class="bench-presence" data-presence="work" aria-hidden="true"></canvas><canvas class="bench-connections" data-bench-connections aria-hidden="true"></canvas>
       <nav class="project-orbit" aria-label="Select a project" data-orbit>
         <canvas class="orbit-lattice" aria-hidden="true"></canvas>
@@ -207,9 +210,12 @@ ${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><butt
       </nav>
       <div class="work-details" data-work-detail>
 ${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article class="work-card${i === 0 ? ' is-on' : ''}" id="project-${p.slug}" data-scene="${p.slug}" aria-hidden="${i !== 0}"${i ? ' inert' : ''}>
+          <div class="scene-stage">
           <div class="scene-heading"><span>${esc(s.label)}</span><span class="scene-number">${pad(i + 1)} / ${pad(projects.length)}</span></div>
           <div class="scene-drawing" tabindex="0" role="button" aria-label="Replay ${esc(p.name)} workflow illustration" aria-keyshortcuts="Enter Space" title="Click or press Enter to replay the illustration">${s.svg}</div>
-          <div class="scene-toolbar"><span class="scene-caption">Illustration <span aria-hidden="true">·</span> <span data-scene-status>${esc(s.idle)}</span></span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="${esc(s.action)}" data-active-label="${esc(s.active)}">${esc(s.action)} <span aria-hidden="true">↗</span></button></div>
+          ${labControls(p.slug)}
+          <div class="scene-toolbar"><span class="scene-caption">Illustration <span aria-hidden="true">·</span> <span data-scene-status>${esc(s.idle)}</span></span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="Replay example" data-active-label="Reset example">Replay example <span aria-hidden="true">↗</span></button></div>
+          </div>
           <div class="scene-copy"><div><h3 class="work-card-name">${esc(p.name)}</h3><p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p></div><p class="work-card-desc">${esc(p.summary || p.tagline)}</p><ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul><div class="scene-links"><a class="link-ui" href="/work/${p.slug}/">${p.placeholder ? 'Project notes' : 'Case study'}${OPEN}</a>${p.repo ? `<a class="link-ui" href="${p.repo}">Source${ARROW}</a>` : ''}</div></div>
         </article>`; }).join('\n')}
       </div>
@@ -226,7 +232,7 @@ ${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article cl
 </main>
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js', '/js/workbench.js', '/js/scroll-field.js', '/js/presence.js'])}
+${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js', '/js/lab-controls.js', '/js/workbench.js', '/js/scroll-field.js', '/js/presence.js'])}
 </body>
 </html>
 `;

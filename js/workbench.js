@@ -23,6 +23,17 @@
   var wheelTimer = 0, mobileScrollTimer = 0, suppressClickUntil = 0;
   var drag = null, followingWheel = false, spacing = 100, focusY = 250, posedX = NaN;
   var sceneRun = null, sceneTop = 0, sceneHeight = 1, sceneRead = -1, sceneVisible = false, previewed = false, sceneObserver = null;
+  var labs = [], liveButton = bench.querySelector('[data-bench-live]'), live = true, repeatTimer = 0;
+  function clearRepeat() { clearTimeout(repeatTimer); repeatTimer = 0; }
+  function scheduleExample() {
+    clearRepeat();
+    if (!live || reduced() || document.hidden || !visible || !sceneVisible || !drawingOnscreen() || selected < 0 || labs[selected].activated()) return;
+    repeatTimer = setTimeout(function () { repeatTimer = 0; previewed = false; automaticPreview(); }, 1800);
+  }
+  function syncLabMotion() {
+    labs.forEach(function (lab, i) { if (i === selected && visible && sceneVisible && drawingOnscreen() && !document.hidden && live) lab.resume(); else lab.pause(); });
+  }
+  function drawingOnscreen() { return sceneTop - scrollY < innerHeight && sceneTop - scrollY + sceneHeight > 0; }
   function clamp(n, low, high) { return Math.max(low, Math.min(high, n)); }
   function reduced() { return motion.reduced(); }
   function queue() {
@@ -33,13 +44,14 @@
     if (next === selected) return;
     var old = selected;
     selected = next; posedX = NaN; connectionGeometry = null;
-    sceneRun = null; sceneRead = -1; previewed = false;
+    clearRepeat(); sceneRun = null; sceneRead = -1; previewed = false;
     cards.forEach(function (card, i) {
       var on = i === selected;
       card.classList.toggle('is-on', on);
       card.setAttribute('aria-hidden', on ? 'false' : 'true');
       card.inert = !on;
       if (!on && old === i) {
+        labs[i].reset(); labs[i].pause(); card.classList.remove('is-lab-active');
         card.classList.remove('is-probed');
         card.classList.remove('is-running', 'is-previewed'); card.removeAttribute('data-scene-step');
         card.querySelector('[data-scene-status]').textContent = data[i].scene.idle;
@@ -150,6 +162,7 @@
   }
   function feedback() {
     var card = cards[selected], mark = card.querySelector('.scene-pointer');
+    if (labs[selected] && labs[selected].activated()) return;
     if (!mark || !pointer.inside || (sceneRun && (!sceneRun.preview || sceneRun.ignoreInspect))) return;
     var points = data[selected].scene.points, near = 0, distance = Infinity;
     points.forEach(function (point, i) {
@@ -163,11 +176,13 @@
     } else if (!sceneRun) restoreStatus(card);
   }
   function restoreStatus(card) {
+    if (labs[cards.indexOf(card)] && labs[cards.indexOf(card)].activated()) return;
     var scene = data[cards.indexOf(card)].scene;
     card.querySelector('[data-scene-status]').textContent = card.classList.contains('is-probed') || card.classList.contains('is-previewed') ? scene.steps[scene.steps.length - 1][1] : scene.idle;
   }
   function preview(force) {
-    if (reduced() || document.hidden || !visible || !sceneVisible || selected < 0 || sceneRun) return;
+    if (reduced() || document.hidden || !visible || !sceneVisible || selected < 0 || sceneRun || (!force && !live) || labs[selected].activated()) return;
+    clearRepeat();
     var card = cards[selected], action = card.querySelector('[data-scene-action]');
     resetSceneVisuals(card); card.classList.remove('is-probed', 'is-inspecting', 'is-previewed');
     action.setAttribute('aria-pressed','false'); action.firstChild.textContent = action.dataset.idleLabel + ' ';
@@ -220,7 +235,7 @@
     if (read !== sceneRead) { sceneRead = read; cards[selected].style.setProperty('--scene-read', read); }
   }
   function playScene(dt) {
-    if (!sceneRun || !sceneVisible || (sceneRun.preview && !sceneRun.ignoreInspect && cards[selected].classList.contains('is-inspecting'))) return;
+    if (!sceneRun || !live || !sceneVisible || !drawingOnscreen() || (sceneRun.preview && !sceneRun.ignoreInspect && cards[selected].classList.contains('is-inspecting'))) return;
     var scene = data[selected].scene, run = sceneRun, card = cards[selected];
     run.elapsed += dt * 1000;
     var step = 0;
@@ -245,7 +260,8 @@
     if (progress >= 1) {
       if (run.preview) card.classList.add('is-previewed');
       card.classList.remove('is-running'); sceneRun = null;
-      if (announcement) announcement.textContent = 'Illustration: ' + scene.steps[scene.steps.length - 1][1];
+      if (!run.preview && announcement) announcement.textContent = 'Illustration: ' + scene.steps[scene.steps.length - 1][1];
+      if (run.preview) scheduleExample();
     }
   }
   function frame(now) {
@@ -267,7 +283,7 @@
     var moving = Math.abs(x - target) > .001 || Math.abs(velocity) > .005;
     var tracking = Math.abs(pointer.x - pointer.tx) + Math.abs(pointer.y - pointer.ty) > .001;
     if (!moving) automaticPreview();
-    var playing = sceneRun && sceneVisible && (!sceneRun.preview || sceneRun.ignoreInspect || !cards[selected].classList.contains('is-inspecting'));
+    var playing = live && sceneRun && sceneVisible && (!sceneRun.preview || sceneRun.ignoreInspect || !cards[selected].classList.contains('is-inspecting'));
     if (!reduced() && (moving || tracking || playing)) raf = requestAnimationFrame(frame);
     else { x = target; velocity = 0; if (followingWheel) { select(Math.round(x), true); followingWheel = false; } pose(); }
   }
@@ -357,10 +373,23 @@
   cards.forEach(function (card, index) {
     var drawing = card.querySelector('.scene-drawing');
     drawing.querySelectorAll('.contour,.trajectory,.note-sheet,.vote-link,.trace-span rect').forEach(function (path, i) { path.setAttribute('pathLength', '1'); path.classList.add('scroll-trace'); path.style.setProperty('--trace-order', i); });
-    drawing.addEventListener('click', function () { if (index === selected) { sceneRun = null; preview(true); } });
+    labs[index] = window.SkyLabControls.mount(card, data[index].slug, {
+      beforeChange: function () {
+        clearRepeat(); sceneRun = null; previewed = true;
+        if (!card.classList.contains('is-lab-active')) resetSceneVisuals(card);
+        card.classList.remove('is-running', 'is-previewed', 'is-inspecting');
+        card.classList.add('is-lab-active', 'is-probed');
+        card.querySelector('[data-scene-action]').setAttribute('aria-pressed', 'true');
+        card.querySelector('[data-scene-action]').firstChild.textContent = 'Reset ';
+      },
+      status: function (text) { card.querySelector('[data-scene-status]').textContent = text.replace(/^Illustration:\s*/i, ''); }
+    });
+    card.querySelector('[data-lab-controls]').addEventListener('focusin', function () { clearRepeat(); sceneRun = null; previewed = true; card.classList.remove('is-running'); });
+    function replay() { if (index !== selected) return; if (labs[index].activated()) labs[index].run(); else { sceneRun = null; preview(true); } }
+    drawing.addEventListener('click', replay);
     drawing.addEventListener('keydown', function (event) {
       if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault(); if (index === selected) { sceneRun = null; preview(true); }
+      event.preventDefault(); replay();
     });
     drawing.addEventListener('pointerenter', function (event) {
       if (event.pointerType === 'touch') return;
@@ -386,16 +415,27 @@
     });
     var action = card.querySelector('[data-scene-action]');
     action.addEventListener('click', function () {
-      previewed = true; card.classList.remove('is-previewed');
+      clearRepeat(); previewed = true; card.classList.remove('is-previewed');
+      if (labs[index].activated()) {
+        sceneRun = null; labs[index].reset();
+        card.classList.remove('is-probed', 'is-lab-active', 'is-running', 'is-inspecting');
+        card.removeAttribute('data-scene-step'); resetSceneVisuals(card); restoreStatus(card);
+        action.setAttribute('aria-pressed', 'false'); action.firstChild.textContent = action.dataset.idleLabel + ' '; syncLabMotion(); return;
+      }
       var on = !card.classList.contains('is-probed');
-      card.classList.toggle('is-probed', on);
-      action.setAttribute('aria-pressed', String(on));
+      card.classList.toggle('is-probed', on); action.setAttribute('aria-pressed', String(on));
       action.firstChild.textContent = (on ? action.dataset.activeLabel : action.dataset.idleLabel) + ' ';
-      card.classList.toggle('is-running', on && !reduced());
-      card.classList.remove('is-inspecting');
+      card.classList.toggle('is-running', on && !reduced()); card.classList.remove('is-inspecting');
       if (on && !reduced()) { resetSceneVisuals(card); sceneRun = { elapsed: 0, step: -1 }; playScene(0); queue(); }
       else { sceneRun = null; card.removeAttribute('data-scene-step'); resetSceneVisuals(card); restoreStatus(card); }
     });
+  });
+  liveButton.addEventListener('click', function () {
+    live = !live; liveButton.setAttribute('aria-pressed', String(live));
+    liveButton.firstChild.textContent = live ? 'Pause examples ' : 'Play examples ';
+    liveButton.lastElementChild.textContent = live ? 'Ⅱ' : '▷';
+    clearRepeat(); syncLabMotion();
+    if (live) { if (sceneRun) queue(); else scheduleExample(); }
   });
   bench.addEventListener('keydown', function (event) {
     var key = echoKeys.get(event.key);
@@ -404,26 +444,29 @@
     keyTimers.set(key, setTimeout(function () { key.classList.remove('is-pressed'); keyTimers.delete(key); }, 180));
   });
   window.addEventListener('resize', layout, { passive: true });
-  window.addEventListener('scroll', function () { sceneBounds = sceneTransform = null; if (visible && !document.hidden) { if (reduced()) revealScene(); else queue(); } }, { passive: true });
+  window.addEventListener('scroll', function () { sceneBounds = sceneTransform = null; syncLabMotion(); if (!drawingOnscreen()) clearRepeat(); if (visible && !document.hidden) { if (reduced()) revealScene(); else queue(); } }, { passive: true });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
+      clearRepeat(); syncLabMotion();
       cancelAnimationFrame(raf); raf = 0; clearTimeout(wheelTimer); clearTimeout(mobileScrollTimer); wheelTimer = mobileScrollTimer = 0;
       target = Math.round(target);
       keyTimers.forEach(function (timer, key) { clearTimeout(timer); key.classList.remove('is-pressed'); }); keyTimers.clear();
       if (drag && orbit.hasPointerCapture(drag.id)) orbit.releasePointerCapture(drag.id);
       drag = null; orbit.classList.remove('is-dragging');
     }
-    else { layout(); if (sceneRun) queue(); }
+    else { layout(); syncLabMotion(); if (sceneRun) queue(); else scheduleExample(); }
   });
   new IntersectionObserver(function (entries) {
     visible = entries[0].isIntersecting;
     bench.classList.toggle('is-visible', visible);
-    if (!visible) { cancelAnimationFrame(raf); raf = 0; }
-    else { layout(); if (sceneRun) queue(); }
+    syncLabMotion();
+    if (!visible) { clearRepeat(); cancelAnimationFrame(raf); raf = 0; }
+    else { layout(); if (sceneRun) queue(); else scheduleExample(); }
   }, { rootMargin: '80px' }).observe(bench);
   sceneObserver = new IntersectionObserver(function (entries) {
     sceneVisible = entries[0].isIntersecting;
     bench.classList.toggle('is-drawing-visible', sceneVisible);
+    syncLabMotion(); if (!sceneVisible) clearRepeat();
     if (sceneVisible) automaticPreview();
     if (sceneVisible && sceneRun) queue();
   });
@@ -433,6 +476,8 @@
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-gear'] });
   mobile.addEventListener('change', layout);
   motion.subscribe(function () {
+    clearRepeat();
+    if (reduced() && selected >= 0 && labs[selected].activated()) labs[selected].run();
     cancelAnimationFrame(raf); raf = 0;
     if (reduced() && sceneRun) { cards[selected].classList.remove('is-running'); sceneRun = null; resetSceneVisuals(cards[selected]); restoreStatus(cards[selected]); }
     layout();

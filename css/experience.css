@@ -1,0 +1,83 @@
+/* Work is a readable instrument: selection, a responsive drawing, and its context. */
+:root[data-polished] .workbench { padding-top: 28px; }
+:root[data-polished] .bench-title { margin-bottom: 28px; }
+.bench-options { display: flex; align-items: center; gap: 24px; }
+.bench-live { min-height: 44px; display: flex; align-items: center; gap: 12px; color: var(--ink); font: 12px/20px var(--mono); cursor: pointer; }
+.bench-live span { color: var(--accent); }
+.bench-live:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+.is-lab-active .scene-pointer { opacity: 0 !important; }
+.is-lab-active .scene-caption { display: none; }
+.is-lab-active .scene-toolbar { min-height: 44px; padding-top: 0; justify-content: flex-end; }
+:root[data-polished] .bench-body { grid-template-columns: 190px minmax(0,1fr); gap: 32px; }
+:root[data-polished] .work-details { min-height: 0; }
+:root[data-polished] .page-home .work-card { display: grid; grid-template-columns: minmax(0,1fr) minmax(210px,.48fr); gap: 32px; align-items: start; }
+:root[data-polished] .page-home .work-card:not(.is-on) { position: absolute; inset: 0; }
+:root[data-polished] .scene-stage { min-width: 0; }
+:root[data-polished] .scene-copy { padding-top: 26px; border: 0; }
+:root[data-polished] .scene-copy .work-card-name { font-size: 32px; line-height: 38px; margin-bottom: 12px; }
+:root[data-polished] .scene-copy .work-card-desc { font-size: 15px; line-height: 25px; opacity: 1; }
+:root[data-polished] .scene-copy .work-card-stack { gap: 6px 10px; margin-top: 24px; }
+:root[data-polished] .scene-copy .scene-links { margin-top: 18px; gap: 8px 20px; }
+:root[data-polished] .scene-heading { margin-bottom: 12px; color: var(--ink); }
+:root[data-polished] .scene-drawing { aspect-ratio: 16 / 9; margin: 0; }
+:root[data-polished] .scene-svg { width: 100%; height: auto; display: block; }
+:root[data-polished] .scene-svg text { font-size: 14px; }
+:root[data-polished] .scene-svg .faint { opacity: .6; }
+:root[data-polished] .scene-svg .scene-grid { opacity: .4; }
+:root[data-polished] .scene-svg .scene-registration { opacity: .5; }
+:root[data-polished] .scene-svg .contour { stroke-opacity: .42; }
+:root[data-polished] .scene-toolbar { min-height: 60px; padding-block: 12px; gap: 16px; }
+:root[data-polished] .scene-caption { font-size: 11px; line-height: 18px; }
+:root[data-polished] .scene-action { font-size: 12px; min-width: 104px; }
+:root[data-polished] .workbench.is-ready .orbit-window { height: 390px; }
+:root[data-polished] .project-pick { min-height: 88px; }
+:root[data-polished] .orbit-footer { margin-top: 14px; }
+:root[data-polished] .bench-floor { margin-top: 28px; margin-bottom: 36px; }
+:root[data-polished] .bench-presence { opacity: .3; }
+
+@media (max-width: 1199px) and (min-width: 761px) {
+  :root[data-polished] .bench-body { grid-template-columns: 174px minmax(0,1fr); gap: 24px; }
+  :root[data-polished] .page-home .work-card { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  :root[data-polished] .scene-copy { padding-top: 0; max-width: 62ch; }
+  :root[data-polished] .scene-copy .work-card-name { font-size: 28px; line-height: 34px; }
+  :root[data-polished] .scene-copy .work-card-stack { margin-top: 12px; }
+}
+@media (max-width: 760px) {
+  :root[data-polished] .workbench { padding-top: 16px; }
+  :root[data-polished] .bench-title { margin-bottom: 16px; }
+  :root[data-polished] .bench-title { align-items: center; gap: 12px; }
+  .bench-options { gap: 4px; flex-direction: column; align-items: flex-end; }
+  .bench-live { font-size: 10px; gap: 8px; }
+  .bench-options .link-ui { font-size: 10px; min-height: 28px; }
+  :root[data-polished] .bench-body { display: flex; gap: 14px; }
+  :root[data-polished] .project-orbit { display: grid; grid-template-columns: minmax(0,1fr) 44px; column-gap: 8px; }
+  :root[data-polished] .workbench.is-ready .orbit-window { height: auto; grid-column: 1; padding-block: 0; align-self: center; }
+  :root[data-polished] .home-work { gap: 8px; }
+  :root[data-polished] .home-work .orbit-item { width: 170px; flex: 0 0 170px; }
+  :root[data-polished] .orbit-window .home-work::before,
+  :root[data-polished] .orbit-window .home-work::after { flex-basis: max(0px,calc((100% - 170px) / 2 - 8px)); }
+  :root[data-polished] .home-work .project-pick { height: 60px; min-height: 60px; padding: 10px 12px; grid-template-columns: 24px minmax(0,1fr); column-gap: 10px; }
+  :root[data-polished] .home-work .orbit-index,
+  :root[data-polished] .home-work .orbit-status { display: none; }
+  :root[data-polished] .home-work .orbit-name { font-size: 14px; grid-column: 2; grid-row: 1; }
+  :root[data-polished] .home-work .orbit-symbol { grid-column: 1; grid-row: 1; }
+  :root[data-polished] .project-pick::after { top: 12px; bottom: 12px; }
+  :root[data-polished] .orbit-footer { margin: 0; grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 0; justify-content: center; }
+  :root[data-polished] .orbit-footer output { display: none; }
+  :root[data-polished] .page-home .work-card { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
+  :root[data-polished] .scene-drawing { width: 100%; overflow: hidden; padding: 0; aspect-ratio: 16 / 9; }
+  :root[data-polished] .scene-svg { width: 100%; max-width: 100%; height: auto; }
+  :root[data-polished] .scene-svg text { font-size: 20px; }
+  :root[data-polished] .scene-svg text.faint { font-size: 17px; }
+  :root[data-polished] .scene-heading { font-size: 12px; margin-bottom: 8px; }
+  :root[data-polished] .scene-toolbar { min-height: 58px; gap: 12px; padding-block: 8px; }
+  :root[data-polished] .scene-action { min-width: 94px; padding-inline: 10px; }
+  :root[data-polished] .scene-copy { padding: 0; }
+  :root[data-polished] .scene-copy .work-card-name { font-size: 28px; line-height: 34px; }
+  :root[data-polished] .scene-copy .work-card-stack { margin-top: 12px; }
+  :root[data-polished] .bench-floor { margin-top: 14px; }
+  :root[data-polished] .bench-connections,
+  :root[data-polished] .bench-presence { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .scene-stage { transition: none; } }
+@media print { .scene-stage .lab-controls { display: none; } }

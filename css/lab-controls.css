@@ -1,0 +1,551 @@
+/* Compact lab controls for a 260px side column and a wide stage.
+   One accent, the polished reading accent, pinned here so gear and avatar
+   tokens cannot recolor the group. Dark is the default; light is manual
+   via [data-theme="light"]. Paper, ink, and muted still follow the page. */
+
+.lab-controls[data-lab-controls] {
+  --accent: #c9b975;
+  --line: color-mix(in srgb, var(--ink) 18%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink) 42%, transparent);
+  display: flex;
+  flex-flow: row wrap;
+  align-items: stretch;
+  gap: 0 24px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font: 400 16px/24px var(--sans);
+  text-align: start;
+}
+
+:root[data-theme="light"] .lab-controls[data-lab-controls] {
+  --accent: #766128;
+}
+
+.lab-controls[data-lab-controls] :is(
+  .lab-field,
+  .lab-label,
+  .lab-value,
+  .lab-actions,
+  .lab-output,
+  label,
+  input,
+  select,
+  textarea,
+  button,
+  output
+) {
+  max-width: 100%;
+  min-width: 0;
+  box-shadow: none;
+}
+
+.lab-controls[data-lab-controls] > .lab-field {
+  flex: 1 1 16rem;
+}
+
+.lab-controls[data-lab-controls] > :is(.lab-actions, .lab-output, output):not(.lab-value) {
+  flex: 1 1 100%;
+}
+
+.lab-field {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 0;
+  width: auto;
+  margin: 0;
+  padding: 2px 0 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.lab-label {
+  order: 1;
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: baseline;
+  column-gap: 12px;
+  min-width: 0;
+  min-height: 24px;
+  margin: 0;
+  padding: 8px 0 0;
+  color: var(--muted);
+  font: 400 12px/16px var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.lab-value,
+.lab-field .lab-output {
+  order: 2;
+  flex: 0 1 auto;
+  max-width: min(46%, 12rem);
+  margin: 0;
+  padding: 8px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 500 16px/24px var(--sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-align: end;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.lab-label .lab-value {
+  margin-inline-start: auto;
+}
+
+.lab-field > :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) {
+  order: 3;
+  flex: 1 1 100%;
+}
+
+.lab-label > :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) {
+  flex: 1 1 100%;
+  order: 3;
+}
+
+.lab-field > :is(input[type="checkbox"], input[type="radio"]),
+.lab-label > :is(input[type="checkbox"], input[type="radio"]) {
+  order: 2;
+  flex: 0 0 44px;
+  margin-inline-start: auto;
+}
+
+.lab-controls[data-lab-controls] :is(input, select, textarea) {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 16px/24px var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.lab-controls[data-lab-controls] :is(input, select, textarea)::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.lab-controls[data-lab-controls] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea
+) {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 0 10px;
+}
+
+.lab-controls[data-lab-controls] select {
+  appearance: auto;
+  -webkit-appearance: auto;
+  color-scheme: dark;
+  padding-inline-end: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  field-sizing: fixed;
+  cursor: pointer;
+}
+:root[data-theme="light"] .lab-controls[data-lab-controls] select { color-scheme: light; }
+
+.lab-controls[data-lab-controls] textarea {
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 24px;
+  resize: none;
+  overflow: auto;
+  white-space: pre-wrap;
+  field-sizing: fixed;
+}
+
+.lab-controls[data-lab-controls] input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+  accent-color: var(--accent);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:focus {
+  outline: none;
+}
+
+.lab-controls[data-lab-controls] input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--line-strong);
+  border: 0;
+}
+
+.lab-controls[data-lab-controls] input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: none;
+}
+
+.lab-controls[data-lab-controls] input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--line-strong);
+  border: 0;
+}
+
+.lab-controls[data-lab-controls] input[type="range"]::-moz-range-progress {
+  height: 1px;
+  background: var(--accent);
+  border: 0;
+}
+
+.lab-controls[data-lab-controls] input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: none;
+}
+
+.lab-controls[data-lab-controls] input[type="range"]::-moz-focus-outer {
+  border: 0;
+}
+
+.lab-controls[data-lab-controls] :is(input[type="checkbox"], input[type="radio"]) {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lab-label:has(input[type="checkbox"], input[type="radio"]) {
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.lab-actions {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 0 20px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.lab-controls[data-lab-controls] :is(button, [data-lab-action]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 12px/16px var(--mono);
+  letter-spacing: 0.04em;
+  text-align: start;
+  text-decoration: underline 1px var(--line-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-transform: uppercase;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.lab-controls[data-lab-controls] > .lab-output,
+.lab-controls[data-lab-controls] > output.lab-output {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 0 2px;
+  border: 0;
+  border-top: 1px solid var(--accent);
+  background: transparent;
+  color: var(--ink);
+  font: 400 16px/24px var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lab-controls[data-lab-controls] > .lab-output:empty {
+  display: none;
+  border: 0;
+  padding: 0;
+}
+
+/* The focused field is the active control: one accent rule, value already accent. */
+.lab-field:focus-within {
+  border-bottom-color: var(--accent);
+}
+
+.lab-field:focus-within .lab-label {
+  color: var(--ink);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:focus-visible::-webkit-slider-runnable-track,
+.lab-field:focus-within input[type="range"]::-webkit-slider-runnable-track {
+  background: var(--accent);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:focus-visible::-moz-range-track,
+.lab-field:focus-within input[type="range"]::-moz-range-track {
+  background: var(--accent);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:focus-visible::-webkit-slider-thumb,
+.lab-field:focus-within input[type="range"]::-webkit-slider-thumb,
+.lab-controls[data-lab-controls] input[type="range"]:focus-visible::-moz-range-thumb,
+.lab-field:focus-within input[type="range"]::-moz-range-thumb {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+:root .lab-controls[data-lab-controls] :is(a, button, input, select, textarea, output):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lab-controls[data-lab-controls] :is(button, [data-lab-action]):is(:hover, :focus-visible, [aria-pressed="true"]) {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+
+.lab-controls[data-lab-controls] :is(button, input, select, textarea):disabled,
+.lab-controls[data-lab-controls] :is(button, [data-lab-action])[aria-disabled="true"],
+.lab-field:has(:disabled) :is(.lab-label, .lab-value, .lab-output) {
+  color: var(--muted);
+  cursor: default;
+  text-decoration-color: var(--line);
+}
+
+.lab-controls[data-lab-controls] :is(input, select, textarea):disabled {
+  border-bottom-color: var(--line);
+  opacity: 1;
+}
+
+.lab-field:has(:disabled) {
+  border-bottom-color: var(--line);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:disabled::-webkit-slider-runnable-track {
+  background: var(--line);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:disabled::-webkit-slider-thumb {
+  border-color: var(--muted);
+  background: var(--muted);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:disabled::-moz-range-track,
+.lab-controls[data-lab-controls] input[type="range"]:disabled::-moz-range-progress {
+  background: var(--line);
+}
+
+.lab-controls[data-lab-controls] input[type="range"]:disabled::-moz-range-thumb {
+  border-color: var(--muted);
+  background: var(--muted);
+}
+
+.lab-controls[data-lab-controls] button:disabled:is(:hover, :focus-visible),
+.lab-controls[data-lab-controls] [aria-disabled="true"]:is(:hover, :focus-visible) {
+  color: var(--muted);
+  text-decoration-thickness: 1px;
+}
+
+@media (pointer: coarse) {
+  .lab-controls[data-lab-controls] input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -12px;
+  }
+
+  .lab-controls[data-lab-controls] input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="reduced"]) .lab-field,
+  :root:not([data-motion="reduced"]) .lab-controls[data-lab-controls] :is(button, [data-lab-action], .lab-label, .lab-value) {
+    transition: color 0.16s var(--ease-out), border-color 0.16s var(--ease-out), text-decoration-color 0.16s var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-controls[data-lab-controls],
+  .lab-controls[data-lab-controls] :is(*, *::before, *::after) {
+    transition: none;
+    animation: none;
+    scroll-behavior: auto;
+  }
+}
+
+:root[data-motion="reduced"] .lab-controls[data-lab-controls],
+:root[data-motion="reduced"] .lab-controls[data-lab-controls] :is(*, *::before, *::after),
+html[data-motion="reduced"] .lab-controls[data-lab-controls],
+html[data-motion="reduced"] .lab-controls[data-lab-controls] :is(*, *::before, *::after) {
+  transition: none;
+  animation: none;
+  scroll-behavior: auto;
+}
+
+@media (prefers-contrast: more) {
+  .lab-controls[data-lab-controls] {
+    border-top-width: 2px;
+  }
+
+  .lab-field,
+  .lab-controls[data-lab-controls] > .lab-output {
+    border-bottom-width: 2px;
+    border-top-width: 2px;
+  }
+
+  .lab-controls[data-lab-controls] input[type="range"]::-webkit-slider-runnable-track,
+  .lab-controls[data-lab-controls] input[type="range"]::-moz-range-track,
+  .lab-controls[data-lab-controls] input[type="range"]::-moz-range-progress {
+    height: 2px;
+  }
+
+  .lab-controls[data-lab-controls] input[type="range"]::-webkit-slider-thumb {
+    margin-top: -8px;
+  }
+}
+
+@media print {
+  .scene-stage .lab-controls[data-lab-controls],
+  .lab-controls[data-lab-controls] {
+    display: flex;
+    break-inside: avoid;
+    color: #000;
+    background: transparent;
+    border-top-color: #000;
+    --accent: #000;
+    --ink: #000;
+    --muted: #000;
+    --line: #000;
+    --line-strong: #000;
+  }
+
+  .lab-controls[data-lab-controls] :is(
+    .lab-field,
+    .lab-label,
+    .lab-value,
+    .lab-output,
+    .lab-actions,
+    button,
+    input,
+    select,
+    textarea,
+    output
+  ) {
+    color: #000;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .lab-field,
+  .lab-controls[data-lab-controls] > .lab-output {
+    border-color: #000;
+  }
+}
+
+@media (forced-colors: active) {
+  .lab-controls[data-lab-controls] {
+    forced-color-adjust: auto;
+    --accent: Highlight;
+    --ink: CanvasText;
+    --muted: GrayText;
+    --paper: Canvas;
+    --line: CanvasText;
+    --line-strong: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+    border-top-color: CanvasText;
+  }
+
+  .lab-field,
+  .lab-controls[data-lab-controls] :is(input, select, textarea),
+  .lab-controls[data-lab-controls] > .lab-output,
+  .lab-controls[data-lab-controls] :is(button, [data-lab-action]) {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .lab-value,
+  .lab-field .lab-output,
+  .lab-field:focus-within,
+  .lab-controls[data-lab-controls] :is(button, [data-lab-action])[aria-pressed="true"],
+  .lab-controls[data-lab-controls] > .lab-output:not(:empty) {
+    color: Highlight;
+    border-color: Highlight;
+  }
+
+  .lab-controls[data-lab-controls] select,
+  .lab-controls[data-lab-controls] input[type="range"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+    accent-color: Highlight;
+    forced-color-adjust: auto;
+  }
+
+  .lab-controls[data-lab-controls] input[type="range"] {
+    height: 44px;
+  }
+
+  :root .lab-controls[data-lab-controls] :is(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid Highlight;
+  }
+
+  .lab-controls[data-lab-controls] :is(button, input, select, textarea):disabled,
+  .lab-controls[data-lab-controls] [aria-disabled="true"],
+  .lab-field:has(:disabled) :is(.lab-label, .lab-value, .lab-output) {
+    color: GrayText;
+    border-color: GrayText;
+  }
+}
