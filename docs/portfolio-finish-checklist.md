@@ -116,3 +116,9 @@ their own coordinates, and the browser test checks the ball's visible bounds.
 Trace geometry and ticks now share one millisecond scale that fits the complete
 request. Notes wrap at word/newline boundaries, with the full text retained in
 the editable field and the copy action.
+
+The first full CI run passed 93/94 browser checks. The remaining short-viewport
+test stalled on selection: wheel movement was gated by section visibility.
+Requests now settle immediately while hidden/offscreen, and leaving the section
+commits the requested index. Four focused navigation/visibility checks pass,
+including a new offscreen request regression; all five model checks still pass.

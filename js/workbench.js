@@ -90,7 +90,8 @@
       }
     }
     clearTimeout(mobileScrollTimer); mobileScrollTimer = 0;
-    if (reduced()) select(target, announce);
+    var instant = reduced() || !visible || document.hidden;
+    if (instant) { x = target; velocity = 0; select(target, announce); pose(); }
     if (focus) picks[Math.round(target)].focus({ preventScroll: true });
     if (mobile.matches) {
       var item = items[Math.round(target)];
@@ -460,7 +461,12 @@
     visible = entries[0].isIntersecting;
     bench.classList.toggle('is-visible', visible);
     syncLabMotion();
-    if (!visible) { clearRepeat(); cancelAnimationFrame(raf); raf = 0; }
+    if (!visible) {
+      clearRepeat(); cancelAnimationFrame(raf); raf = 0;
+      clearTimeout(wheelTimer); wheelTimer = 0;
+      target = Math.round(target); x = target; velocity = 0; followingWheel = false;
+      select(target, false); pose();
+    }
     else { layout(); if (sceneRun) queue(); else scheduleExample(); }
   }, { rootMargin: '80px' }).observe(bench);
   sceneObserver = new IntersectionObserver(function (entries) {

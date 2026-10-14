@@ -485,3 +485,17 @@ test('scrolling the workbench off screen pauses its drawing and continues on ret
     assert.deepEqual(errors, []);
   });
 });
+
+test('a project request settles while the workbench is outside a short viewport', async () => {
+  await withPage({ url: '/', reduced: false, height: 480 }, async (page, errors) => {
+    await readyBench(page);
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.waitForFunction(() => !document.querySelector('[data-workbench]').classList.contains('is-visible'));
+    await page.evaluate(() => SkyWorkbench.select(3));
+    await page.waitForFunction(() => SkyWorkbench.selected() === 3 && SkyWorkbench.settled());
+    await page.locator('#work-list').scrollIntoViewIfNeeded();
+    assert.equal(await page.locator('.work-card.is-on').getAttribute('id'), 'project-recall-ai');
+    assert.equal(await page.locator('[data-work-pick="3"]').getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(errors, []);
+  });
+});
