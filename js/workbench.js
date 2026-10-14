@@ -477,7 +477,7 @@
   mobile.addEventListener('change', layout);
   motion.subscribe(function () {
     clearRepeat();
-    if (reduced() && selected >= 0 && labs[selected].activated()) labs[selected].run();
+    if (reduced() && selected >= 0 && data[selected].slug === 'airforge' && labs[selected].activated()) labs[selected].run();
     cancelAnimationFrame(raf); raf = 0;
     if (reduced() && sceneRun) { cards[selected].classList.remove('is-running'); sceneRun = null; resetSceneVisuals(cards[selected]); restoreStatus(cards[selected]); }
     layout();

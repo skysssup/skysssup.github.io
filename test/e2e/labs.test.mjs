@@ -129,6 +129,12 @@ test('compact lab controls change the workbench drawings', {
         assert.notDeepEqual(carried.links, lost.links, 'votes change .vote-link');
         assert.notEqual(`${carried.output} ${carried.status}`, `${lost.output} ${lost.status}`);
         assert.match(`${carried.output} ${carried.status} ${lost.output} ${lost.status}`, /majority|yes|no|pass|fail|approv|reject|treasur/i);
+        const votes = await page.evaluate(() => window.__labs.moltdao.snapshot().votes);
+        await page.emulateMedia({ reducedMotion: 'no-preference' });
+        await page.waitForFunction(() => !SkyMotion.reduced());
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.waitForFunction(() => SkyMotion.reduced());
+        assert.deepEqual(await page.evaluate(() => window.__labs.moltdao.snapshot().votes), votes, 'changing motion preferences does not cast another vote');
 
         await select(page, order.indexOf('shipgate'));
         await select(page, order.indexOf('airforge'));
