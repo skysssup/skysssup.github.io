@@ -36,7 +36,7 @@ text-first work and Hermes artwork rather than borrowing its product images.
 - [x] LocalPulse: hierarchy, diagram, evidence/caption, links, mobile review.
 - [x] Ghost Notetaker: hierarchy, diagram, evidence/caption, links, mobile review.
 - [x] MoltDAO: hierarchy, diagram, evidence/caption, links, mobile review.
-- [ ] Integration: opening/idle/both scroll directions/every selection/search/contact/
+- [x] Integration: opening/idle/both scroll directions/every selection/search/contact/
   appearance/light/reduced motion at desktop, tablet and narrow mobile sizes.
   Rebuild generated HTML; unit and full browser suites; direct stage commits;
   publish main, check CI and live asset version and browser behavior.
@@ -122,3 +122,14 @@ test stalled on selection: wheel movement was gated by section visibility.
 Requests now settle immediately while hidden/offscreen, and leaving the section
 commits the requested index. Four focused navigation/visibility checks pass,
 including a new offscreen request regression; all five model checks still pass.
+
+## Verified publication
+
+Application commit `5adec797b7a1de2d89bccd2b27b393edbafec06b` is deployed at
+https://skysssup.github.io/. Site tests run 38591623776 passed both jobs:
+107 unit checks and 95 browser checks, with no failures. Pages run 38591621834
+also succeeded for that exact commit. The deployed version is `experience-6`.
+Live review exercised all eight models, desktop/mobile/tablet, and explicit
+light mode with no script errors. Deployed application files match local hashes;
+hero.js, blackhole.js, and avatar assets remain unchanged against the prior
+published baseline. The local preview server was stopped after review.
