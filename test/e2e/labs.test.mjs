@@ -122,6 +122,7 @@ test('compact lab controls change the workbench drawings', {
         const no = molt.getByRole('button', { name: /no|against|reject/i });
         for (let i = 0; i < 4; i++) await yes.click();
         const carried = await readCard(page, 'moltdao');
+        assert.equal(await page.locator('#project-moltdao .voter').evaluateAll(nodes => nodes.filter(node => node.style.fill === 'var(--paper)').length), 3, 'unvoted nodes remain visibly unfilled after four votes');
         for (let i = 0; i < 7; i++) await no.click();
         const lost = await readCard(page, 'moltdao');
         assert.notDeepEqual(carried.voters, lost.voters, 'votes change .voter fills');

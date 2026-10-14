@@ -23,7 +23,7 @@ function airforge() {
 }
 
 function shipgate() {
-  const diff = Array.from({ length: 15 }, (_, i) => `${text(53, 88 + i * 11, String(i + 1).padStart(2, '0'), 'faint')}${line(85, 84 + i * 11, 125 + ((i * 37) % 95), 84 + i * 11, i === 5 || i === 6 ? 'accent' : 'faint')}`).join('');
+  const diff = Array.from({ length: 15 }, (_, i) => `${text(53, 80 + i * 13, String(i + 1).padStart(2, '0'), 'faint diff-number')}${line(85, 76 + i * 13, 125 + ((i * 37) % 95), 76 + i * 13, i === 5 || i === 6 ? 'accent' : 'faint')}`).join('');
   const rails = Array.from({ length: 11 }, (_, i) => path(`M223 ${98 + i * 11}C270 ${98 + i * 11} 267 ${143 + i * 2} 310 ${143 + i * 2}H422C470 ${143 + i * 2} 478 ${98 + i * 11} 583 ${98 + i * 11}`, 'contour')).join('');
   return frame('shipgate', 'Staged Git changes pass through local policy checks before commit and push', `${diff}${rails}${box(310, 102, 112, 86, 'policy gate')}${text(330, 220, 'scan staged diff', 'accent')}${path('M48 62H222V275H48Z', 'faint')}${text(58, 55, 'staged')}${text(483, 55, 'commit / push')}${path('M350 189V270H528V230', 'dashed blocked-route')}${dot(528, 230, 6, 'accent-fill blocked-route')}${text(383, 292, 'blocked by policy', 'blocked-route accent')}${text(52, 305, 'local checks, before publishing', 'faint')}`);
 }

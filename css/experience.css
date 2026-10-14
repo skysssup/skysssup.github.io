@@ -23,6 +23,7 @@
 :root[data-polished] .scene-drawing { aspect-ratio: 16 / 9; margin: 0; }
 :root[data-polished] .scene-svg { width: 100%; height: auto; display: block; }
 :root[data-polished] .scene-svg text { font-size: 14px; }
+:root[data-polished] [data-scene="shipgate"] .scene-svg text.diff-number { font-size: 11px; }
 :root[data-polished] .scene-svg .faint { opacity: .6; }
 :root[data-polished] .scene-svg .scene-grid { opacity: .4; }
 :root[data-polished] .scene-svg .scene-registration { opacity: .5; }

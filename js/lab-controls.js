@@ -789,7 +789,7 @@
         var vote = result.votes[index];
         if (vote === 'yes') voter.style.fill = yesFill;
         else if (vote === 'no') voter.style.fill = noFill;
-        else voter.style.removeProperty('fill');
+        else voter.style.fill = 'var(--paper)';
       });
       svg.querySelectorAll('.vote-link').forEach(function (link) {
         if (result.majority === 'yes') {
