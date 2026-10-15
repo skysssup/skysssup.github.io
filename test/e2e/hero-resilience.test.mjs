@@ -329,12 +329,13 @@ test('off-screen heroes remain paused through preference changes and context res
   const { page } = await open(t);
   await live(page);
   await page.evaluate(() => window.SkyStudio.selectSlug('agentcrucible'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible' && !document.getElementById('about').classList.contains('is-current'));
+  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible');
+  await page.locator('#contact').scrollIntoViewIfNeeded();
   const intersecting = await page.evaluate(() => new Promise(resolve => {
     const watcher = new IntersectionObserver(entries => { resolve(entries[0].isIntersecting); watcher.disconnect(); });
     watcher.observe(document.getElementById('figure'));
   }));
-  assert.equal(intersecting, false, 'leaving About hides the portrait panel so the figure is not intersecting');
+  assert.equal(intersecting, false, 'scrolling to contact takes the persistent portrait off screen');
   await stillDrawing(page);
   const paused = (await state(page)).draws;
   await page.evaluate(() => { window.SkyMotion.set('reduced'); document.documentElement.setAttribute('data-theme', 'dark'); });
@@ -346,8 +347,11 @@ test('off-screen heroes remain paused through preference changes and context res
   assert.equal((await state(page)).draws, paused, 'context restoration must not draw off-screen');
   await stillDrawing(page);
   assert.equal(await page.locator('#figure').evaluate(el => el.classList.contains('is-live')), false);
-  await page.evaluate(() => window.SkyStudio.selectSlug('about'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'about');
+  await page.locator('#hero').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => {
+    const box = document.getElementById('figure').getBoundingClientRect();
+    return box.bottom > 80 && box.top < innerHeight && window.SkyStudio.settled();
+  });
   await live(page);
   await stillDrawing(page);
   assert.deepEqual((await state(page)).uniforms.u_time, [0]);
@@ -401,7 +405,6 @@ test('horizontal touch drags rotate through the springs and cancellation release
 });
 
 test('native vertical touch scrolling cancels hero interaction and allows the next touch', async t => {
-  // 390×844 does not overflow About. A shorter mobile viewport makes the panel the scrollport.
   const { page, context } = await open(t, { touch: true, height: 480 });
   await live(page);
   const touch = await touchAt(context, page);
@@ -409,10 +412,10 @@ test('native vertical touch scrolling cancels hero interaction and allows the ne
   await touch.send('touchStart');
   for (let step = 1; step <= 5; step++) await touch.send('touchMove', touch.x + 2, touch.y - step * 26);
   await touch.send('touchEnd');
-  await page.waitForFunction(() => document.getElementById('about').scrollTop > 0 && window.__heroProbe.touches.some(e => e.type === 'pointercancel'));
-  assert.equal(await page.evaluate(() => scrollY), scroll, 'the document does not scroll; the About panel does');
+  await page.waitForFunction(() => scrollY > 20 && window.__heroProbe.touches.some(e => e.type === 'pointercancel'));
+  assert.ok(await page.evaluate(() => scrollY) > scroll, 'a vertical drag scrolls the page');
   assert.equal((await state(page)).uniforms.u_pointer[2], 0);
-  await page.evaluate(() => { document.getElementById('about').scrollTop = 0; });
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(250);
   const next = await touchAt(context, page);
   const before = (await state(page)).touches.filter(e => e.type === 'pointerdown').length;

@@ -38,6 +38,29 @@ async function open(url = '/work/', { width = 1440, mode = 'light', reduced = tr
 
 const visibleProjects = page => page.locator('.project:visible').evaluateAll(rows => rows.map(row => row.dataset.project));
 
+async function contactReached(page) {
+  await page.waitForFunction(() => {
+    const contact = document.getElementById('contact');
+    const header = document.querySelector('.studio-header');
+    if (!contact || !header || location.hash !== '#contact' || window.SkyStudio?.slug() !== 'contact') return false;
+    const headerBottom = header.getBoundingClientRect().bottom;
+    const box = contact.getBoundingClientRect();
+    const desired = box.top + scrollY - (headerBottom + 8);
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    const reachable = Math.min(Math.max(0, desired), maxScroll);
+    const fullyVisible = node => {
+      const rect = node.getBoundingClientRect();
+      return rect.height > 0 && rect.top >= headerBottom - 1 && rect.bottom <= innerHeight + 1;
+    };
+    const copy = contact.querySelector('[data-copy]');
+    const mail = contact.querySelector('a[href^="mailto:"]');
+    return Math.abs(scrollY - reachable) <= 2
+      && box.top >= headerBottom - 1
+      && box.bottom <= innerHeight + 1
+      && copy && mail && fullyVisible(copy) && fullyVisible(mail);
+  });
+}
+
 test('the site index is searchable by technology and navigable without a mouse', async () => {
   const { page, context, errors } = await open();
   await page.keyboard.press('/');
@@ -92,8 +115,8 @@ test('the index locks the background and releases scrolling before an in-page li
   assert.equal(await page.evaluate(() => scrollY), y);
   await page.locator('.index-pages a[href="/#contact"]').click();
   await page.waitForFunction(() => !document.documentElement.classList.contains('index-is-open'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && document.getElementById('contact').classList.contains('is-current'));
-  assert.equal(await page.evaluate(() => scrollY), 0);
+  await contactReached(page);
+  assert.equal(await page.evaluate(() => window.SkyStudio.settled()), true);
   await page.locator('[data-index-open]').click();
   await page.locator('[data-index-motion]').click();
   assert.equal(await page.locator('html').getAttribute('data-motion'), 'reduced');
@@ -185,8 +208,8 @@ test('mobile and tablet readers can use the sticky section index without covered
 
 test('copying the email reports success and offers selectable text when permission is denied', async () => {
   const { page, context } = await open('/');
-  await page.evaluate(() => window.SkyStudio.selectSlug('contact'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'contact');
+  await page.locator('a[href="#contact"]').first().click();
+  await contactReached(page);
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.copiedText = text; } } }));
   await page.locator('#contact [data-copy]').click();
   assert.equal(await page.evaluate(() => window.copiedText), 'hello@aakashdahal.fun');
@@ -202,18 +225,21 @@ test('the HTML-first portfolio remains readable with JavaScript disabled', async
   const { page, context } = await open('/', { width: 390, javaScriptEnabled: false });
   assert.equal(await page.locator('h1').textContent(), 'Aakash Dahal');
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
-  assert.equal(await page.locator('[data-studio-item]').count(), 10);
-  assert.equal(await page.locator('[data-studio-panel]').count(), 10);
+  assert.equal(await page.locator('[data-studio-pick]').count(), 8);
+  assert.equal(await page.locator('article.work-card').count(), 8);
+  assert.equal(await page.locator('#about').count(), 1);
+  assert.equal(await page.locator('#contact').count(), 1);
   assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
   for (const slug of ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']) {
     const href = `/work/${slug}/`;
     assert.ok(await page.locator(`a[href="${href}"]`).count() >= 1, href);
     assert.equal((await page.request.get(site.origin + href)).status(), 200, href);
+    assert.equal(await page.locator(`#${slug}`).getAttribute('href'), `#project-${slug}`);
   }
-  for (const sel of ['[data-index-open]', '[data-studio-picker]', 'button[data-studio-zoom]', '[data-studio-zoom][role="button"]', '[data-scene-action]', '[data-gear-toggle]', '[data-motion-toggle]', '[data-lamp]', '[data-copy]', 'dialog']) {
+  for (const sel of ['[data-index-open]', '[data-studio-picker]', 'button[data-studio-zoom]', '[data-studio-evidence-zoom]', '[data-scene-action]', '[data-gear-neutral]', '[data-gear-toggle]', '[data-gear-blue]', '[data-motion-toggle]', '[data-lamp]', '[data-copy]', '[data-bench-live]', 'dialog']) {
     assert.equal(await page.locator(`${sel}:visible`).count(), 0, `${sel} must not offer a dead control without JavaScript`);
   }
-  await page.locator('#about a[href="/work/"]').click();
+  await page.locator('#work-list a[href="/work/"]').click();
   assert.equal((await visibleProjects(page)).length, 8);
   assert.equal(await page.locator('.work-toolbar').isVisible(), false);
   assert.equal(await page.locator('.filters').isVisible(), false);

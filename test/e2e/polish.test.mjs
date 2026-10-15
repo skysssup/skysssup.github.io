@@ -27,11 +27,16 @@ test('the main avatar stays large and animates without pointer distortion', asyn
   await page.locator('#figure.is-live').waitFor();
   await page.waitForTimeout(700);
   const figure = page.locator('#figure');
-  const frame = await page.locator('#hero').boundingBox();
+  const stage = await page.locator('#hero').boundingBox();
+  const header = await page.locator('.studio-header').boundingBox();
   const bounds = await figure.boundingBox(), draws = await page.evaluate(() => window.portraitDraws);
+  const viewport = page.viewportSize();
   const before = await figure.screenshot();
-  assert.ok(Math.abs(frame.width - 535) <= 1 && Math.abs(frame.height - 301) <= 1, `portrait frame is ${frame.width}×${frame.height}, expected 535×301`);
-  assert.ok(Math.abs(bounds.width - (frame.width-2)) <= 1 && Math.abs(bounds.height - (frame.height-2)) <= 1, 'the figure fills its frame');
+  assert.ok(Math.abs(header.height - 52) <= 8, `desktop header is ${header.height}px, expected about 52`);
+  assert.ok(stage.height >= viewport.height - header.height - 8, `stage is ${stage.height}px and does not fill the first viewport under the header`);
+  assert.ok(bounds.width >= 320 && bounds.height >= 320, `portrait is ${bounds.width}×${bounds.height}, expected a substantial original figure`);
+  assert.ok(Math.abs((bounds.x + bounds.width / 2) - (stage.x + stage.width / 2)) <= 24, 'the portrait stays centered in the first viewport');
+  assert.ok(bounds.width < stage.width - 40, 'the padded portrait stays inside the stage instead of stretching to a fixed frame');
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.down();
   await page.mouse.move(bounds.x + bounds.width * .8, bounds.y + bounds.height * .7, { steps: 15 });
@@ -103,7 +108,7 @@ test('the actual homepage retains the original light sweep, lightning, full reso
     try {
     await page.goto(site.origin + '/#about');
     await page.locator('#figure.is-live').waitFor();
-    await page.waitForFunction(() => window.SkyStudio?.slug() === 'about');
+    await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'agentcrucible');
     await page.waitForFunction(() => window.avatarEffects.sweep, null, { timeout: 18000 });
     assert.equal(await page.evaluate(() => window.avatarEffects.dpr), 2, 'retain the original high-density raster');
     await page.locator('[data-gear-toggle]').click();
@@ -172,26 +177,33 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
     const shell = await page.locator('[data-studio]').boundingBox();
     const header = await page.locator('.studio-header').boundingBox();
     const footer = await page.locator('.studio-status').boundingBox();
-    assert.ok(Math.abs(header.height - 78) <= 1, `header ${header.height}`);
-    assert.ok(Math.abs(footer.height - 46) <= 1, `footer ${footer.height}`);
-    if (width === 1440) {
-      const editor = await page.locator('.studio-editor').boundingBox();
-      const wheel = await page.locator('[data-studio-wheel]').boundingBox();
-      assert.ok(Math.abs(shell.width - 1008) <= 1 && Math.abs(shell.x - 216) <= 1, `shell ${shell.width} at ${shell.x}`);
-      assert.ok(Math.abs(wheel.width - 230) <= 1, `wheel ${wheel.width}`);
-      assert.ok(Math.abs(editor.height - 579) <= 1, `editor ${editor.height}`);
+    const figure = await page.locator('#figure').boundingBox();
+    const stage = await page.locator('#hero').boundingBox();
+    const headerTarget = width <= 720 ? 104 : 52;
+    assert.ok(Math.abs(header.height - headerTarget) <= 12, `header ${header.height}, expected about ${headerTarget}`);
+    assert.equal(await page.locator('#figure').evaluate(el => getComputedStyle(el).order), '0');
+    assert.ok(stage.y < header.y + header.height + 24 && stage.height >= 900 - header.height - 16, `stage ${stage.y}+${stage.height} should own the first viewport`);
+    assert.ok(footer.height >= 36, `footer ${footer.height}`);
+    assert.equal(await page.locator('#figure').count(), 1);
+    assert.ok(Math.abs((figure.x + figure.width / 2) - (stage.x + stage.width / 2)) <= 24, 'the avatar sits in the center of the stage');
+    assert.equal(await page.locator('[data-studio-wheel], [data-studio-picker]').count(), 0);
+    const rows = await page.locator('[data-studio-pick]').evaluateAll(nodes => nodes.map(row => {
+      const box = row.getBoundingClientRect();
+      return { top: box.top, left: box.left, height: box.height };
+    }));
+    assert.equal(rows.length, 8);
+    for (let i = 1; i < rows.length; i++) {
+      assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1, 'project rows stay upright');
+      assert.ok(Math.abs(rows[i].left - rows[0].left) <= 2, 'project rows share one column');
     }
-    if (width === 768) {
-      assert.ok(Math.abs(shell.width - 728) <= 1, `tablet shell ${shell.width}`);
-      assert.match(await page.locator('.studio-editor').evaluate(el => getComputedStyle(el).gridTemplateColumns), /230px/);
+    const list = await page.locator('.studio-list').boundingBox();
+    const detail = await page.locator('[data-studio-detail]').boundingBox();
+    if (width >= 1000) {
+      assert.ok(Math.abs(shell.width - Math.min(1120, width - 48)) <= 2, `shell ${shell.width}`);
+      assert.ok(detail.x >= list.x + list.width - 2, 'the list and the selected preview sit in columns');
     }
-    if (width <= 600) {
-      assert.equal(await page.getAttribute('[data-studio-picker]', 'aria-expanded'), 'false');
-      assert.equal(await page.locator('[data-studio-wheel]').evaluate(el => getComputedStyle(el).visibility), 'hidden');
-      await page.locator('[data-studio-picker]').click();
-      await page.waitForFunction(() => document.querySelector('[data-studio-picker]').getAttribute('aria-expanded') === 'true');
-      assert.equal(await page.locator('[data-studio-wheel]').evaluate(el => getComputedStyle(el).visibility), 'visible');
-    }
+    if (width === 768) assert.ok(detail.x >= list.x + list.width - 2 || detail.y >= list.y + list.height - 2, 'tablet keeps the list and preview from overlapping');
+    if (width <= 600) assert.ok(detail.y >= list.y + list.height - 2, 'narrow pages stack the preview under the list');
     if (process.env.POLISH_SHOTS) {
       fs.mkdirSync(process.env.POLISH_SHOTS, { recursive: true });
       await page.screenshot({ path: path.join(process.env.POLISH_SHOTS, `home-${width}.png`), fullPage: true });
@@ -202,24 +214,17 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
       await page.waitForFunction(() => window.SkyStudio.settled());
     }
     await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'airforge');
-    assert.equal(await page.locator('#studio-pick-airforge').getAttribute('aria-selected'), 'true');
-    if (width <= 600) {
-      await page.keyboard.press('Escape');
-      await page.waitForFunction(() => document.querySelector('[data-studio-picker]').getAttribute('aria-expanded') === 'false');
-    }
-    await page.locator('[data-studio-panel="airforge"] [data-studio-view-pick="illustration"]').click();
-    const replay = page.locator('[data-studio-panel="airforge"] [data-scene-action]');
-    const zoom = page.locator('[data-studio-panel="airforge"] [data-studio-zoom]');
-    await replay.click();
-    assert.equal(await page.locator('#studio-viewer').evaluate(el => el.open), false, 'Replay is not the artwork zoom');
+    assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true');
+    const zoom = page.locator('[data-studio-panel="airforge"] [data-studio-evidence-zoom]');
     await zoom.click();
     await page.waitForFunction(() => document.getElementById('studio-viewer').open);
-    assert.equal(await page.locator('#studio-viewer svg').count(), 1);
+    assert.equal(await page.locator('#studio-viewer [data-studio-evidence] video, #studio-viewer [data-studio-evidence] img').count(), 1);
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('studio-viewer').open);
+    assert.equal(await page.locator('#project-airforge [data-studio-evidence]').count(), 1);
     const a11y = await new AxeBuilder({ page }).analyze();
     assert.deepEqual(a11y.violations.map(v => v.id), []);
-    await page.locator('[data-studio-panel="airforge"].is-current .scene-links a[href="/work/airforge/"]').click();
+    await page.locator('[data-studio-panel="airforge"].is-shown .scene-links a[href="/work/airforge/"]').click();
     await page.waitForURL('**/work/airforge/');
     assert.equal(await page.locator('h1').innerText(), 'AirForge');
     await context.close();

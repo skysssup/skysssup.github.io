@@ -13,7 +13,7 @@ import { serve } from './server.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const slugs = fs.readdirSync(path.join(root, 'work')).filter(d => fs.existsSync(path.join(root, 'work', d, 'index.html')));
 const PAGES = (process.env.PAGES ? process.env.PAGES.split(',') : ['/', '/work/', ...slugs.map(s => `/work/${s}/`), '/missing-page']);
-const WIDTHS = [[1440, 900], [1280, 800], [768, 1024], [390, 844]];
+const WIDTHS = [[1440, 900], [768, 1024], [390, 844], [360, 800]];
 const MODES = ['light', 'dark', 'gear', 'blue'];
 const SHOTS = process.env.SHOTS;
 let browser, site;
@@ -85,9 +85,9 @@ test('content rails stay inside the viewport across pages and screen sizes', asy
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, url + ' ' + width);
     if (url === '/' && (width === 1440 || width === 768)) {
       const studio = await page.locator('[data-studio]').boundingBox();
-      const expected = width === 1440 ? 1008 : width - 40;
-      assert.ok(Math.abs(studio.width - expected) <= 1, `studio shell ${width} is ${studio.width}, expected ${expected}`);
-      if (width === 1440) assert.ok(Math.abs(studio.x - 216) <= 1, `studio shell x is ${studio.x}`);
+      const expected = Math.min(1120, width - (width >= 1000 ? 48 : 32));
+      assert.ok(Math.abs(studio.width - expected) <= 2, `studio shell ${width} is ${studio.width}, expected ${expected}`);
+      if (width === 1440) assert.ok(Math.abs(studio.x - (width - expected) / 2) <= 2, `studio shell x is ${studio.x}`);
     }
     const rails = await page.locator('.row, .workbench, .contact-sheet').evaluateAll(elements => elements.filter(el => el.getBoundingClientRect().width > 0).map(el => { const box = el.getBoundingClientRect(); return {left:box.left,right:box.right}; }));
     for (const box of rails) assert.ok(box.left >= -1 && box.right <= width + 1, url + ' ' + width + ' content rail');
@@ -100,7 +100,7 @@ test('below the header, nothing is boxed on four sides except the panel, the dia
     const { page, context } = await open(url, { width, height, touch: width < 768 });
     if (view === 'grid') await page.click('button[data-work-view="grid"]');
     const boxed = await page.evaluate(() => [...document.querySelectorAll('main *, .site-footer *')].filter(el => {
-      if (el.closest('.panel, dialog, .btn, .scene-drawing') || el.matches('input, select, textarea, button, kbd')) return false;
+      if (el.closest('.panel, dialog, .btn, .scene-drawing, .project-lab') || el.matches('input, select, textarea, button, kbd')) return false;
       if (location.pathname === '/' && el.closest('.studio-art-frame, [data-studio-wheel], .studio-status')) return false;
       const cs = getComputedStyle(el);
       return cs.display !== 'none' && ['Top', 'Right', 'Bottom', 'Left'].every(side => parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== 'none' && cs[`border${side}Color`] !== 'rgba(0, 0, 0, 0)');
@@ -175,9 +175,10 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
 
 test('avatar effects settle and appearances persist independently of light mode', async () => {
   const { page, context, problems } = await open('/', { mode: 'dark' });
-  await page.waitForFunction(() => window.SkyStudio?.slug() === 'about');
-  for (const [selector, value] of [['#about [data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
-    if (value === 'blue') await page.waitForURL('**/work/**');
+  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'agentcrucible');
+  for (const [selector, value] of [['.studio-identity [data-gear-toggle]', 'two'], ['.studio-identity [data-gear-blue]', 'blue']]) {
+    if (new URL(page.url()).pathname !== '/') await page.goto(site.origin + '/', { waitUntil: 'networkidle' });
+    await page.locator(selector).scrollIntoViewIfNeeded();
     await page.locator(selector).click();
     await page.waitForFunction(value => document.documentElement.getAttribute('data-gear') === value, value);
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-phase'));
@@ -288,13 +289,14 @@ test('case-study videos play on screen, pause on request, and stay still under r
 
 test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Two instant', async () => {
   const { page, context } = await open('/');
-  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'about');
+  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'agentcrucible');
   assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
-  assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'hidden');
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.body).overflowY), 'hidden');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight));
   await page.click('[data-motion-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
   assert.equal(await page.getAttribute('[data-motion-toggle]', 'aria-pressed'), 'true');
-  await page.click('#about [data-gear-toggle]');
+  await page.click('.studio-identity [data-gear-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-phase')), null);
   await page.reload({ waitUntil: 'networkidle' });
@@ -328,14 +330,16 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
 test('the home page keeps every project and a concise contact section', async () => {
   const { page, context, problems } = await open('/');
   await page.waitForFunction(() => window.SkyStudio?.settled());
-  const names = await page.locator('.studio-tile-name').allTextContents();
-  assert.deepEqual(names, ['about', 'AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO', 'contact']);
+  const names = await page.locator('#studio-projects .studio-row > span').allTextContents();
+  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO']);
+  assert.equal(await page.locator('#about').count(), 1);
+  assert.equal(await page.locator('#contact').count(), 1);
   assert.equal(await page.locator('header.studio-header').count(), 1);
   assert.equal(await page.locator('footer.studio-status').count(), 1);
   assert.equal(await page.locator('header .nav').count(), 0);
   assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
   await page.evaluate(() => window.SkyStudio.selectSlug('contact'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && document.getElementById('contact').classList.contains('is-current'));
+  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'contact');
   assert.equal(await page.locator('[data-contact-note]').innerText(), 'Email reaches me fastest.');
   assert.deepEqual(problems, []);
   await context.close();
@@ -345,9 +349,9 @@ test('contact stays concise and the public page has no rendering or construction
   const { page, context, problems } = await open('/');
   assert.equal((await page.textContent('[data-contact-note]')).replace(/\s+/g, ' '), 'Email reaches me fastest.');
   assert.equal(await page.locator('[data-dial], [data-grid-toggle], [data-hero-telemetry], .essentially').count(), 0);
-  const models = await page.locator('details.studio-model').evaluateAll(nodes => nodes.map(node => ({
+  const models = await page.locator('details.studio-lab').evaluateAll(nodes => nodes.map(node => ({
     open: node.open,
-    shown: [...node.querySelectorAll('input, select, textarea, button')].filter(el => el.getClientRects().length > 0).length,
+    shown: [...node.querySelectorAll('input, select, textarea, button')].filter(el => el.checkVisibility({ visibilityProperty: true, opacityProperty: true })).length,
   })));
   assert.equal(models.length, 8);
   for (const model of models) {

@@ -125,15 +125,23 @@ test('the work index lists every case study once, and the home page lists each o
     assert.deepEqual([...card.matchAll(/href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]), [slug], `${slug} link`);
     assert.ok(fs.existsSync(resolve('/work/' + slug + '/')), slug);
   }
-  assert.match(home, /data-studio-panel="about"/);
-  assert.match(home, /data-studio-panel="contact"/);
+  assert.match(home, /<section class="hero studio-stage" id="hero"/);
+  assert.equal((home.match(/<h1[\s>]/g) || []).length, 1);
+  assert.equal((home.match(/id="figure"/g) || []).length, 1);
+  assert.match(home, /<span id="about"[^>]*>/);
+  assert.match(home, /<div class="studio-identity" data-studio-panel="about">/);
+  assert.doesNotMatch(home, /id="about"[^>]*data-studio-panel="about"/);
+  assert.match(home, /<section class="studio-contact" id="contact" data-studio-panel="contact"/);
+  assert.doesNotMatch(home, /id="about"[^>]*role="option"|id="contact"[^>]*role="option"/);
   assert.match(home, /href="mailto:hello@aakashdahal\.fun"/);
   assert.match(home, /<p data-contact-note>Email reaches me fastest\.<\/p>/);
-  assert.equal((home.match(/<details class="studio-model">/g) || []).length, order.length);
-  assert.equal((home.match(/<details class="studio-model" open>/g) || []).length, 0);
+  assert.equal((home.match(/<details class="studio-lab">/g) || []).length, order.length);
+  assert.equal((home.match(/<details class="studio-lab" open>/g) || []).length, 0);
+  assert.doesNotMatch(home, /studio-model|studio-wheel|data-studio-picker|data-studio-view-pick="illustration"/);
   const data = JSON.parse(home.match(/<script type="application\/json" id="studio-data">([^<]+)<\/script>/)[1]);
   assert.deepEqual(data.map(entry => entry.slug), ['about', ...order, 'contact']);
-  assert.equal((home.match(/data-studio-pick="/g) || []).length, 10);
+  assert.deepEqual(data.filter(entry => entry.kind === 'project').map(entry => entry.slug), order);
+  assert.equal((home.match(/data-studio-pick="/g) || []).length, order.length);
   assert.doesNotMatch(home, /Work by theme|ol class="home-work"|data-workbench|data-presence|data-scroll-field|SkyWorkbench|SkyPresence|SkyScrollField/);
 });
 

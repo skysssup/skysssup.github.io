@@ -25,7 +25,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ASSET_VERSION = 'studio-2';
+const ASSET_VERSION = 'fluid-2';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
@@ -62,14 +62,14 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <link rel="icon" href="/assets/favicon-32.png?v=${ASSET_VERSION}" type="image/png" sizes="32x32">
 <link rel="icon" href="/assets/favicon.svg?v=${ASSET_VERSION}" type="image/svg+xml" sizes="any">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=${ASSET_VERSION}" sizes="180x180">
-<link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-${studio ? '<link rel="preload" href="/assets/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>' : ''}
+${studio
+  ? '<link rel="preload" href="/assets/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>'
+  : `<link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>`}
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css?v=${ASSET_VERSION}">
-${(studio ? ['studio'] : ['polish','craft','finish','reading','experience']).map(name=>`<link rel="stylesheet" href="/css/${name}.css?v=${ASSET_VERSION}">`).join('\n')}
-<link rel="stylesheet" href="/css/lab-controls.css?v=${ASSET_VERSION}">
-${extra}</head>`;
+${(studio ? ['studio','project-lab','project-playground'] : ['polish','craft','finish','reading','experience']).map(name=>`<link rel="stylesheet" href="/css/${name}.css?v=${ASSET_VERSION}">`).join('\n')}
+${studio ? '' : `<link rel="stylesheet" href="/css/lab-controls.css?v=${ASSET_VERSION}">\n`}${extra}</head>`;
 }
 
 // Embedded browsers may decline a cross-document transition after navigation starts.
