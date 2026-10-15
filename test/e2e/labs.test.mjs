@@ -105,7 +105,7 @@ test('local project labs compute inspectable results and pause with the page', {
         assert.equal(await air.locator('[data-out="time"]').innerText(), examples, 'turning examples off holds the ramp');
         await page.locator('[data-bench-live]').click();
 
-        await page.locator('#shipgate').evaluate(el => el.click());
+        await page.locator('#shipgate').click();
         await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
         const left = await air.locator('[data-out="time"]').innerText();
         await frames(page, 8);
@@ -163,15 +163,27 @@ async function open(browser, origin, options) {
 
 async function lab(page, slug) {
   if (await page.evaluate(name => window.SkyStudio.slug() !== name, slug)) {
-    await page.locator(`#${slug}`).evaluate(el => el.click());
+    await page.locator(`#${slug}`).click();
     await page.waitForFunction(name => {
+      const header = document.querySelector('.studio-header');
+      const pad = header ? header.offsetHeight : 0;
+      const narrow = matchMedia('(max-width: 720px)').matches;
+      const nav = document.querySelector('.studio-list-wrap');
+      const clearance = pad + (narrow && nav ? nav.offsetHeight + 8 : 0);
       const panel = document.getElementById('project-' + name);
-      return window.SkyStudio.slug() === name && panel.classList.contains('is-shown') && !panel.inert;
+      const box = panel.getBoundingClientRect();
+      const selected = document.querySelector('[aria-selected="true"]');
+      return window.SkyStudio.slug() === name
+        && selected && selected.id === name
+        && panel.classList.contains('is-shown')
+        && panel.inert === false
+        && box.top >= pad - 2
+        && box.top <= clearance + 36;
     }, slug);
   }
   const root = page.locator(`#project-${slug} [data-project-lab="${slug}"]`);
   const details = page.locator(`#project-${slug} details.studio-lab`);
-  if (!await details.evaluate(node => node.open)) await details.locator('summary').evaluate(el => el.click());
+  if (!await details.evaluate(node => node.open)) await details.locator('summary').click();
   await root.waitFor({ state: 'visible' });
   return root;
 }

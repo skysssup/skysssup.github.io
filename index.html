@@ -20,27 +20,27 @@
 <meta name="twitter:creator" content="@skysssup">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#090a0b">
-<link rel="icon" href="/favicon.ico?v=fluid-2" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
-<link rel="icon" href="/assets/favicon-32.png?v=fluid-2" type="image/png" sizes="32x32">
-<link rel="icon" href="/assets/favicon.svg?v=fluid-2" type="image/svg+xml" sizes="any">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=fluid-2" sizes="180x180">
+<link rel="icon" href="/favicon.ico?v=scroll-1" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
+<link rel="icon" href="/assets/favicon-32.png?v=scroll-1" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/favicon.svg?v=scroll-1" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=scroll-1" sizes="180x180">
 <link rel="preload" href="/assets/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);</script>
-<link rel="stylesheet" href="/css/site.css?v=fluid-2">
-<link rel="stylesheet" href="/css/studio.css?v=fluid-2">
-<link rel="stylesheet" href="/css/project-lab.css?v=fluid-2">
-<link rel="stylesheet" href="/css/project-playground.css?v=fluid-2">
+<link rel="stylesheet" href="/css/site.css?v=scroll-1">
+<link rel="stylesheet" href="/css/studio.css?v=scroll-1">
+<link rel="stylesheet" href="/css/project-lab.css?v=scroll-1">
+<link rel="stylesheet" href="/css/project-playground.css?v=scroll-1">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"Developer tools and interactive physics software."}</script>
 </head><body class="page-home studio-page">
 <div class="fx-flash" aria-hidden="true"></div>
-<div class="studio-shell" data-studio data-stage="portrait" data-work-mode="list">
+<div class="studio-shell" data-studio data-work-mode="list">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header studio-header"><div class="row">
     <a class="studio-brand" href="#about" aria-label="Aakash Dahal, portrait"><svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><line x1="14" y1="3" x2="14" y2="25"/><line x1="3" y1="14" x2="25" y2="14"/><line x1="6" y1="6" x2="22" y2="22"/><line x1="6" y1="22" x2="22" y2="6"/><circle cx="14" cy="14" r="5"/></svg><span>Aakash Dahal</span></a>
     <nav class="studio-header-links" aria-label="Primary"><a href="#work-list">Work</a><a href="#contact">Contact</a><a href="https://github.com/skysssup">GitHub</a><button type="button" class="tool-button theme-switch" aria-label="Light theme" aria-pressed="false" data-lamp><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/></svg></button><button type="button" class="tool-button index-open" aria-label="Open site index" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-index" data-index-open><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg></button></nav>
   </div></header>
   <main id="main" class="studio-frame">
-    <div class="studio-figure-slot" aria-hidden="false">
+    <div class="studio-figure-slot">
       <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles."><div class="still" aria-hidden="true"></div></div>
     </div>
     <section class="studio-layer studio-layer--portrait is-active" data-studio-layer="portrait" id="hero" aria-labelledby="hero-name">
@@ -55,19 +55,18 @@
         </div>
       </div>
     </section>
-    <section class="studio-layer studio-layer--work" data-studio-layer="work" id="work-list" aria-labelledby="work-title" inert>
+    <section class="studio-layer studio-layer--work is-active" data-studio-layer="work" id="work-list" aria-labelledby="work-title">
       <div class="studio-work-head"><h2 id="work-title">Work</h2><p><span data-studio-count>03</span> <a href="/work/">notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
           <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
           <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="agentcrucible">
-            <li role="none"><a id="agentcrucible" class="studio-row is-selected" href="#project-agentcrucible" role="option" data-studio-pick="0" aria-selected="true" tabindex="0">01<span>AgentCrucible</span><small>Working tool</small></a></li>
-            <li role="none"><a id="airforge" class="studio-row" href="#project-airforge" role="option" data-studio-pick="1" aria-selected="false" tabindex="-1">02<span>AirForge</span><small>Working tool</small></a></li>
-            <li role="none"><a id="shipgate" class="studio-row" href="#project-shipgate" role="option" data-studio-pick="2" aria-selected="false" tabindex="-1">03<span>Shipgate</span><small>Working tool</small></a></li>
+            <li role="none"><a id="agentcrucible" class="studio-row is-selected" href="#project-agentcrucible" role="option" data-studio-pick="0" aria-selected="true">01<span>AgentCrucible</span><small>Working tool</small></a></li>
+            <li role="none"><a id="airforge" class="studio-row" href="#project-airforge" role="option" data-studio-pick="1" aria-selected="false">02<span>AirForge</span><small>Working tool</small></a></li>
+            <li role="none"><a id="shipgate" class="studio-row" href="#project-shipgate" role="option" data-studio-pick="2" aria-selected="false">03<span>Shipgate</span><small>Working tool</small></a></li>
           </ul>
         </div>
-        <div class="studio-detail" data-studio-detail aria-live="off">
-          <p class="studio-list-jump"><button type="button" data-studio-list-back>Project list</button></p>
+        <div class="studio-detail" data-studio-detail>
           <article class="studio-panel work-card" id="project-agentcrucible" data-studio-panel="agentcrucible" data-scene="agentcrucible" data-studio-view="evidence" tabindex="-1">
             <figure class="studio-evidence" data-studio-evidence><img src="/work/agentcrucible/media/console.png" width="1440" height="900" alt="AgentCrucible&#39;s local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data." loading="lazy" decoding="async"><figcaption>The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="agentcrucible" aria-label="View AgentCrucible evidence large">view large</button></figure>
             <div class="studio-copy">
@@ -187,7 +186,7 @@
         </div>
       </div>
     </section>
-    <section class="studio-layer studio-layer--contact" data-studio-layer="contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title" inert>
+    <section class="studio-layer studio-layer--contact is-active" data-studio-layer="contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title">
       <h2 id="contact-title">Contact</h2>
       <p data-contact-note>Email reaches me fastest.</p>
       <div class="studio-mail"><a href="mailto:hello@aakashdahal.fun" data-email-text>hello@aakashdahal.fun</a><button type="button" class="copy" aria-label="Copy email address" data-copy="hello@aakashdahal.fun"><span data-copy-label>Copy</span></button></div>
@@ -229,15 +228,16 @@
   </div>
   <span class="vh" role="status" aria-live="polite" data-index-status></span>
 </dialog>
-<dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title"><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage"></div></dialog>
+<dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title" data-lenis-prevent><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage" data-lenis-prevent></div></dialog>
 <span class="vh" aria-live="polite" data-announce></span>
 <script type="application/json" id="studio-data">[{"slug":"about","name":"Aakash Dahal","status":"profile","kind":"profile"},{"slug":"agentcrucible","name":"AgentCrucible","status":"Working tool","kind":"project","evidence":{"label":"Screenshot","caption":"The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data."}},{"slug":"airforge","name":"AirForge","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform."}},{"slug":"shipgate","name":"Shipgate","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each."}},{"slug":"contact","name":"Contact","status":"email","kind":"contact"}]</script>
-<script src="/js/theme.js?v=fluid-2" defer></script>
-<script src="/js/motion.js?v=fluid-2" defer></script>
-<script src="/js/hero.js?v=fluid-2" defer></script>
-<script src="/js/page.js?v=fluid-2" defer></script>
-<script src="/js/project-lab.js?v=fluid-2" defer></script>
-<script src="/js/studio.js?v=fluid-2" defer></script>
-<script src="/js/project-playground.js?v=fluid-2" defer></script>
+<script src="/js/theme.js?v=scroll-1" defer></script>
+<script src="/assets/vendor/lenis.min.js?v=scroll-1" defer></script>
+<script src="/js/motion.js?v=scroll-1" defer></script>
+<script src="/js/hero.js?v=scroll-1" defer></script>
+<script src="/js/page.js?v=scroll-1" defer></script>
+<script src="/js/project-lab.js?v=scroll-1" defer></script>
+<script src="/js/studio.js?v=scroll-1" defer></script>
+<script src="/js/project-playground.js?v=scroll-1" defer></script>
 </body>
 </html>

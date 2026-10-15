@@ -73,6 +73,15 @@
       reduced: reduced,
       subscribe: function (fn) { subscribers.push(fn); },
       set: setMotion,
+      scrollTo: function (top, options) {
+        options = options || {};
+        if (smoother) {
+          smoother.scrollTo(top, { duration: 0.36, easing: options.easing, immediate: !!options.immediate, force: true, onComplete: options.onComplete });
+        } else {
+          win.scrollTo({ top: top, behavior: "instant" });
+          if (options.onComplete) options.onComplete();
+        }
+      },
       setScrollLocked: function (locked) {
         scrollLocked = locked;
         if (smoother) smoother[locked ? "stop" : "start"]();
@@ -85,7 +94,8 @@
         // Anchor links land where the native jump would: Lenis reads the root's scroll-padding-top.
         smoother = new win.Lenis({
           autoRaf: true,
-          lerp: 0.18,
+          lerp: 0.1,
+          syncTouch: false,
           anchors: false,
           prevent: function (node) { return !!(node && node.closest && node.closest("[data-lenis-prevent]")); }
         });
@@ -228,6 +238,7 @@
     // view transition, and its rings), and nothing more happens when the page is already in the gear it is asked for.
     function switchGear(gear, origin, transient) {
       var next = modeOf(gear), run = ++seq;
+      var avatarOnly = !!(doc.body && doc.body.classList && doc.body.classList.contains("studio-page"));
       clearPhases();
       skipActive();
       dropOverlays();
@@ -237,18 +248,26 @@
       if (next === mode) return;
       if (reduced()) { setGear(next, transient); return; }
       if (next === "two") {
-        shockwave(origin);
+        if (!avatarOnly) shockwave(origin);
         root.setAttribute("data-phase", "flash");
         at(GEAR.flash, function () { setGear("two", transient); root.setAttribute("data-phase", "glitch"); });
         at(GEAR.settle, function () { root.setAttribute("data-phase", "settle"); });
         at(GEAR.done, clearPhases);
       } else if (next === "blue") {
         root.setAttribute("data-phase", "surge");
-        at(BLUE.palette, function () { flood(origin, function () { if (run === seq) setGear("blue", transient); }, run); });
+        at(BLUE.palette, function () {
+          var apply = function () { if (run === seq) setGear("blue", transient); };
+          if (avatarOnly) apply();
+          else flood(origin, apply, run);
+        });
         at(BLUE.done, clearPhases);
       } else if (mode === "blue") {
         root.setAttribute("data-phase", "ebb");
-        at(BLUE.exit, function () { fade(function () { if (run === seq) { setGear(null, transient); clearPhases(); } }); });
+        at(BLUE.exit, function () {
+          var apply = function () { if (run === seq) { setGear(null, transient); clearPhases(); } };
+          if (avatarOnly) apply();
+          else fade(apply);
+        });
       } else {
         root.setAttribute("data-phase", "glitch");
         at(GEAR.exit, function () { setGear(null, transient); clearPhases(); });

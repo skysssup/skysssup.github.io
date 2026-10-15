@@ -31,8 +31,20 @@ async function open(options = {}) {
   await page.goto(site.origin + url);
   if (javaScriptEnabled) {
     await page.locator('[data-studio].is-ready').waitFor();
-    await page.locator('#figure.is-live').waitFor();
     await page.waitForFunction(() => window.SkyStudio && window.SkyStudio.settled());
+    // #about and #work-list leave the absolute/sticky portrait offscreen. Do not
+    // wait for a draw until a native visit has put the figure in the viewport.
+    const portraitOffscreen = await page.evaluate(() => {
+      const fig = document.getElementById('figure');
+      if (!fig) return true;
+      const box = fig.getBoundingClientRect();
+      return box.width < 8 || box.bottom <= 0 || box.top >= innerHeight;
+    });
+    if (portraitOffscreen) {
+      await page.locator('.studio-brand').click();
+      await page.waitForFunction(() => SkyStudio.slug() === 'about' && SkyStudio.settled() && scrollY < 2);
+    }
+    await page.locator('#figure.is-live').waitFor();
   }
   return { context, page, errors };
 }
@@ -45,10 +57,104 @@ async function rowTop(page, slug) {
   return page.locator(`#${slug}`).evaluate(node => node.getBoundingClientRect().top);
 }
 
+function bandProbe(name) {
+  const header = document.querySelector('.studio-header');
+  const pad = header ? header.offsetHeight : 0;
+  const line = pad + (innerHeight - pad) * 0.34;
+  const order = ['agentcrucible', 'airforge', 'shipgate'];
+  const article = document.getElementById(`project-${name}`);
+  const box = article.getBoundingClientRect();
+  const idx = order.indexOf(name);
+  const next = idx < order.length - 1
+    ? document.getElementById(`project-${order[idx + 1]}`)
+    : document.getElementById('contact');
+  const nextTop = next.getBoundingClientRect().top;
+  const narrow = matchMedia('(max-width: 720px)').matches;
+  const nav = document.querySelector('.studio-list-wrap');
+  const clearance = pad + (narrow && nav ? nav.offsetHeight + 8 : 0);
+  const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect();
+  const row = document.getElementById(name).getBoundingClientRect();
+  const markerOk = narrow
+    ? Math.abs(marker.bottom - row.bottom) <= 2 && Math.abs(marker.left - row.left) <= 2 && Math.abs(marker.width - row.width) <= 2
+    : Math.abs(marker.top - row.top) <= 2;
+  return {
+    inBand: box.top <= line + 1 && nextTop > line + 1,
+    above: nextTop <= line + 1,
+    landed: box.top >= pad - 2 && box.top <= clearance + 36,
+    markerOk,
+  };
+}
+
+async function waitLenisIdle(page) {
+  await page.evaluate(() => { window.__lenisMark = null; window.__lenisStill = 0; });
+  await page.waitForFunction(() => {
+    const root = document.documentElement;
+    if (root.classList.contains('lenis-scrolling')) return false;
+    const y = scrollY;
+    if (window.__lenisMark == null || Math.abs(y - window.__lenisMark) > 0.5) {
+      window.__lenisMark = y;
+      window.__lenisStill = 0;
+      return false;
+    }
+    window.__lenisStill += 1;
+    return window.__lenisStill >= 3;
+  }, null, { polling: 50 });
+}
+
+async function wheelToArticle(page, slug) {
+  const list = await page.locator('#studio-projects').boundingBox();
+  if (list) await page.mouse.move(list.x + Math.min(48, list.width / 2), list.y + Math.min(36, list.height / 2));
+  for (let step = 0; step < 24; step += 1) {
+    await waitLenisIdle(page);
+    const probe = await page.evaluate(bandProbe, slug);
+    if (probe.inBand) return;
+    await page.mouse.wheel(0, probe.above ? -560 : 560);
+  }
+  await waitLenisIdle(page);
+  const probe = await page.evaluate(bandProbe, slug);
+  assert.equal(probe.inBand, true, `#project-${slug} never settled in the viewing band`);
+}
+
+async function committed(page, slug) {
+  await page.waitForFunction(name => {
+    const header = document.querySelector('.studio-header');
+    const pad = header ? header.offsetHeight : 0;
+    const line = pad + (innerHeight - pad) * 0.34;
+    const order = ['agentcrucible', 'airforge', 'shipgate'];
+    const article = document.getElementById(`project-${name}`);
+    const box = article.getBoundingClientRect();
+    const idx = order.indexOf(name);
+    const next = idx < order.length - 1
+      ? document.getElementById(`project-${order[idx + 1]}`)
+      : document.getElementById('contact');
+    const inBand = box.top <= line + 1 && next.getBoundingClientRect().top > line + 1;
+    const narrow = matchMedia('(max-width: 720px)').matches;
+    const nav = document.querySelector('.studio-list-wrap');
+    const clearance = pad + (narrow && nav ? nav.offsetHeight + 8 : 0);
+    const landed = box.top >= pad - 2 && box.top <= clearance + 36;
+    const selected = [...document.querySelectorAll('[aria-selected="true"]')];
+    const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect();
+    const row = document.getElementById(name).getBoundingClientRect();
+    const markerOk = narrow
+      ? Math.abs(marker.bottom - row.bottom) <= 2 && Math.abs(marker.left - row.left) <= 2 && Math.abs(marker.width - row.width) <= 2
+      : Math.abs(marker.top - row.top) <= 2;
+    return window.SkyStudio.slug() === name
+      && window.SkyStudio.settled()
+      && selected.length === 1
+      && selected[0].id === name
+      && location.hash === `#project-${name}`
+      && article.classList.contains('is-shown')
+      && (inBand || landed)
+      && markerOk;
+  }, slug);
+}
+
 test('the project list scrolls the page and selects by hover, focus, click, keys, and history', async () => {
-  const { page, context, errors } = await open({ url: '/#hero' });
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'about');
-  assert.equal(await page.evaluate(() => SkyStudio.stage()), 'portrait');
+  const { page, context, errors } = await open({ url: '/' });
+  assert.equal(await page.evaluate(() => scrollY), 0);
+  const hero = await page.locator('#hero').boundingBox();
+  assert.ok(hero && hero.height > 80 && hero.y < 900 && hero.y + hero.height > 0, 'the portrait intersects the first viewport');
+  assert.equal(PROJECTS.includes(await page.evaluate(() => SkyStudio.slug())), false);
   assert.equal(await page.evaluate(() => SkyStudio.wheel), null);
   assert.equal(await page.locator('[data-studio-wheel], [data-studio-picker], [data-studio-step]').count(), 0);
   assert.equal(await page.evaluate(() => window.SkyWorkbench), undefined);
@@ -64,52 +170,73 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   const list = await page.locator('#studio-projects').boundingBox();
   await page.mouse.move(list.x + 40, list.y + 30);
   await page.mouse.wheel(0, 480);
-  await page.waitForTimeout(200);
-  assert.equal(await page.evaluate(() => scrollY), beforeScroll, 'the home viewport does not scroll');
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'about', 'portrait stage keeps the about slug');
+  await page.waitForFunction(start => scrollY > start + 100, beforeScroll);
+  assert.notEqual(await page.evaluate(() => SkyStudio.slug()), 'contact', 'a list wheel does not wrap into contact');
+  assert.notEqual(await page.evaluate(() => location.hash), '#contact');
 
-  await page.locator('a[href="#work-list"]').first().click();
-  await page.waitForFunction(() => SkyStudio.stage && SkyStudio.stage() === 'work');
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible');
+  await wheelToArticle(page, 'airforge');
+  await committed(page, 'airforge');
+  const stacked = await page.locator('article.work-card').evaluateAll(cards => cards.map(card => ({
+    top: card.offsetTop,
+    height: card.offsetHeight,
+    inert: card.inert,
+    hidden: card.getAttribute('aria-hidden'),
+  })));
+  assert.equal(stacked.length, 3);
+  for (let i = 1; i < stacked.length; i += 1) {
+    assert.ok(stacked[i].top >= stacked[i - 1].top + stacked[i - 1].height - 1, 'articles stay stacked in flow');
+  }
+  assert.ok(stacked.every(card => card.inert === false && card.hidden !== 'true'));
 
-  await page.locator('#shipgate').hover();
-  await page.waitForFunction(() => document.getElementById('project-shipgate').classList.contains('is-shown'));
-  assert.equal(await page.locator('#agentcrucible').getAttribute('aria-selected'), 'true', 'hover previews without committing');
-  assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'false');
-  await page.waitForFunction(() => {
-    const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect().top;
-    const row = document.getElementById('shipgate').getBoundingClientRect().top;
-    return Math.abs(marker - row) <= 2;
+  await wheelToArticle(page, 'shipgate');
+  await committed(page, 'shipgate');
+  const agentAbove = await page.locator('#project-agentcrucible').evaluate(node => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    return node.getBoundingClientRect().bottom < header;
   });
-  const previewMarker = await markerTop(page);
-  assert.ok(Math.abs(previewMarker - await rowTop(page, 'shipgate')) <= 2, 'the marker follows the shown preview');
+  assert.equal(agentAbove, true, 'AgentCrucible has scrolled above the header');
+  await wheelToArticle(page, 'agentcrucible');
+  await committed(page, 'agentcrucible');
+
+  const committedSlug = 'agentcrucible';
+  const committedHash = await page.evaluate(() => location.hash);
+  const shipRow = await page.locator('#shipgate').boundingBox();
+  await page.mouse.move(shipRow.x + 12, shipRow.y + 12);
+  await page.waitForTimeout(120);
+  assert.equal(await page.locator(`#${committedSlug}`).getAttribute('aria-selected'), 'true', 'hover previews without committing');
+  assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'false');
+  assert.equal(await page.evaluate(() => location.hash), committedHash);
+  assert.equal(await page.locator('#project-agentcrucible').evaluate(node => node.classList.contains('is-shown')), true);
+  assert.ok(Math.abs(await markerTop(page) - await rowTop(page, 'agentcrucible')) <= 2, 'the marker stays on the committed row');
   await page.mouse.move(8, 8);
-  await page.waitForFunction(() => document.getElementById('project-agentcrucible').classList.contains('is-shown'));
 
   await page.locator('#airforge').focus();
-  await page.waitForFunction(() => document.getElementById('project-airforge').classList.contains('is-shown'));
+  await page.waitForTimeout(120);
   assert.equal(await page.locator('#agentcrucible').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('#project-agentcrucible').evaluate(node => node.classList.contains('is-shown')), true);
 
   const origin = await page.locator('[data-studio-marker]').evaluate(node => {
     const wrap = node.parentElement.getBoundingClientRect();
     return node.getBoundingClientRect().top - wrap.top;
   });
   await page.locator('#studio-projects').focus();
-  await page.keyboard.press('End');
-  const samples = await page.evaluate(() => new Promise(resolve => {
+  await page.evaluate(() => {
     const marker = document.querySelector('[data-studio-marker]');
-    const tops = [];
+    window.__markerSamples = [];
+    window.__markerDone = false;
     const start = performance.now();
     const tick = () => {
       const wrap = marker.parentElement.getBoundingClientRect();
-      tops.push(marker.getBoundingClientRect().top - wrap.top);
+      window.__markerSamples.push(marker.getBoundingClientRect().top - wrap.top);
       if (performance.now() - start < 280) requestAnimationFrame(tick);
-      else resolve(tops);
+      else window.__markerDone = true;
     };
     requestAnimationFrame(tick);
-  }));
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
-  assert.equal(await page.evaluate(() => location.hash), '#project-shipgate');
+  });
+  await page.keyboard.press('End');
+  await page.waitForFunction(() => window.__markerDone);
+  const samples = await page.evaluate(() => window.__markerSamples);
+  await committed(page, 'shipgate');
   const destination = samples[samples.length - 1];
   assert.ok(samples.some(top => top > origin + 8 && top < destination - 4), `the marker travels between rows (${origin} -> ${destination})`);
   await page.waitForFunction(() => {
@@ -130,33 +257,34 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   assert.ok(Math.abs(await markerTop(page) - await rowTop(page, 'airforge')) <= 2);
 
   await page.keyboard.press('Home');
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible');
+  await committed(page, 'agentcrucible');
   assert.equal(await page.locator('[data-studio-panel].work-card.is-shown').count(), 1);
-  assert.equal(await page.locator('[data-studio-panel].work-card:not(.is-shown)').evaluateAll(cards => cards.every(card => card.inert && card.getAttribute('aria-hidden') === 'true')), true);
-  assert.equal(await page.locator('#project-agentcrucible').evaluate(card => card.inert || card.getAttribute('aria-hidden') !== 'false'), false);
+  assert.equal(await page.locator('article.work-card').evaluateAll(cards => cards.every(card => card.inert === false && card.getAttribute('aria-hidden') !== 'true')), true);
 
-  await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
-  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && location.hash === '#project-shipgate');
-  await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
-  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
+  await page.locator('#shipgate').click();
+  await committed(page, 'shipgate');
+  await page.locator('#shipgate').click();
+  await committed(page, 'shipgate');
   await page.goBack();
-  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && location.hash === '#project-shipgate');
+  await committed(page, 'agentcrucible');
   await page.goForward();
-  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
-  await page.goto(site.origin + '/#work-list');
-  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && location.hash === '#work-list');
-  await page.goto(site.origin + '/#contact');
-  await page.waitForFunction(() => SkyStudio.slug() === 'contact');
+  await committed(page, 'shipgate');
+  await page.locator('a[href="#contact"]').first().click();
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const contact = document.getElementById('contact').getBoundingClientRect();
+    return location.hash === '#contact' && SkyStudio.slug() === 'contact' && SkyStudio.settled() && contact.top >= header - 2;
+  });
   assert.equal(await page.locator('#contact a[href^="mailto:"]').getAttribute('href'), 'mailto:hello@aakashdahal.fun');
   await page.locator('#airforge').click();
-  await page.waitForFunction(() => SkyStudio.slug() === 'airforge' && document.getElementById('project-airforge').classList.contains('is-shown'));
+  await committed(page, 'airforge');
   await page.locator('#project-airforge .scene-links a').first().click();
   await page.waitForURL('**/work/airforge/');
   assert.deepEqual(errors, []);
   await context.close();
 });
 
-test('desktop, tablet, and phone keep a centered portrait, a vertical list, and reachable contact', async () => {
+test('desktop, tablet, and phone keep a centered portrait, a fitting project nav, and reachable contact', async () => {
   const sizes = [[1440, 900], [1024, 900], [768, 1024], [390, 844], [360, 800]];
   for (const [width, height] of sizes) {
     const { page, context, errors } = await open({
@@ -176,14 +304,24 @@ test('desktop, tablet, and phone keep a centered portrait, a vertical list, and 
       return { top: hero.top, bottom: hero.bottom, headerBottom: header.bottom, inner: innerHeight };
     });
     assert.ok(stageBox.top <= stageBox.headerBottom + 2, `${width} stage starts under the header`);
-    assert.ok(stageBox.bottom >= stageBox.inner - 16, `${width} stage fills the first viewport (${stageBox.bottom} vs ${stageBox.inner})`);
+    assert.ok(stageBox.bottom > stageBox.headerBottom + 80, `${width} portrait occupies the opening viewport`);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight + 80), `${width} articles extend the page`);
     assert.ok(figure.y >= stage.y && figure.y + figure.height <= stage.y + stage.height + 1);
     const columns = await page.locator('.studio-work-layout').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
     assert.equal(columns, width > 720 ? 2 : 1, `${width} uses ${columns} work columns`);
-    const rows = await page.locator('#studio-projects a').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().top));
-    for (let i = 1; i < rows.length; i++) assert.ok(rows[i] >= rows[i - 1] + 20, `${width} list is not vertical`);
+    const rows = await page.locator('#studio-projects a').evaluateAll(nodes => nodes.map(node => {
+      const box = node.getBoundingClientRect();
+      return { top: box.top, left: box.left, width: box.width, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth };
+    }));
+    if (width <= 720) {
+      assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), `${width} nav is not one compact row`);
+      assert.ok(rows[1].left > rows[0].left + 8 && rows[2].left > rows[1].left + 8, `${width} nav is not three columns`);
+      for (const row of rows) assert.ok(row.scrollWidth <= row.clientWidth + 1, `${width} project name overflows its cell`);
+    } else {
+      for (let i = 1; i < rows.length; i++) assert.ok(rows[i].top >= rows[i - 1].top + 20, `${width} list is not vertical`);
+    }
     await page.locator('#airforge').click();
-    await page.waitForFunction(() => SkyStudio.slug() === 'airforge');
+    await committed(page, 'airforge');
     const detail = await page.locator('#project-airforge').boundingBox();
     if (width <= 720) assert.ok(Math.abs(detail.x - (await page.locator('#studio-projects').boundingBox()).x) <= 4);
     else assert.ok(detail.x > (await page.locator('#studio-projects').boundingBox()).x + 40);
@@ -202,7 +340,7 @@ test('desktop, tablet, and phone keep a centered portrait, a vertical list, and 
 
 
 
-test('avatar appearance stays on the original figure and the viewport stays locked', async () => {
+test('avatar appearance stays on the original figure while the page still scrolls', async () => {
   for (const width of [1440, 390]) {
     const { page, context, errors } = await open({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
     const paper = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
@@ -218,11 +356,17 @@ test('avatar appearance stays on the original figure and the viewport stays lock
     assert.equal(await page.locator('html').getAttribute('data-gear'), null);
     assert.equal(await page.locator('[data-gear-neutral]').getAttribute('aria-pressed'), 'true');
     await page.locator('[data-lamp]').click();
+    assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
     assert.equal(await page.locator('[data-lamp]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()), '#f7f6f3');
+    assert.equal(await page.locator('#figure').count(), 1);
+    const litPaper = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
+    await page.locator('[data-gear-toggle]').click();
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()), litPaper);
     const start = await page.evaluate(() => scrollY);
     await page.mouse.wheel(0, 700);
-    await page.waitForTimeout(200);
-    assert.equal(await page.evaluate(() => scrollY), start, 'home page stays locked');
+    await page.waitForFunction(y => scrollY > y + 100, start);
+    assert.equal(await page.locator('#figure').count(), 1);
     assert.deepEqual(errors, []);
     await context.close();
   }
@@ -234,8 +378,8 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
   const frames = await page.evaluate(() => window.portraitDraws);
   await page.waitForTimeout(250);
   assert.ok(await page.evaluate(() => window.portraitDraws) > frames, 'the centered portrait keeps drawing');
-  await page.evaluate(() => SkyStudio.selectSlug('airforge'));
-  await page.waitForFunction(() => SkyStudio.slug() === 'airforge');
+  await wheelToArticle(page, 'airforge');
+  await committed(page, 'airforge');
   const away = await page.evaluate(() => window.portraitDraws);
   await page.waitForTimeout(250);
   assert.ok(await page.evaluate(() => window.portraitDraws) > away, 'selecting a project leaves the portrait running');
@@ -247,6 +391,12 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
   assert.equal(await page.evaluate(() => window.portraitDraws), paused, 'reduced motion freezes portrait draws');
   await page.locator('[data-motion-toggle]').click();
   await page.waitForFunction(() => !document.documentElement.hasAttribute('data-motion'));
+  await page.locator('.studio-brand').click();
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const hero = document.getElementById('hero').getBoundingClientRect();
+    return hero.top < innerHeight && hero.bottom > header;
+  });
   const figure = await page.evaluate(() => {
     const node = document.getElementById('figure');
     node.dataset.instance = 'hermes';
@@ -260,7 +410,12 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
   assert.equal(await page.locator('#figure').count(), 1);
   assert.equal(figure, await page.locator('#figure canvas').count());
   await page.locator('[data-studio-viewer-close]').click();
-  assert.equal(await page.evaluate(() => document.querySelector('#figure') && document.getElementById('figure').dataset.instance === 'hermes'), true);
+  await page.waitForFunction(() => !document.getElementById('studio-viewer').open && document.getElementById('figure').parentElement.classList.contains('studio-figure-slot'));
+  await page.waitForFunction(() => document.activeElement === document.querySelector('[data-studio-zoom="about"]'));
+  assert.equal(await page.evaluate(() => {
+    const node = document.getElementById('figure');
+    return !!(node && node.dataset.instance === 'hermes' && node.parentElement.classList.contains('studio-figure-slot') && !node.closest('#hero'));
+  }), true);
   assert.equal(await page.locator('[data-studio-zoom="about"]').evaluate(button => button === document.activeElement), true);
   assert.deepEqual(errors, []);
   await context.close();
@@ -286,8 +441,8 @@ test('site index and header controls still find a project', async () => {
   const { page, context, errors } = await open({ viewport: { width: 390, height: 900 }, reducedMotion: 'reduce', hasTouch: true });
   assert.match(await page.locator('.studio-header').innerText(), /Aakash/);
   await page.locator('[data-index-open]').click();
-  await page.locator('[data-index-search]').fill('python');
-  assert.match(await page.locator('.index-projects [data-index-item]:not([hidden])').innerText(), /Recall/);
+  await page.locator('[data-index-search]').fill('AirForge');
+  assert.match(await page.locator('.index-projects [data-index-item]:not([hidden])').innerText(), /AirForge/);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#site-index').evaluate(dialog => dialog.open), false);
   assert.deepEqual(errors, []);
@@ -306,21 +461,15 @@ test('AirForge playground stays unloaded until a plain click, then releases the 
     });
   });
   await page.locator('#airforge').click();
-  await page.waitForFunction(() => document.getElementById('project-airforge').classList.contains('is-shown'));
+  await committed(page, 'airforge');
   const link = page.locator('#project-airforge [data-playground-open]');
   const href = await link.getAttribute('href');
   assert.match(href, /^https:\/\/skysssup\.github\.io\/airforge\/\?example=ramp-and-ball$/);
   assert.equal(await page.locator('iframe').count(), 0);
-  await page.evaluate(() => {
-    const node = document.querySelector('#project-airforge [data-playground-open]');
-    node.addEventListener('click', event => { window.__playgroundClick = { defaultPrevented: event.defaultPrevented, ctrl: event.ctrlKey }; });
-  });
-  const popupPromise = page.waitForEvent('popup', { timeout: 4000 }).catch(() => null);
+  const popupPromise = page.waitForEvent('popup', { timeout: 1500 }).catch(() => null);
   await link.click({ modifiers: ['Control'] });
   const popup = await popupPromise;
-  const modified = await page.evaluate(() => window.__playgroundClick);
-  assert.equal(modified.ctrl, true);
-  assert.equal(modified.defaultPrevented, false);
+  assert.equal(popup, null, 'a modified click does not open a playground popup');
   assert.equal(await page.locator('dialog.project-playground[open]').count(), 0);
   assert.equal(await page.locator('iframe').count(), 0);
   if (popup) await popup.close();
@@ -339,13 +488,15 @@ test('AirForge playground stays unloaded until a plain click, then releases the 
   }
   assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Close playground');
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => !document.querySelector('dialog.project-playground')?.open);
+  await page.waitForFunction(() => !document.querySelector('dialog.project-playground')?.open && document.querySelectorAll('iframe').length === 0);
+  await page.waitForFunction(() => document.activeElement === document.querySelector('#project-airforge [data-playground-open]'));
   assert.equal(await page.locator('iframe').count(), 0);
   assert.equal(await link.evaluate(node => node === document.activeElement), true);
   await link.click();
   await page.waitForFunction(() => document.querySelector('dialog.project-playground')?.open);
   await dialog.getByRole('button', { name: 'Close playground' }).click();
-  await page.waitForFunction(() => !document.querySelector('dialog.project-playground')?.open);
+  await page.waitForFunction(() => !document.querySelector('dialog.project-playground')?.open && document.querySelectorAll('iframe').length === 0);
+  await page.waitForFunction(() => document.activeElement === document.querySelector('#project-airforge [data-playground-open]'));
   assert.equal(await page.locator('iframe').count(), 0);
   assert.equal(await link.evaluate(node => node === document.activeElement), true);
   assert.deepEqual(errors, []);
@@ -353,47 +504,107 @@ test('AirForge playground stays unloaded until a plain click, then releases the 
 });
 
 
-test('locked viewport keeps hash stages, committed selection, and reduced motion', async () => {
+test('native hashes, history, and reduced motion scroll the stacked page', async () => {
   const { page, context, errors } = await open({ url: '/', viewport: { width: 1440, height: 900 } });
-  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overflow), 'hidden');
-  assert.equal(await page.evaluate(() => SkyStudio.stage()), 'portrait');
-  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true);
+  const overflow = await page.evaluate(() => getComputedStyle(document.documentElement).overflow);
+  assert.notEqual(overflow, 'hidden');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight + 80));
   await page.locator('a[href="#work-list"]').first().click();
-  await page.waitForFunction(() => SkyStudio.stage() === 'work' && location.hash === '#work-list');
-  await page.locator('#airforge').click();
-  await page.waitForFunction(() => SkyStudio.slug() === 'airforge' && location.hash === '#project-airforge' && SkyStudio.settled());
-  assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true');
-  await page.locator('#shipgate').hover();
-  await page.waitForFunction(() => document.getElementById('project-shipgate').classList.contains('is-shown'));
-  assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true', 'preview does not drop the commit');
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const article = document.getElementById('project-agentcrucible').getBoundingClientRect();
+    return location.hash === '#work-list' && SkyStudio.slug() === 'agentcrucible' && SkyStudio.settled() && article.top >= header - 2;
+  });
+  await page.locator('#shipgate').click();
+  await committed(page, 'shipgate');
+  const airRow = await page.locator('#airforge').boundingBox();
+  await page.mouse.move(airRow.x + 12, airRow.y + 12);
+  await page.waitForTimeout(120);
+  assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true', 'preview does not drop the commit');
+  assert.equal(await page.evaluate(() => location.hash), '#project-shipgate');
+  assert.equal(await page.locator('#project-shipgate').evaluate(node => node.classList.contains('is-shown')), true);
   await page.mouse.move(8, 8);
-  await page.waitForFunction(() => document.getElementById('project-airforge').classList.contains('is-shown'));
   await page.locator('a[href="#contact"]').first().click();
-  await page.waitForFunction(() => SkyStudio.stage() === 'contact' && SkyStudio.slug() === 'contact');
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const contact = document.getElementById('contact').getBoundingClientRect();
+    return location.hash === '#contact' && SkyStudio.slug() === 'contact' && contact.top >= header - 2;
+  });
+  await page.locator('.studio-brand').click();
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const hero = document.getElementById('hero').getBoundingClientRect();
+    return scrollY < 40 && hero.bottom > header && SkyStudio.settled();
+  });
   await page.goBack();
-  await page.waitForFunction(() => SkyStudio.stage() === 'work' && SkyStudio.slug() === 'airforge');
+  await page.waitForFunction(() => location.hash === '#contact' && SkyStudio.slug() === 'contact');
   await page.goBack();
-  await page.waitForFunction(() => SkyStudio.stage() === 'work' && location.hash === '#work-list');
+  await committed(page, 'shipgate');
   await page.goBack();
-  await page.waitForFunction(() => SkyStudio.stage() === 'portrait');
-  await page.locator('[data-motion-toggle]').click();
-  await page.waitForFunction(() => document.documentElement.getAttribute('data-motion') === 'reduced');
-  await page.locator('a[href="#work-list"]').first().click();
-  await page.waitForFunction(() => SkyStudio.stage() === 'work');
-  assert.equal(await page.locator('[data-studio-panel].work-card.is-shown').count(), 1);
+  await page.waitForFunction(() => location.hash === '#work-list' && SkyStudio.slug() === 'agentcrucible' && SkyStudio.settled());
+  await page.goBack();
+  await page.waitForFunction(() => scrollY < 40 && !location.hash);
+  await page.goto(site.origin + '/#project-shipgate');
+  await committed(page, 'shipgate');
+  await page.reload();
+  await page.locator('[data-studio].is-ready').waitFor();
+  await committed(page, 'shipgate');
   assert.deepEqual(errors, []);
   await context.close();
+
+  const reduced = await open({ url: '/', viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+  await reduced.page.locator('#agentcrucible').click();
+  await committed(reduced.page, 'agentcrucible');
+  const origin = await reduced.page.locator('[data-studio-marker]').evaluate(node => {
+    const wrap = node.parentElement.getBoundingClientRect();
+    return node.getBoundingClientRect().top - wrap.top;
+  });
+  await reduced.page.evaluate(() => {
+    const marker = document.querySelector('[data-studio-marker]');
+    window.__markerSamples = [];
+    window.__markerDone = false;
+    const start = performance.now();
+    const tick = () => {
+      const wrap = marker.parentElement.getBoundingClientRect();
+      window.__markerSamples.push(marker.getBoundingClientRect().top - wrap.top);
+      if (performance.now() - start < 280) requestAnimationFrame(tick);
+      else window.__markerDone = true;
+    };
+    requestAnimationFrame(tick);
+  });
+  await reduced.page.locator('#studio-projects').focus();
+  await reduced.page.keyboard.press('End');
+  await reduced.page.waitForFunction(() => window.__markerDone);
+  const tops = await reduced.page.evaluate(() => window.__markerSamples);
+  await committed(reduced.page, 'shipgate');
+  const destination = tops[tops.length - 1];
+  assert.ok(tops.every(top => Math.abs(top - origin) <= 4 || Math.abs(top - destination) <= 4), 'reduced motion does not travel through marker midpoints');
+  assert.equal(await reduced.page.locator('[data-studio-panel].work-card.is-shown').count(), 1);
+  assert.deepEqual(reduced.errors, []);
+  await reduced.context.close();
 });
 
-test('phone work replaces the list with evidence and returns through one control', async () => {
-  const { page, context, errors } = await open({ url: '/#work-list', viewport: { width: 390, height: 844 }, hasTouch: true, reducedMotion: 'reduce' });
-  await page.waitForFunction(() => SkyStudio.stage() === 'work');
-  assert.equal(await page.evaluate(() => SkyStudio.workMode()), 'list');
-  await page.locator('#shipgate').click();
-  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.workMode() === 'detail');
-  assert.equal(await page.locator('#project-shipgate.is-shown').isVisible(), true);
-  await page.locator('[data-studio-list-back]').click();
-  await page.waitForFunction(() => SkyStudio.workMode() === 'list');
+test('a phone stacks three rows and three articles and still scrolls', async () => {
+  const { page, context, errors } = await open({ url: '/', viewport: { width: 390, height: 844 }, hasTouch: true, reducedMotion: 'reduce' });
+  assert.equal(await page.locator('#studio-projects [data-studio-pick]').count(), 3);
+  assert.equal(await page.locator('article.work-card').count(), 3);
+  const rows = await page.locator('#studio-projects a').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect()));
+  assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), 'phone nav is one compact row');
+  assert.ok(rows[1].left > rows[0].left + 8 && rows[2].left > rows[1].left + 8, 'phone nav is three columns');
+  const articles = await page.locator('article.work-card').evaluateAll(nodes => nodes.map(node => node.offsetTop));
+  for (let i = 1; i < articles.length; i += 1) assert.ok(articles[i] > articles[i - 1]);
+  const before = await page.evaluate(() => scrollY);
+  const column = await page.locator('#project-agentcrucible').boundingBox();
+  const client = await context.newCDPSession(page);
+  const x = column.x + column.width / 2;
+  const y = Math.min(column.y + 80, 700);
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - 260, id: 1 }] });
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForFunction(start => scrollY > start + 40, before);
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.documentElement).touchAction), 'none');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert.ok(overflow <= 0, `phone overflows by ${overflow}px`);
   assert.deepEqual(errors, []);
   await context.close();
 });

@@ -46,7 +46,7 @@ test('the studio is usable immediately, with no black-hole gate and no dead load
     assert.notEqual(api.overflow, 'hidden', 'the studio page scrolls instead of trapping the document');
     assert.equal(api.scroll, true);
     assert.equal(await page.locator('[data-scroll-field], .scroll-waypoints').count(), 0);
-    await page.evaluate(() => window.SkyStudio.selectSlug('agentcrucible'));
+    await page.locator('#agentcrucible').click();
     await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible' && window.SkyStudio.selected() === 1);
     const snap = await page.evaluate(() => window.SkyStudio.snapshot());
     assert.equal(snap.slug, 'agentcrucible');
@@ -56,9 +56,9 @@ test('the studio is usable immediately, with no black-hole gate and no dead load
     assert.equal(await page.locator('#agentcrucible').getAttribute('aria-selected'), 'true');
     assert.equal(await page.locator('[data-studio-pick][aria-selected="true"]').count(), 1);
     assert.equal(await page.locator('[data-studio-pick]').count(), 3);
-    assert.equal(await page.locator('[data-studio-panel="agentcrucible"]').evaluate(el => el.classList.contains('is-shown') && !el.inert), true);
-    assert.equal(await page.locator('.work-card:not(.is-shown)').evaluateAll(els => els.every(el => el.inert)), true);
-    assert.equal(await page.locator('#about, #contact').evaluateAll(els => els.every(el => !el.inert)), true);
+    assert.equal(await page.locator('[data-studio-panel="agentcrucible"]').evaluate(el => el.classList.contains('is-shown') && el.inert === false), true);
+    assert.equal(await page.locator('.work-card').evaluateAll(els => els.every(el => el.inert === false && el.getAttribute('aria-hidden') !== 'true')), true);
+    assert.equal(await page.locator('#about, #contact').evaluateAll(els => els.length === 2 && els.every(el => el.inert === false)), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
     await context.close();
@@ -74,7 +74,7 @@ test('keyboard, reduced motion, hashes, and reload never insert a gate and keep 
     assert.equal(await page.locator('.blackhole-transition, [data-enter]').count(), 0);
     await ready(page);
     assert.equal(await page.locator('.blackhole-transition, [data-enter]').count(), 0);
-    assert.equal(await page.evaluate(() => window.SkyStudio.slug()), 'agentcrucible');
+    assert.equal(['agentcrucible', 'airforge', 'shipgate'].includes(await page.evaluate(() => window.SkyStudio.slug())), false);
     await context.close();
   }
 
@@ -84,9 +84,31 @@ test('keyboard, reduced motion, hashes, and reload never insert a gate and keep 
   await ready(reducedPage);
   assert.equal(await reducedPage.locator('.blackhole-transition, [data-enter]').count(), 0);
   assert.equal(await reducedPage.getAttribute('html', 'data-motion'), 'reduced');
-  await reducedPage.locator('[data-studio-pick][aria-selected="true"]').focus();
+  await reducedPage.locator('#agentcrucible').click();
+  await reducedPage.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible');
+  const startY = await reducedPage.evaluate(() => scrollY);
+  await reducedPage.evaluate(() => {
+    window.__scrollSamples = [];
+    window.__scrollDone = false;
+    const start = performance.now();
+    const tick = () => {
+      window.__scrollSamples.push(scrollY);
+      if (performance.now() - start < 280) requestAnimationFrame(tick);
+      else window.__scrollDone = true;
+    };
+    requestAnimationFrame(tick);
+  });
+  await reducedPage.locator('#agentcrucible').focus();
   await reducedPage.keyboard.press('ArrowDown');
-  await reducedPage.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'airforge' && window.SkyStudio.selected() === 2);
+  await reducedPage.waitForFunction(() => window.__scrollDone && window.SkyStudio.settled() && window.SkyStudio.slug() === 'airforge' && window.SkyStudio.selected() === 2);
+  const endY = await reducedPage.evaluate(() => scrollY);
+  const samples = await reducedPage.evaluate(() => window.__scrollSamples);
+  assert.ok(samples.every(y => Math.abs(y - startY) <= 4 || Math.abs(y - endY) <= 4), 'reduced motion lands on the next frame');
+  await reducedPage.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const box = document.getElementById('project-airforge').getBoundingClientRect();
+    return box.top >= header - 2;
+  });
   assert.equal(await reducedPage.locator('.blackhole-transition').count(), 0);
   await reducedPage.keyboard.press('ArrowUp');
   await reducedPage.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible');
@@ -95,20 +117,36 @@ test('keyboard, reduced motion, hashes, and reload never insert a gate and keep 
   assert.equal(await reducedPage.locator('.blackhole-transition, [data-enter]').count(), 0);
   await reduced.close();
 
-  for (const [suffix, slug, shown] of [['/#hero', 'agentcrucible', 'agentcrucible'], ['/#about', 'agentcrucible', 'agentcrucible'], ['/#work-list', 'agentcrucible', 'agentcrucible'], ['/#agentcrucible', 'agentcrucible', 'agentcrucible'], ['/#contact', 'contact', null]]) {
+  for (const entry of [
+    { suffix: '/#hero', slug: null, article: '#hero' },
+    { suffix: '/#about', slug: null, article: '#hero' },
+    { suffix: '/#work-list', slug: 'agentcrucible', article: '#project-agentcrucible' },
+    { suffix: '/#agentcrucible', hash: '#project-agentcrucible', slug: 'agentcrucible', article: '#project-agentcrucible' },
+    { suffix: '/#contact', slug: 'contact', article: '#contact' },
+  ]) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
-    await page.goto(site.origin + suffix, { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(expected => window.SkyStudio?.settled() && window.SkyStudio.slug() === expected, slug);
+    await page.goto(site.origin + entry.suffix, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(expected => {
+      if (!window.SkyStudio?.settled()) return false;
+      const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+      const node = document.querySelector(expected.article);
+      if (!node) return false;
+      const top = node.getBoundingClientRect().top;
+      const clear = top >= header - 2 && top < innerHeight;
+      if (!expected.slug) {
+        const selected = document.querySelector('[data-studio-pick][aria-selected="true"]');
+        const about = document.getElementById('about');
+        return scrollY <= 2 && !!about && !selected && window.SkyStudio.slug() === 'about' && top < innerHeight;
+      }
+      if (expected.slug === 'contact') return clear && window.SkyStudio.slug() === 'contact';
+      return clear && window.SkyStudio.slug() === expected.slug && document.getElementById(expected.slug).getAttribute('aria-selected') === 'true' && document.getElementById(`project-${expected.slug}`).classList.contains('is-shown');
+    }, entry);
     assert.equal(await page.locator('.blackhole-transition, [data-enter], [data-entry-screen]').count(), 0);
-    if (shown) {
-      assert.equal(await page.locator(`[data-studio-panel="${shown}"]`).evaluate(el => el.classList.contains('is-shown')), true);
-      assert.equal(await page.locator(`#${shown}`).getAttribute('aria-selected'), 'true');
-    }
-    const hash = suffix.slice(suffix.indexOf('#'));
+    const hash = entry.hash || entry.suffix.slice(entry.suffix.indexOf('#'));
     assert.equal(new URL(page.url()).hash, hash);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(expected => window.SkyStudio?.settled() && window.SkyStudio.slug() === expected, slug);
+    await page.waitForFunction(expected => window.SkyStudio?.settled() && (expected.slug ? window.SkyStudio.slug() === expected.slug : window.SkyStudio.slug() === 'about'), entry);
     assert.equal(new URL(page.url()).hash, hash);
     assert.equal(await page.locator('.blackhole-transition, [data-enter]').count(), 0);
     await context.close();

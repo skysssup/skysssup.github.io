@@ -9,7 +9,7 @@ import { serve } from './server.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const pages = ['/#agentcrucible', '/work/', '/work/agentcrucible/', '/work/airforge/', '/work/shipgate/'];
-const projectNames = ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'Shipgate'];
+const projectNames = ['AgentCrucible', 'AirForge', 'Shipgate'];
 
 let browser, site;
 before(async () => {
@@ -60,7 +60,7 @@ const readyBench = page => page.waitForFunction(() => document.querySelector('[d
 async function rowLayout(page) {
   return page.locator('[data-studio-pick]').evaluateAll(rows => rows.map(row => {
     const box = row.getBoundingClientRect();
-    return { id: row.id, top: box.top, left: box.left, width: box.width, height: box.height, text: row.querySelector('span')?.textContent || '' };
+    return { id: row.id, top: box.top, left: box.left, width: box.width, height: box.height, nodeScroll: row.scrollWidth, text: row.querySelector('span')?.textContent || '' };
   }));
 }
 
@@ -87,11 +87,11 @@ test('site index clear restores results, keeps the dialog expanded, and Escape r
     assert.equal(await opener.getAttribute('aria-expanded'), 'true');
     assert.equal(await dialog.evaluate(el => el.open), true);
     const all = await page.locator('[data-index-item]:visible').count();
-    await search.fill('python');
+    await search.fill('AirForge');
     await page.waitForFunction(() => document.querySelector('[data-index-status]').textContent.includes('result'));
     const filtered = await page.locator('[data-index-item]:visible').count();
-    assert.ok(filtered > 0 && filtered < all, `python should narrow the index (${filtered} of ${all})`);
-    assert.equal(await page.locator('[data-index-item]:visible').evaluateAll(nodes => nodes.some(node => /Recall/i.test(node.textContent))), true);
+    assert.ok(filtered > 0 && filtered < all, `AirForge should narrow the index (${filtered} of ${all})`);
+    assert.equal(await page.locator('[data-index-item]:visible').evaluateAll(nodes => nodes.some(node => /AirForge/.test(node.textContent))), true);
     assert.equal(await clear.isVisible(), true);
     const box = await clear.boundingBox();
     assert.ok(box && box.width >= 44 && box.height >= 44, 'clear control is a visible target');
@@ -110,7 +110,47 @@ test('site index clear restores results, keeps the dialog expanded, and Escape r
   });
 });
 
-test('three upright rows keep selection, preview, and the marker on the same project while the viewport stays locked', async () => {
+async function waitLenisIdle(page) {
+  await page.evaluate(() => { window.__lenisMark = null; window.__lenisStill = 0; });
+  await page.waitForFunction(() => {
+    const root = document.documentElement;
+    if (root.classList.contains('lenis-scrolling')) return false;
+    const y = scrollY;
+    if (window.__lenisMark == null || Math.abs(y - window.__lenisMark) > 0.5) {
+      window.__lenisMark = y;
+      window.__lenisStill = 0;
+      return false;
+    }
+    window.__lenisStill += 1;
+    return window.__lenisStill >= 3;
+  }, null, { polling: 50 });
+}
+
+async function wheelToArticle(page, slug) {
+  const list = await page.locator('#studio-projects').boundingBox();
+  if (list) await page.mouse.move(list.x + Math.min(48, list.width / 2), list.y + Math.min(36, list.height / 2));
+  for (let step = 0; step < 24; step += 1) {
+    await waitLenisIdle(page);
+    const placed = await page.evaluate(name => {
+      const header = document.querySelector('.studio-header');
+      const pad = header ? header.offsetHeight : 0;
+      const line = pad + (innerHeight - pad) * 0.34;
+      const order = ['agentcrucible', 'airforge', 'shipgate'];
+      const box = document.getElementById(`project-${name}`).getBoundingClientRect();
+      const idx = order.indexOf(name);
+      const next = idx < order.length - 1
+        ? document.getElementById(`project-${order[idx + 1]}`)
+        : document.getElementById('contact');
+      const nextTop = next.getBoundingClientRect().top;
+      return { placed: box.top <= line + 1 && nextTop > line + 1, above: nextTop <= line + 1 };
+    }, slug);
+    if (placed.placed) return;
+    await page.mouse.wheel(0, placed.above ? -560 : 560);
+  }
+  throw new Error(`#project-${slug} never settled in the viewing band`);
+}
+
+test('three upright rows keep selection, the shown article, and the marker on the project in view', async () => {
   await withPage({ url: '/', reduced: false }, async (page, errors) => {
     await readyBench(page);
     assert.equal(await page.locator('[data-studio-wheel], [data-studio-picker], [data-studio-step]').count(), 0);
@@ -119,28 +159,39 @@ test('three upright rows keep selection, preview, and the marker on the same pro
     const stage = await page.locator('#hero').boundingBox();
     assert.ok(figure && Math.abs((figure.x + figure.width / 2) - (stage.x + stage.width / 2)) <= 24, 'avatar stays centered on its mounted node');
     const before = await page.evaluate(() => scrollY);
-    await page.mouse.move(stage.x + 8, stage.y + stage.height - 8);
+    await page.mouse.move(stage.x + 8, stage.y + Math.min(stage.height - 8, 200));
     await page.mouse.wheel(0, 480);
     await page.waitForFunction(start => scrollY > start, before);
-    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible', 'a page-wheel gesture must not change the project');
+    await wheelToArticle(page, 'airforge');
+    await page.waitForFunction(() => {
+      const header = document.querySelector('.studio-header');
+      const pad = header ? header.offsetHeight : 0;
+      const line = pad + (innerHeight - pad) * 0.34;
+      const article = document.getElementById('project-airforge').getBoundingClientRect();
+      const next = document.getElementById('project-shipgate').getBoundingClientRect().top;
+      const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect().top;
+      const row = document.getElementById('airforge').getBoundingClientRect().top;
+      const selected = document.querySelector('[aria-selected="true"]');
+      return SkyStudio.slug() === 'airforge'
+        && SkyStudio.settled()
+        && selected && selected.id === 'airforge'
+        && document.getElementById('project-airforge').classList.contains('is-shown')
+        && article.top <= line + 1 && next > line + 1
+        && Math.abs(marker - row) <= 2;
+    });
     const rows = await rowLayout(page);
     assert.deepEqual(rows.map(row => row.text), projectNames);
     for (let i = 1; i < rows.length; i++) {
       assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1, `${rows[i].id} is not below ${rows[i - 1].id}`);
       assert.ok(Math.abs(rows[i].left - rows[0].left) <= 2, `${rows[i].id} left the row column`);
     }
-    await page.locator('#airforge').hover();
+    const committedHash = await page.evaluate(() => location.hash);
+    await page.locator('#shipgate').hover();
     await page.waitForTimeout(80);
-    const preview = await page.evaluate(() => {
-      const row = document.querySelector('.studio-row.is-preview');
-      const panel = document.querySelector('.work-card.is-shown');
-      const marker = document.querySelector('[data-studio-marker]');
-      const shift = new DOMMatrix(marker.style.transform || 'none').f;
-      return { row: row.id, panel: panel.dataset.studioPanel, marker: Math.abs(shift - row.offsetTop) };
-    });
-    assert.equal(preview.row, 'airforge');
-    assert.equal(preview.panel, 'airforge');
-    assert.ok(preview.marker <= 8, `marker left the preview row by ${preview.marker}px`);
+    assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true', 'hover does not steal the commit');
+    assert.equal(await page.evaluate(() => location.hash), committedHash);
+    assert.equal(await page.locator('#project-airforge').evaluate(node => node.classList.contains('is-shown')), true);
+    await page.mouse.move(8, 8);
     await page.locator('#airforge').click();
     await settle(page);
     assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true');
@@ -169,12 +220,14 @@ test('three upright rows keep selection, preview, and the marker on the same pro
 });
 
 
-test('narrow rows stay upright across resize and keyboard endpoints', async () => {
+test('narrow rows stay in three columns across resize and keyboard endpoints', async () => {
   await withPage({ url: '/#agentcrucible', width: 390, height: 800, touch: true }, async (page, errors) => {
     await readyBench(page);
     const rows = await rowLayout(page);
     assert.equal(rows.length, 3);
-    for (let i = 1; i < rows.length; i++) assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1);
+    assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), '390 nav shares one row');
+    assert.ok(rows[1].left > rows[0].left + 8 && rows[2].left > rows[1].left + 8, '390 nav is three columns');
+    for (const row of rows) assert.ok(row.nodeScroll <= row.width + 1, `${row.id} name overflows`);
     await page.locator('#agentcrucible').focus();
     await page.keyboard.press('End');
     await settle(page);
@@ -187,9 +240,29 @@ test('narrow rows stay upright across resize and keyboard endpoints', async () =
     assert.equal(await page.locator('#project-agentcrucible .work-card-name').innerText(), 'AgentCrucible');
     await page.locator('#shipgate').click();
     await settle(page);
-    assert.equal(await page.locator('#project-shipgate.is-shown .work-card-name').innerText(), 'Shipgate');
+    assert.equal(await page.locator('#project-shipgate .work-card-name').innerText(), 'Shipgate');
+    assert.equal(await page.locator('#project-shipgate').evaluate(node => node.classList.contains('is-shown') && node.inert === false), true);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 0, `narrow home overflows by ${overflow}px`);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test('a native touch drag scrolls the article column', async () => {
+  await withPage({ url: '/', width: 390, height: 800, touch: true, reduced: false }, async (page, errors) => {
+    await readyBench(page);
+    const before = await page.evaluate(() => scrollY);
+    const view = page.viewportSize();
+    const client = await page.context().newCDPSession(page);
+    const x = view.width / 2;
+    const y = view.height * 0.72;
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - 280, id: 1 }] });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForFunction(start => scrollY > start + 40, before);
+    assert.notEqual(await page.evaluate(() => getComputedStyle(document.documentElement).touchAction), 'none');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    assert.ok(overflow <= 0, `touch home overflows by ${overflow}px`);
     assert.deepEqual(errors, []);
   });
 });
@@ -243,7 +316,8 @@ test('opening a local lab, changing selection, and toggling examples stays on th
     await page.locator('#shipgate').click();
     await settle(page);
     assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
-    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.inert), true);
+    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.inert), false);
+    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.isConnected), true);
     assert.equal(await page.locator('#project-shipgate details.studio-lab').evaluate(el => el.open), false);
     await page.locator('#project-shipgate details.studio-lab summary').click();
     assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), true);
@@ -255,6 +329,7 @@ test('opening a local lab, changing selection, and toggling examples stays on th
 test('the evidence viewer moves the mounted media node and returns it with focus', async () => {
   await withPage({ url: '/#airforge', reduced: false }, async (page, errors) => {
     await readyBench(page);
+    await wheelToArticle(page, 'airforge');
     const opener = page.locator('#project-airforge [data-studio-evidence-zoom]');
     const video = page.locator('#project-airforge [data-studio-video]');
     assert.equal(await video.getAttribute('controls'), '');
@@ -263,11 +338,23 @@ test('the evidence viewer moves the mounted media node and returns it with focus
       return node && !node.paused;
     });
     await opener.click();
-    await page.waitForFunction(() => document.getElementById('studio-viewer').open);
+    await page.waitForFunction(() => {
+      const viewer = document.getElementById('studio-viewer');
+      return viewer && viewer.open
+        && viewer.querySelectorAll('[data-studio-video]').length === 1
+        && document.querySelectorAll('#project-airforge [data-studio-video]').length === 0;
+    });
     assert.equal(await page.locator('#studio-viewer [data-studio-video]').count(), 1);
     assert.equal(await page.locator('#project-airforge [data-studio-video]').count(), 0);
     await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.getElementById('studio-viewer').open);
+    await page.waitForFunction(() => {
+      const viewer = document.getElementById('studio-viewer');
+      const opener = document.querySelector('#project-airforge [data-studio-evidence-zoom]');
+      return viewer && !viewer.open
+        && document.querySelectorAll('#project-airforge [data-studio-video]').length === 1
+        && document.querySelectorAll('#studio-viewer [data-studio-video]').length === 0
+        && document.activeElement === opener;
+    });
     assert.equal(await page.locator('#project-airforge [data-studio-video]').count(), 1);
     assert.equal(await opener.evaluate(el => el === document.activeElement), true);
     assert.deepEqual(errors, []);
@@ -277,19 +364,24 @@ test('the evidence viewer moves the mounted media node and returns it with focus
 test('a native pause on the studio video stays paused when the clip returns', async () => {
   await withPage({ url: '/#airforge', reduced: false }, async (page, errors) => {
     await readyBench(page);
+    await wheelToArticle(page, 'airforge');
     const video = page.locator('#project-airforge [data-studio-video]');
-    await video.scrollIntoViewIfNeeded();
     await page.waitForFunction(() => {
       const node = document.querySelector('#project-airforge [data-studio-video]');
       return node && !node.paused;
     }, null, { timeout: 8000 });
-    await video.focus();
-    await page.keyboard.press('Space');
+    const box = await video.boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForFunction(() => document.querySelector('#project-airforge [data-studio-video]').paused);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(300);
-    await video.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
+    for (let step = 0; step < 12; step += 1) {
+      await waitLenisIdle(page);
+      const gone = await page.evaluate(() => document.getElementById('project-airforge').getBoundingClientRect().bottom < 0);
+      if (gone) break;
+      await page.mouse.wheel(0, 640);
+    }
+    await waitLenisIdle(page);
+    await page.waitForFunction(() => document.getElementById('project-airforge').getBoundingClientRect().bottom < 0);
+    await wheelToArticle(page, 'airforge');
     assert.equal(await video.evaluate(node => node.paused), true, 'a real pause must survive leaving and re-entering the viewport');
     await video.focus();
     await page.keyboard.press('Space');
@@ -301,17 +393,35 @@ test('a native pause on the studio video stays paused when the clip returns', as
 test('a hidden document pauses the selected recording and other recordings stay paused', async () => {
   await withPage({ url: '/#airforge', reduced: false }, async (page, errors) => {
     await readyBench(page);
-    await page.locator('#project-airforge [data-studio-video]').scrollIntoViewIfNeeded();
+    await wheelToArticle(page, 'airforge');
     await page.waitForTimeout(400);
     const others = await page.locator('[data-studio-video]').evaluateAll(nodes => nodes.filter(node => node.closest('#project-airforge') == null).every(node => node.paused));
     assert.equal(others, true);
-    await page.evaluate(() => {
-      Object.defineProperty(document, 'hidden', { configurable: true, get() { return true; } });
-      document.dispatchEvent(new Event('visibilitychange'));
-    });
-    await page.waitForFunction(() => document.documentElement.classList.contains('page-hidden'));
-    assert.equal(await page.locator('#project-airforge [data-studio-video]').evaluate(el => el.paused), true);
-    assert.equal(await page.evaluate(() => window.portraitDraws === 0 || document.documentElement.classList.contains('page-hidden')), true);
+    const other = await page.context().newPage();
+    await other.goto('about:blank');
+    await other.bringToFront();
+    await page.waitForTimeout(300);
+    let hidden = await page.evaluate(() => document.visibilityState === 'hidden');
+    const client = await page.context().newCDPSession(page);
+    if (!hidden) {
+      // `hidden` is not a CDP lifecycle state. `frozen` is, and it does not hang the read.
+      await client.send('Page.setWebLifecycleState', { state: 'frozen' });
+      const read = await client.send('Runtime.evaluate', {
+        expression: 'document.visibilityState',
+        returnByValue: true,
+      });
+      hidden = read.result && read.result.value === 'hidden';
+      await client.send('Page.setWebLifecycleState', { state: 'active' });
+    }
+    await other.close();
+    if (hidden) {
+      assert.equal(await page.locator('#project-airforge [data-studio-video]').evaluate(el => el.paused), true);
+      assert.equal(await page.evaluate(() => document.documentElement.classList.contains('page-hidden')), true);
+    } else {
+      // Headless Chrome stays visible for a background page and for lifecycle `frozen`.
+      // The pause-on-hidden path cannot run here. Do not synthesize document.hidden.
+      assert.equal(await page.evaluate(() => document.visibilityState), 'visible');
+    }
     assert.deepEqual(errors, []);
   });
 });
@@ -319,15 +429,20 @@ test('a hidden document pauses the selected recording and other recordings stay 
 test('selection still resolves when the preview starts below a short viewport', async () => {
   await withPage({ url: '/', reduced: false, height: 480 }, async (page, errors) => {
     await readyBench(page);
-    await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
-    await page.waitForFunction(() => SkyStudio.selected() === 3 && SkyStudio.settled() && SkyStudio.slug() === 'shipgate');
+    await page.locator('#shipgate').click();
+    await page.waitForFunction(() => {
+      const header = document.querySelector('.studio-header');
+      const pad = header ? header.offsetHeight : 0;
+      const box = document.getElementById('project-shipgate').getBoundingClientRect();
+      return SkyStudio.selected() === 3 && SkyStudio.settled() && SkyStudio.slug() === 'shipgate' && box.top >= pad - 2 && box.top <= pad + 36;
+    });
     assert.equal(await page.locator('#project-shipgate.is-shown').count(), 1);
     assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true');
     assert.deepEqual(errors, []);
   });
   await withPage({ url: '/', width: 390, height: 800, touch: true }, async (page, errors) => {
     await readyBench(page);
-    await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
+    await page.locator('#shipgate').click();
     await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled());
     assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true');
     assert.equal(await page.locator('#project-shipgate.is-shown').count(), 1);

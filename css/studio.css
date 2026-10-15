@@ -1,4 +1,4 @@
-/* Studio home. One locked viewport. Portrait material tokens stay in css/site.css. */
+/* Studio home. Portrait, work, and contact stack in the document. */
 :root[data-polished]:has(.studio-page),
 :root[data-polished]:has(.studio-page)[data-gear] {
   color-scheme: dark;
@@ -28,45 +28,53 @@
   --studio-ms: 360ms;
   --studio-pad-x: clamp(18px, 3.2vw, 40px);
   --studio-pad-y: 10px;
+  --studio-head: 64px;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --sans: var(--mono);
   margin: 0;
+  min-height: 100%;
   background: var(--paper);
   color: var(--ink);
   font: 400 13px/1.45 "IBM Plex Mono", ui-monospace, monospace;
-  overflow: hidden;
 }
-html:has(.studio-page),
-html:has(.studio-page) body {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior: none;
+html:has(.studio-page) {
+  height: auto;
+  max-height: none;
+  overflow-x: clip;
+  overflow-y: auto;
+  scroll-padding-top: var(--studio-head, 64px);
   background: var(--paper);
 }
+html:has(.studio-page) body {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  background: var(--paper);
+}
+html.index-is-open:has(.studio-page) { overflow: hidden; }
+html.index-is-open:has(.studio-page),
+html.index-is-open:has(.studio-page) body { overflow: hidden; }
 .studio-page :is(button, input, select, textarea) { font: inherit; color: inherit; }
+.studio-page > :is(.fx-flash, .fx-ring, .fx-tide) { display: none; }
+:root[data-phase] .studio-page :is(.site-header, main, h1, h2, h3, .hero-figure) { animation: none; text-shadow: none; }
 .studio-page a { color: inherit; text-underline-offset: 3px; }
 .studio-page :is(a, button, summary):focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 
-/* Full-bleed instrument shell — chrome at edges, stage owns the viewport. */
 .studio-shell {
   box-sizing: border-box;
   width: 100%;
-  height: 100dvh;
-  max-height: 100dvh;
+  min-height: 100%;
   margin: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
+  display: block;
 }
 .studio-header {
-  position: relative;
-  z-index: 5;
-  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 20;
   height: auto;
   min-height: 48px;
   padding: var(--studio-pad-y) var(--studio-pad-x) 0;
-  background: transparent;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter: none;
 }
 .studio-header .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 48px; margin: 0; padding: 0; }
@@ -91,104 +99,78 @@ html:has(.studio-page) body {
 
 .studio-frame {
   position: relative;
-  min-height: 0;
   width: 100%;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   padding: 0 var(--studio-pad-x);
 }
 
 .studio-figure-slot {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+  position: sticky;
+  top: var(--studio-head);
+  height: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
   pointer-events: none;
-  z-index: 0;
-  transition: opacity var(--studio-ms) var(--studio-ease), transform var(--studio-ms) var(--studio-ease);
+  overflow: visible;
 }
 .studio-page .hero-figure {
   position: relative;
-  width: min(560px, 78vw, calc(100dvh - 168px));
-  max-height: calc(100dvh - 168px);
+  align-self: flex-start;
+  flex: none;
+  order: 0;
+  width: min(440px, 62vw, max(220px, calc(100svh - 340px)));
   aspect-ratio: 1;
   margin: 0;
   pointer-events: none;
   cursor: default;
   overflow: visible;
-  transform-origin: center center;
-  transition: opacity var(--studio-ms) var(--studio-ease), transform var(--studio-ms) var(--studio-ease);
+  transform-origin: center top;
+  opacity: 1;
+  transform: none;
 }
 .studio-page .hero-figure canvas,
 .studio-page .hero-figure img { pointer-events: none; }
-[data-studio][data-stage="portrait"] .studio-figure-slot {
-  opacity: 1;
-  transform: none;
+.studio-page .hero-figure canvas { max-width: none; }
+/* Keep the renderer's measuring host at full size. Scaling its bounds feeds a
+   reduced size back into its canvas on resize or a material switch. */
+.studio-page .hero-figure > canvas {
+  transform: scale(var(--studio-figure-scale, 1));
+  transform-origin: 50% 13.235294%; /* native 18% overscan / 136% canvas */
 }
-[data-studio][data-stage="portrait"] .hero-figure {
-  opacity: 1;
-  transform: none;
-}
-[data-studio][data-stage="work"] .studio-figure-slot,
-[data-studio][data-stage="contact"] .studio-figure-slot {
-  opacity: 1;
-  transform: none;
-}
-[data-studio][data-stage="work"] .hero-figure,
-[data-studio][data-stage="contact"] .hero-figure {
-  opacity: 0.22;
-  transform: scale(0.38);
-}
-[data-studio][data-stage="work"] .studio-figure-slot {
-  place-items: end center;
-  padding-bottom: 2%;
-}
-[data-studio][data-stage="contact"] .studio-figure-slot {
-  place-items: center;
+.studio-page .hero-figure > .still {
+  transform: scale(var(--studio-figure-scale, 1));
+  transform-origin: center top;
 }
 
 .studio-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+  position: relative;
+  z-index: 2;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: safe flex-end;
   gap: 8px;
-  padding: 8px 0 4px;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translate3d(0, 10px, 0);
-  transition: opacity var(--studio-ms) var(--studio-ease), transform var(--studio-ms) var(--studio-ease), visibility 0s linear var(--studio-ms);
-}
-.studio-layer.is-active {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: none;
-  transition-delay: 0s;
-}
-.studio-layer.is-leaving {
-  visibility: visible;
-  pointer-events: none;
-  z-index: 2;
 }
 
-/* Identity docks under Hermes — brand-sized, not a centered portfolio card. */
 .studio-layer--portrait {
+  min-height: max(520px, calc(100svh - var(--studio-head)));
   align-items: center;
-  justify-content: safe flex-end;
-  padding-bottom: clamp(12px, 4vh, 36px);
+  justify-content: flex-end;
+  padding-bottom: clamp(28px, 7vh, 80px);
 }
+.studio-layer--portrait #about { position: absolute; top: 0; left: 0; }
 .studio-identity {
   display: grid;
   justify-items: center;
   gap: 8px;
   text-align: center;
   position: relative;
-  z-index: 1;
+  z-index: 3;
   max-width: min(42ch, 92vw);
 }
 .studio-identity h1 {
@@ -221,7 +203,7 @@ html:has(.studio-page) body {
   position: relative; z-index: 1;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 44px; min-width: 44px; padding: 0 12px;
-  border: 1px solid var(--line-strong); background: transparent; color: var(--ink);
+  border: 1px solid var(--line-strong); background: color-mix(in srgb, var(--paper) 72%, transparent); color: var(--ink);
 }
 .studio-avatar-controls button i { width: 8px; height: 8px; border-radius: 50%; background: #c3bf94; }
 .studio-avatar-controls [data-gear-toggle] i { background: #d24a3e; }
@@ -231,17 +213,15 @@ html:has(.studio-page) body {
 .studio-next { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--ink); }
 
 .studio-layer--work {
-  align-items: stretch;
-  justify-content: flex-start;
-  padding: 4px 0 0;
+  padding: 28px 0 12px;
 }
 .studio-work-head {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: baseline;
-  margin-bottom: 10px;
-  flex: 0 0 auto;
+  min-height: 72px;
+  margin-bottom: 8px;
 }
 .studio-work-head h2 {
   margin: 0;
@@ -254,39 +234,25 @@ html:has(.studio-page) body {
 .studio-work-head a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
 .studio-work-head a:hover { border-bottom-color: var(--ink); }
 .studio-work-layout {
-  flex: 1 1 auto;
-  min-height: 0;
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   gap: clamp(20px, 4vw, 48px);
-  align-items: stretch;
+  align-items: start;
 }
 .studio-list-wrap {
-  position: relative;
+  position: sticky;
+  top: calc(var(--studio-head) + 16px);
+  align-self: start;
+  z-index: 4;
   min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-.studio-list-jump { margin: 0 0 8px; }
-.studio-list-jump button {
-  display: inline-flex; align-items: center; min-height: 44px;
-  border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; padding: 0;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
 }
 .studio-marker {
   position: absolute; left: 0; top: 0; width: 2px; height: 44px;
   background: var(--accent);
   transform: translateY(0);
-  transition: transform var(--studio-ms) var(--studio-ease), height var(--studio-ms) var(--studio-ease), opacity var(--studio-ms) var(--studio-ease);
+  transition: transform var(--studio-ms) var(--studio-ease), height var(--studio-ms) var(--studio-ease), width var(--studio-ms) var(--studio-ease), opacity var(--studio-ms) var(--studio-ease);
   pointer-events: none;
-  transform-origin: center top;
-}
-.studio-page.is-motion [data-stage="work"] .studio-marker {
-  animation: studio-marker-breath 4.5s var(--studio-ease) infinite;
-}
-@keyframes studio-marker-breath {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
 }
 .studio-list { list-style: none; margin: 0; padding: 0; }
 .studio-row {
@@ -294,67 +260,44 @@ html:has(.studio-page) body {
   width: 100%; min-height: 44px; padding: 8px 8px 8px 14px;
   color: var(--muted); text-decoration: none;
   opacity: 0.72;
-  transform: translate3d(0, 0, 0);
-  transition: opacity var(--studio-ms) var(--studio-ease), transform var(--studio-ms) var(--studio-ease), background-color var(--studio-ms) var(--studio-ease);
+  transition: opacity var(--studio-ms) var(--studio-ease), background-color var(--studio-ms) var(--studio-ease), color var(--studio-ms) var(--studio-ease);
 }
 .studio-row span { color: var(--ink); min-width: 0; }
 .studio-row small { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; text-align: right; }
-.studio-row:hover, .studio-row:focus-visible, .studio-row.is-preview, .studio-row.is-selected { opacity: 1; color: var(--ink); }
-.studio-row.is-preview:not(.is-selected) { transform: translate3d(6px, 0, 0); }
-.studio-row.is-selected { transform: translate3d(4px, 0, 0); }
+.studio-row:hover, .studio-row:focus-visible, .studio-row.is-preview { opacity: 0.9; color: var(--ink); }
+.studio-row.is-preview:not(.is-selected) span { color: var(--accent); }
+.studio-row.is-selected { opacity: 1; color: var(--ink); }
 .studio-row:hover, .studio-row:focus-visible { background: color-mix(in srgb, var(--ink) 5%, transparent); }
 .studio-row.is-selected span { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-.studio-row.is-preview:not(.is-selected) span { color: var(--accent); }
 
 .studio-detail {
   position: relative;
-  display: grid;
+  display: block;
   min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  opacity: 1;
-  transition: opacity var(--studio-ms) var(--studio-ease);
+  max-width: 760px;
 }
-.studio-detail.is-previewing { opacity: 0.58; }
-.js .studio-panel.work-card {
-  grid-area: 1 / 1;
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  width: 100%;
-  margin: 0;
-  opacity: 0;
-  visibility: hidden;
-  transform: translate3d(0, 8px, 0);
-  pointer-events: none;
-  transition: opacity var(--studio-ms) var(--studio-ease), transform var(--studio-ms) var(--studio-ease), visibility 0s linear var(--studio-ms);
-}
-.js .studio-detail[data-dir="up"] .studio-panel.work-card:not(.is-shown) { transform: translate3d(0, -8px, 0); }
-.js .studio-detail.is-instant .studio-panel.work-card { transition: none; }
-.js .studio-panel.work-card.is-shown {
+.studio-panel.work-card {
   position: relative;
+  margin: 0 0 72px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: none;
-  transition-delay: 0s;
-}
-.js .studio-panel.work-card.is-leaving {
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  width: 100%;
-  visibility: visible;
-  pointer-events: none;
-  z-index: 1;
   content-visibility: visible;
 }
-.js .studio-panel.work-card:not(.is-shown):not(.is-leaving) { content-visibility: hidden; }
+.studio-panel.work-card.is-selected,
+.studio-panel.work-card.is-shown {
+  border-top-color: var(--ink);
+}
+.studio-panel.work-card.is-shown .work-card-name { text-decoration: underline; text-underline-offset: 4px; }
 
-.studio-evidence { position: relative; margin: 0 0 16px; }
+.studio-evidence { position: relative; margin: 0 0 16px; background: var(--paper); }
 .studio-evidence img, .studio-evidence video { display: block; width: 100%; height: auto; background: var(--ink); }
 .studio-evidence figcaption, .studio-evidence-empty p { margin: 8px 0 0; color: var(--muted); font-size: 12px; max-width: 68ch; }
 .studio-evidence-empty { min-height: 120px; display: grid; align-content: end; border-top: 1px solid var(--line); }
 .studio-evidence-zoom { position: absolute; top: 8px; right: 8px; border: 1px solid var(--line-strong); background: color-mix(in srgb, var(--paper) 88%, transparent); color: var(--ink); min-height: 44px; min-width: 44px; padding: 0 12px; }
+.studio-copy { background: color-mix(in srgb, var(--paper) 94%, transparent); }
 .studio-copy h3 { margin: 0 0 8px; font: 400 18px/1.3 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0; }
 .studio-copy p { margin: 0 0 12px; max-width: 62ch; }
 .studio-facts { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 4px 12px; margin: 0 0 14px; }
@@ -364,15 +307,11 @@ html:has(.studio-page) body {
 .studio-lab { border-top: 1px solid var(--line); }
 .studio-lab summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; min-height: 44px; cursor: pointer; }
 .studio-lab summary span { color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
-.studio-project-status[data-status="working tool" i] { color: #9bbb9f; }
-:root[data-theme="light"] .studio-project-status[data-status="working tool" i] { color: #1e5c36; }
-.studio-project-status[data-status="prototype" i] { color: #c5b783; }
-:root[data-theme="light"] .studio-project-status[data-status="prototype" i] { color: #6a4e12; }
+.studio-project-status { color: var(--ink); }
 
 .studio-layer--contact {
   align-items: flex-start;
-  justify-content: center;
-  padding: 24px 0;
+  padding: 48px 0 80px;
   max-width: 52ch;
 }
 .studio-layer--contact h2 { margin: 0 0 8px; font: 400 11px/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
@@ -382,9 +321,7 @@ html:has(.studio-page) body {
 .studio-layer--contact nav { display: flex; flex-wrap: wrap; gap: 16px; }
 .studio-layer--contact nav a { min-height: 44px; display: inline-flex; align-items: center; }
 
-/* Status bar: machine readout, not marketing footer. */
 .studio-status {
-  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
@@ -396,6 +333,7 @@ html:has(.studio-page) body {
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  background: var(--paper);
 }
 .studio-readout {
   color: var(--ink);
@@ -431,82 +369,36 @@ html:has(.studio-page) body {
 html:not(.js) .studio-marker,
 html:not(.js) .studio-nav-mark,
 html:not(.js) .studio-gear-mark { display: none; }
-html:not(.js):has(.studio-page),
-html:not(.js):has(.studio-page) body,
-html:not(.js) .studio-page {
-  height: auto;
-  max-height: none;
-  overflow: auto;
-}
-html:not(.js) .studio-shell { height: auto; max-height: none; overflow: visible; display: block; }
-html:not(.js) .studio-frame { position: static; overflow: visible; min-height: 0; }
-html:not(.js) .studio-figure-slot { position: static; display: flex; justify-content: center; padding: 24px 0 8px; }
-html:not(.js) .studio-layer {
-  position: static;
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: none;
-  inset: auto;
-}
-html:not(.js) .studio-panel.work-card { position: static; opacity: 1; visibility: visible; margin-bottom: 48px; transform: none; content-visibility: visible; }
-html:not(.js) .studio-detail { display: block; overflow: visible; }
-html:not(.js) .studio-page :is(.theme-switch, .index-open, .studio-avatar-controls, .studio-zoom, .studio-evidence-zoom, .studio-mail .copy, .motion-toggle, [data-bench-live], .studio-lab, .studio-list-jump) { display: none; }
+html:not(.js) .studio-page :is(.theme-switch, .index-open, .studio-avatar-controls, .studio-zoom, .studio-evidence-zoom, .studio-mail .copy, .motion-toggle, [data-bench-live], .studio-lab) { display: none; }
 
-@media (min-width: 721px) {
-  .studio-list-jump { display: none; }
-}
-@media (max-width: 900px) and (min-width: 721px) {
-  .studio-work-layout { grid-template-columns: minmax(200px, 240px) minmax(0, 1fr); gap: 20px; }
-}
 @media (max-width: 720px) {
   .studio-page { --studio-pad-x: 16px; }
-  .studio-page .hero-figure { width: min(440px, 88vw, calc(100dvh - 220px)); max-height: calc(100dvh - 220px); }
-  [data-studio][data-stage="work"] .hero-figure,
-  [data-studio][data-stage="contact"] .hero-figure {
-    opacity: 0.14;
-    transform: scale(0.28);
-  }
-  .studio-work-layout { grid-template-columns: 1fr; gap: 0; }
+  .studio-page .hero-figure { width: min(360px, 88vw, max(220px, calc(100svh - 340px))); }
+  .studio-work-layout { grid-template-columns: 1fr; gap: 12px; }
   .studio-work-head { flex-direction: column; align-items: start; gap: 4px; }
   .studio-header .row { flex-wrap: wrap; }
   .studio-header-links { flex-wrap: wrap; }
-  .studio-row { grid-template-columns: 28px minmax(0, 1fr); }
-  .studio-row small { grid-column: 2; text-align: left; }
+  .studio-list-wrap {
+    width: 100%;
+    top: calc(var(--studio-head) + 8px);
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+  }
+  .studio-list { display: grid; grid-template-columns: 1.25fr 1fr 1fr; }
+  .studio-list li { min-width: 0; }
+  .studio-row { width: 100%; min-width: 0; grid-template-columns: auto minmax(0, 1fr); gap: 5px; padding-inline: 5px; font-size: 11px; }
+  .studio-row small { display: none; }
   .studio-identity h1 { font-size: 18px; }
-  [data-studio][data-work-mode="list"] .studio-detail {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-  }
-  [data-studio][data-work-mode="detail"] .studio-list-wrap {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    position: absolute;
-    width: 1px; height: 1px; overflow: hidden;
-  }
-  [data-studio][data-work-mode="detail"] .studio-detail {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    position: relative;
-  }
-  [data-studio][data-work-mode="detail"] .studio-list-jump { display: block; }
-  [data-studio][data-work-mode="list"] .studio-list-jump { display: none; }
-  [data-studio][data-work-mode="list"] .studio-list-wrap {
-    max-height: none;
-    height: 100%;
-  }
+  .studio-detail { max-width: none; }
 }
 
 .studio-page :is(p, h1, h2, h3, dd, small, figcaption) { overflow-wrap: break-word; }
 .studio-row span { overflow-wrap: anywhere; }
 
+/* Reduced motion keeps the still portrait in document flow, without a sticky overlay. */
+.studio-page:not(.is-motion) .studio-figure-slot { position: absolute; left: var(--studio-pad-x); right: var(--studio-pad-x); top: 0; }
+
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="full"]) .studio-page:not(.is-motion) :is(.studio-marker, .studio-nav-mark, .studio-gear-mark, .studio-panel.work-card, .studio-row, .studio-layer, .studio-figure-slot, .hero-figure, .studio-detail, .studio-brand) {
+  html:not([data-motion="full"]) .studio-page:not(.is-motion) :is(.studio-marker, .studio-nav-mark, .studio-gear-mark, .studio-row, .studio-brand) {
     transition: none;
     animation: none;
   }
@@ -514,18 +406,8 @@ html:not(.js) .studio-page :is(.theme-switch, .index-open, .studio-avatar-contro
 html[data-motion="reduced"] .studio-marker,
 html[data-motion="reduced"] .studio-nav-mark,
 html[data-motion="reduced"] .studio-gear-mark,
-html[data-motion="reduced"] .studio-panel.work-card,
 html[data-motion="reduced"] .studio-row,
-html[data-motion="reduced"] .studio-layer,
-html[data-motion="reduced"] .studio-figure-slot,
-html[data-motion="reduced"] .hero-figure,
-html[data-motion="reduced"] .studio-detail,
 html[data-motion="reduced"] .studio-brand { transition: none; animation: none; }
-html[data-motion="reduced"] .studio-row.is-preview:not(.is-selected),
-html[data-motion="reduced"] .studio-row.is-selected { transform: none; }
-html[data-motion="reduced"] .studio-detail.is-previewing { opacity: 1; }
-html[data-motion="reduced"] .studio-page.is-motion [data-stage="work"] .studio-marker,
-.studio-page:not(.is-motion) [data-stage="work"] .studio-marker { animation: none; }
 
 @supports (interpolate-size: allow-keywords) {
   @supports selector(::details-content) {

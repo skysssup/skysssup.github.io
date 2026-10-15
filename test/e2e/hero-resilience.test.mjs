@@ -415,8 +415,8 @@ test('native vertical touch scrolling cancels hero interaction and allows the ne
   await page.waitForFunction(() => scrollY > 20 && window.__heroProbe.touches.some(e => e.type === 'pointercancel'));
   assert.ok(await page.evaluate(() => scrollY) > scroll, 'a vertical drag scrolls the page');
   assert.equal((await state(page)).uniforms.u_pointer[2], 0);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(250);
+  for (let step = 0; step < 8 && await page.evaluate(() => scrollY) > 4; step += 1) await page.mouse.wheel(0, -700);
+  await page.waitForFunction(() => scrollY < 8);
   const next = await touchAt(context, page);
   const before = (await state(page)).touches.filter(e => e.type === 'pointerdown').length;
   await next.send('touchStart');

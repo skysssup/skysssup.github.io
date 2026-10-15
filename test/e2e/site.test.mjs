@@ -174,7 +174,7 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
 
 test('avatar effects settle and appearances persist independently of light mode', async () => {
   const { page, context, problems } = await open('/', { mode: 'dark' });
-  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'agentcrucible');
+  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'about');
   for (const [selector, value] of [['.studio-identity [data-gear-toggle]', 'two'], ['.studio-identity [data-gear-blue]', 'blue']]) {
     if (new URL(page.url()).pathname !== '/') await page.goto(site.origin + '/', { waitUntil: 'networkidle' });
     await page.locator(selector).scrollIntoViewIfNeeded();
@@ -288,12 +288,13 @@ test('case-study videos play on screen, pause on request, and stay still under r
 
 test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Two instant', async () => {
   const { page, context } = await open('/');
-  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'agentcrucible');
-  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
+  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'about');
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), true);
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.body).overflowY), 'hidden');
   assert.ok(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight));
   await page.click('[data-motion-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
   assert.equal(await page.getAttribute('[data-motion-toggle]', 'aria-pressed'), 'true');
   await page.click('.studio-identity [data-gear-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
@@ -330,15 +331,19 @@ test('the home page keeps every project and a concise contact section', async ()
   const { page, context, problems } = await open('/');
   await page.waitForFunction(() => window.SkyStudio?.settled());
   const names = await page.locator('#studio-projects .studio-row > span').allTextContents();
-  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'Shipgate']);
+  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate']);
   assert.equal(await page.locator('#about').count(), 1);
   assert.equal(await page.locator('#contact').count(), 1);
   assert.equal(await page.locator('header.studio-header').count(), 1);
   assert.equal(await page.locator('footer.studio-status').count(), 1);
   assert.equal(await page.locator('header .nav').count(), 0);
   assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
-  await page.evaluate(() => window.SkyStudio.selectSlug('contact'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'contact');
+  await page.locator('a[href="#contact"]').first().click();
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
+    const contact = document.getElementById('contact').getBoundingClientRect();
+    return window.SkyStudio.settled() && window.SkyStudio.slug() === 'contact' && location.hash === '#contact' && contact.top >= header - 2;
+  });
   assert.equal(await page.locator('[data-contact-note]').innerText(), 'Email reaches me fastest.');
   assert.deepEqual(problems, []);
   await context.close();

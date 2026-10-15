@@ -1,4 +1,4 @@
-// Home studio: one locked viewport. Portrait, work, and contact are hash states of the same stage.
+// Home studio: portrait, work, and contact stacked in document flow.
 import { projectLab } from './project-lab.mjs';
 
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -32,14 +32,14 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
   ];
   return `<body class="page-home studio-page">
 <div class="fx-flash" aria-hidden="true"></div>
-<div class="studio-shell" data-studio data-stage="portrait" data-work-mode="list">
+<div class="studio-shell" data-studio data-work-mode="list">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header studio-header"><div class="row">
     <a class="studio-brand" href="#about" aria-label="${esc(site.name)}, portrait">${headerMark}<span>${esc(site.name)}</span></a>
     <nav class="studio-header-links" aria-label="Primary"><a href="#work-list">Work</a><a href="#contact">Contact</a><a href="https://github.com/${esc(site.github)}">GitHub</a><button type="button" class="tool-button theme-switch" aria-label="Light theme" aria-pressed="false" data-lamp>${lamp}</button><button type="button" class="tool-button index-open" aria-label="Open site index" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-index" data-index-open>${search}</button></nav>
   </div></header>
   <main id="main" class="studio-frame">
-    <div class="studio-figure-slot" aria-hidden="false">
+    <div class="studio-figure-slot">
       <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles."><div class="still" aria-hidden="true"></div></div>
     </div>
     <section class="studio-layer studio-layer--portrait is-active" data-studio-layer="portrait" id="hero" aria-labelledby="hero-name">
@@ -54,17 +54,16 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
         </div>
       </div>
     </section>
-    <section class="studio-layer studio-layer--work" data-studio-layer="work" id="work-list" aria-labelledby="work-title" inert>
+    <section class="studio-layer studio-layer--work is-active" data-studio-layer="work" id="work-list" aria-labelledby="work-title">
       <div class="studio-work-head"><h2 id="work-title">Work</h2><p><span data-studio-count>${pad(projects.length)}</span> <a href="/work/">notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
           <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
           <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="${esc(projects[0].slug)}">
-${projects.map((p,i)=>`            <li role="none"><a id="${esc(p.slug)}" class="studio-row${i===0?' is-selected':''}" href="#project-${esc(p.slug)}" role="option" data-studio-pick="${i}" aria-selected="${i===0}" tabindex="${i===0?0:-1}">${pad(i+1)}<span>${esc(p.name)}</span><small>${esc(p.status)}</small></a></li>`).join('\n')}
+${projects.map((p,i)=>`            <li role="none"><a id="${esc(p.slug)}" class="studio-row${i===0?' is-selected':''}" href="#project-${esc(p.slug)}" role="option" data-studio-pick="${i}" aria-selected="${i===0}">${pad(i+1)}<span>${esc(p.name)}</span><small>${esc(p.status)}</small></a></li>`).join('\n')}
           </ul>
         </div>
-        <div class="studio-detail" data-studio-detail aria-live="off">
-          <p class="studio-list-jump"><button type="button" data-studio-list-back>Project list</button></p>
+        <div class="studio-detail" data-studio-detail>
 ${projects.map(p=>`          <article class="studio-panel work-card" id="project-${esc(p.slug)}" data-studio-panel="${esc(p.slug)}" data-scene="${esc(p.slug)}" data-studio-view="evidence" tabindex="-1">
             ${evidence(p)}
             <div class="studio-copy">
@@ -78,7 +77,7 @@ ${projects.map(p=>`          <article class="studio-panel work-card" id="project
         </div>
       </div>
     </section>
-    <section class="studio-layer studio-layer--contact" data-studio-layer="contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title" inert>
+    <section class="studio-layer studio-layer--contact is-active" data-studio-layer="contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title">
       <h2 id="contact-title">Contact</h2>
       <p data-contact-note>Email reaches me fastest.</p>
       <div class="studio-mail"><a href="mailto:${esc(site.email)}" data-email-text>${esc(site.email)}</a><button type="button" class="copy" aria-label="Copy email address" data-copy="${esc(site.email)}"><span data-copy-label>Copy</span></button></div>
@@ -93,10 +92,10 @@ ${projects.map(p=>`          <article class="studio-panel work-card" id="project
   </footer>
 </div>
 ${siteIndex()}
-<dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title"><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage"></div></dialog>
+<dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title" data-lenis-prevent><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage" data-lenis-prevent></div></dialog>
 <span class="vh" aria-live="polite" data-announce></span>
 <script type="application/json" id="studio-data">${JSON.stringify(entries).replace(/</g,'\\u003c')}</script>
-${scripts(['/js/theme.js','/js/motion.js','/js/hero.js','/js/page.js','/js/project-lab.js','/js/studio.js','/js/project-playground.js'])}
+${scripts(['/js/theme.js','/assets/vendor/lenis.min.js','/js/motion.js','/js/hero.js','/js/page.js','/js/project-lab.js','/js/studio.js','/js/project-playground.js'])}
 </body>
 </html>`;
 }
