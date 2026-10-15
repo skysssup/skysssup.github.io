@@ -48,12 +48,14 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
         <h1 id="hero-name">${esc(site.name)}</h1>
         <p>${esc(site.bio)}</p>
         ${avatarControls()}
-        <button type="button" class="studio-zoom" data-studio-zoom="about" aria-label="View avatar large">view large</button>
-        <a class="studio-next" href="#work-list">Work</a>
+        <div class="studio-identity-actions">
+          <button type="button" class="studio-zoom" data-studio-zoom="about" aria-label="View avatar large">view large</button>
+          <a class="studio-next" href="#work-list">Work</a>
+        </div>
       </div>
     </section>
     <section class="studio-layer studio-layer--work" data-studio-layer="work" id="work-list" aria-labelledby="work-title" inert>
-      <div class="studio-work-head"><h2 id="work-title">Work</h2><p>${projects.length} projects. Hover previews. Click keeps a selection. <a href="/work/">All notes</a></p></div>
+      <div class="studio-work-head"><h2 id="work-title">Work</h2><p><span data-studio-count>${pad(projects.length)}</span> <a href="/work/">notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
           <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
@@ -84,7 +86,8 @@ ${projects.map(p=>`          <article class="studio-panel work-card" id="project
     </section>
   </main>
   <footer class="studio-status">
-    <span>${esc(site.name)}</span>
+    <span class="studio-readout" data-studio-readout aria-live="polite">portrait</span>
+    <span class="studio-status-gap" aria-hidden="true"></span>
     <button type="button" class="motion-toggle" aria-label="Reduce motion Off" aria-pressed="false" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
     <button type="button" data-bench-live aria-pressed="true"><span>Examples</span> <b data-studio-live-label>on</b></button>
   </footer>

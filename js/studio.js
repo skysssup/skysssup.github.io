@@ -17,6 +17,7 @@
   var announce = document.querySelector('[data-announce]');
   var figure = document.getElementById('figure');
   var listBack = root.querySelector('[data-studio-list-back]');
+  var readout = root.querySelector('[data-studio-readout]');
   var motion = window.SkyMotion;
   var projectPanels = Array.prototype.slice.call(root.querySelectorAll('.work-card[data-studio-panel]'));
   var labs = projectPanels.map(function (panel) {
@@ -227,6 +228,7 @@
     syncLabs();
     syncEvidence();
     moveMarker();
+    syncReadout();
   }
 
   function markerTop(row, wrap) {
@@ -261,6 +263,19 @@
       leaveTimers[name] = 0;
     }
     layer.classList.remove('is-leaving');
+  }
+  function syncReadout() {
+    if (!readout) return;
+    if (stage === 'portrait') {
+      readout.textContent = 'portrait';
+      return;
+    }
+    if (stage === 'contact') {
+      readout.textContent = 'contact';
+      return;
+    }
+    var row = rows[shown >= 0 ? shown : committed];
+    readout.textContent = row ? row.id : 'work';
   }
   function setStage(next, meta) {
     meta = meta || {};
@@ -302,6 +317,7 @@
     syncLabs();
     syncEvidence();
     placeNav();
+    syncReadout();
     if (next === 'work') window.requestAnimationFrame(moveMarker);
   }
 
@@ -353,6 +369,7 @@
     if (meta.announce && announce && data[current]) announce.textContent = data[current].name + ' selected';
     if (prev !== index) document.dispatchEvent(new CustomEvent('sky:workselect', { detail: { index: index } }));
     placeNav();
+    syncReadout();
   }
 
   function setPreview(index) {

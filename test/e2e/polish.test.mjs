@@ -199,7 +199,7 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
     const list = await page.locator('.studio-list').boundingBox();
     const detail = await page.locator('[data-studio-detail]').boundingBox();
     if (width >= 1000) {
-      assert.ok(Math.abs(shell.width - Math.min(1120, width - 48)) <= 2, `shell ${shell.width}`);
+      assert.ok(Math.abs(shell.width - width) <= 2, `shell ${shell.width} should span the viewport`);
       assert.ok(detail.x >= list.x + list.width - 2, 'the list and the selected preview sit in columns');
     }
     if (width === 768) assert.ok(detail.x >= list.x + list.width - 2 || detail.y >= list.y + list.height - 2, 'tablet keeps the list and preview from overlapping');

@@ -85,9 +85,8 @@ test('content rails stay inside the viewport across pages and screen sizes', asy
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, url + ' ' + width);
     if (url === '/' && (width === 1440 || width === 768)) {
       const studio = await page.locator('[data-studio]').boundingBox();
-      const expected = Math.min(1120, width - (width >= 1000 ? 48 : 32));
-      assert.ok(Math.abs(studio.width - expected) <= 2, `studio shell ${width} is ${studio.width}, expected ${expected}`);
-      if (width === 1440) assert.ok(Math.abs(studio.x - (width - expected) / 2) <= 2, `studio shell x is ${studio.x}`);
+      assert.ok(Math.abs(studio.width - width) <= 2, `studio shell ${width} is ${studio.width}, expected full bleed ${width}`);
+      assert.ok(Math.abs(studio.x) <= 2, `studio shell x is ${studio.x}`);
     }
     const rails = await page.locator('.row, .workbench, .contact-sheet').evaluateAll(elements => elements.filter(el => el.getBoundingClientRect().width > 0).map(el => { const box = el.getBoundingClientRect(); return {left:box.left,right:box.right}; }));
     for (const box of rails) assert.ok(box.left >= -1 && box.right <= width + 1, url + ' ' + width + ' content rail');

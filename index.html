@@ -49,12 +49,14 @@
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>Developer tools and interactive physics software.</p>
         <div class="studio-avatar-controls" role="group" aria-label="Avatar appearance"><button type="button" aria-label="Gold avatar" aria-pressed="true" data-gear-neutral><i aria-hidden="true"></i><span>gold</span></button><button type="button" aria-label="Red avatar" aria-pressed="false" data-gear-toggle><i aria-hidden="true"></i><span>red</span></button><button type="button" aria-label="Blue avatar" aria-pressed="false" data-gear-blue><i aria-hidden="true"></i><span>blue</span></button></div>
-        <button type="button" class="studio-zoom" data-studio-zoom="about" aria-label="View avatar large">view large</button>
-        <a class="studio-next" href="#work-list">Work</a>
+        <div class="studio-identity-actions">
+          <button type="button" class="studio-zoom" data-studio-zoom="about" aria-label="View avatar large">view large</button>
+          <a class="studio-next" href="#work-list">Work</a>
+        </div>
       </div>
     </section>
     <section class="studio-layer studio-layer--work" data-studio-layer="work" id="work-list" aria-labelledby="work-title" inert>
-      <div class="studio-work-head"><h2 id="work-title">Work</h2><p>3 projects. Hover previews. Click keeps a selection. <a href="/work/">All notes</a></p></div>
+      <div class="studio-work-head"><h2 id="work-title">Work</h2><p><span data-studio-count>03</span> <a href="/work/">notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
           <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
@@ -193,7 +195,8 @@
     </section>
   </main>
   <footer class="studio-status">
-    <span>Aakash Dahal</span>
+    <span class="studio-readout" data-studio-readout aria-live="polite">portrait</span>
+    <span class="studio-status-gap" aria-hidden="true"></span>
     <button type="button" class="motion-toggle" aria-label="Reduce motion Off" aria-pressed="false" data-motion-toggle><span aria-hidden="true">Reduce motion</span> <b aria-hidden="true" data-motion-state>Off</b></button>
     <button type="button" data-bench-live aria-pressed="true"><span>Examples</span> <b data-studio-live-label>on</b></button>
   </footer>

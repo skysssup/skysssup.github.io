@@ -51,6 +51,8 @@ test('each page has exactly one h1, a skip link to main, and landmarks', () => {
   assert.match(home, /<main\b[^>]*id="main"/);
   assert.match(home, /<header class="site-header\b/);
   assert.match(home, /<footer class="studio-status">/);
+  assert.match(home, /data-studio-readout/);
+  assert.doesNotMatch(home, /Hover previews/);
   for (const [p, doc] of Object.entries(html)) {
     if (p === 'index.html') continue;
     assert.equal((doc.match(/<h1[\s>]/g) || []).length, 1, `${p} h1 count`);
