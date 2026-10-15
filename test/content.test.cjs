@@ -125,13 +125,15 @@ test('the work index lists every case study once, and the home page lists each o
     assert.deepEqual([...card.matchAll(/href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]), [slug], `${slug} link`);
     assert.ok(fs.existsSync(resolve('/work/' + slug + '/')), slug);
   }
-  assert.match(home, /<section class="hero studio-stage" id="hero"/);
+  assert.match(home, /data-studio data-stage="portrait"/);
+  assert.match(home, /<main id="main" class="studio-frame"/);
+  assert.match(home, /<section class="studio-layer studio-layer--portrait[^"]*" data-studio-layer="portrait" id="hero"/);
   assert.equal((home.match(/<h1[\s>]/g) || []).length, 1);
   assert.equal((home.match(/id="figure"/g) || []).length, 1);
   assert.match(home, /<span id="about"[^>]*>/);
   assert.match(home, /<div class="studio-identity" data-studio-panel="about">/);
   assert.doesNotMatch(home, /id="about"[^>]*data-studio-panel="about"/);
-  assert.match(home, /<section class="studio-contact" id="contact" data-studio-panel="contact"/);
+  assert.match(home, /<section class="studio-layer studio-layer--contact"[^>]*id="contact"[^>]*data-studio-panel="contact"/);
   assert.doesNotMatch(home, /id="about"[^>]*role="option"|id="contact"[^>]*role="option"/);
   assert.match(home, /href="mailto:hello@aakashdahal\.fun"/);
   assert.match(home, /<p data-contact-note>Email reaches me fastest\.<\/p>/);

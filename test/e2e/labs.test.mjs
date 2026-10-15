@@ -55,7 +55,6 @@ test('local project labs compute inspectable results and pause with the page', {
         await air.locator('[data-field="gravity"]').fill('1');
         assert.match(await air.locator('[data-readout="gravity"]').innerText(), /1\.00/);
         assert.ok((await air.getByRole('button', { name: 'Play', exact: true }).boundingBox()).height >= 44);
-
         assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
       } finally {
         await page.context().close();
@@ -127,10 +126,13 @@ test('local project labs compute inspectable results and pause with the page', {
         assert.ok(await ship.locator('[data-out="status"]').innerText());
         const box = await ship.boundingBox();
         assert.ok(box.width <= 328, `lab is ${box.width}px wide`);
+        await ship.locator('[data-field="diff"]').fill('+ password = "hunter2"');
+        assert.match(await ship.locator('[data-out="status"]').innerText(), /Block/);
         const angle = (await lab(page, 'airforge')).locator('[data-field="angle"]');
         await angle.focus();
         await page.keyboard.press('ArrowRight');
         assert.notEqual(await angle.inputValue(), '30');
+        assert.match(await page.locator('#project-airforge [data-readout="angle"]').innerText(), /31°/);
       } finally {
         await page.context().close();
       }

@@ -1,4 +1,4 @@
-// Home studio: persistent centered portrait, then a plain project list and evidence.
+// Home studio: one locked viewport. Portrait, work, and contact are hash states of the same stage.
 import { projectLab } from './project-lab.mjs';
 
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -32,16 +32,18 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
   ];
   return `<body class="page-home studio-page">
 <div class="fx-flash" aria-hidden="true"></div>
-<div class="studio-shell" data-studio>
+<div class="studio-shell" data-studio data-stage="portrait" data-work-mode="list">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header studio-header"><div class="row">
     <a class="studio-brand" href="#about" aria-label="${esc(site.name)}, portrait">${headerMark}<span>${esc(site.name)}</span></a>
     <nav class="studio-header-links" aria-label="Primary"><a href="#work-list">Work</a><a href="#contact">Contact</a><a href="https://github.com/${esc(site.github)}">GitHub</a><button type="button" class="tool-button theme-switch" aria-label="Light theme" aria-pressed="false" data-lamp>${lamp}</button><button type="button" class="tool-button index-open" aria-label="Open site index" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-index" data-index-open>${search}</button></nav>
   </div></header>
-  <main id="main">
-    <section class="hero studio-stage" id="hero" aria-labelledby="hero-name">
-      <span id="about" aria-hidden="true" style="position:absolute;top:0"></span>
+  <main id="main" class="studio-frame">
+    <div class="studio-figure-slot" aria-hidden="false">
       <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles."><div class="still" aria-hidden="true"></div></div>
+    </div>
+    <section class="studio-layer studio-layer--portrait is-active" data-studio-layer="portrait" id="hero" aria-labelledby="hero-name">
+      <span id="about" aria-hidden="true"></span>
       <div class="studio-identity" data-studio-panel="about">
         <h1 id="hero-name">${esc(site.name)}</h1>
         <p>${esc(site.bio)}</p>
@@ -50,7 +52,7 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
         <a class="studio-next" href="#work-list">Work</a>
       </div>
     </section>
-    <section class="studio-work" id="work-list" aria-labelledby="work-title">
+    <section class="studio-layer studio-layer--work" data-studio-layer="work" id="work-list" aria-labelledby="work-title" inert>
       <div class="studio-work-head"><h2 id="work-title">Work</h2><p>${projects.length} projects. Hover previews. Click keeps a selection. <a href="/work/">All notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
@@ -60,7 +62,7 @@ ${projects.map((p,i)=>`            <li role="none"><a id="${esc(p.slug)}" class=
           </ul>
         </div>
         <div class="studio-detail" data-studio-detail aria-live="off">
-          <p class="studio-list-jump"><a href="#studio-projects">Project list</a></p>
+          <p class="studio-list-jump"><button type="button" data-studio-list-back>Project list</button></p>
 ${projects.map(p=>`          <article class="studio-panel work-card" id="project-${esc(p.slug)}" data-studio-panel="${esc(p.slug)}" data-scene="${esc(p.slug)}" data-studio-view="evidence" tabindex="-1">
             ${evidence(p)}
             <div class="studio-copy">
@@ -74,7 +76,7 @@ ${projects.map(p=>`          <article class="studio-panel work-card" id="project
         </div>
       </div>
     </section>
-    <section class="studio-contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title">
+    <section class="studio-layer studio-layer--contact" data-studio-layer="contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title" inert>
       <h2 id="contact-title">Contact</h2>
       <p data-contact-note>Email reaches me fastest.</p>
       <div class="studio-mail"><a href="mailto:${esc(site.email)}" data-email-text>${esc(site.email)}</a><button type="button" class="copy" aria-label="Copy email address" data-copy="${esc(site.email)}"><span data-copy-label>Copy</span></button></div>

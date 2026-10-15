@@ -33,16 +33,18 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"Developer tools and interactive physics software."}</script>
 </head><body class="page-home studio-page">
 <div class="fx-flash" aria-hidden="true"></div>
-<div class="studio-shell" data-studio>
+<div class="studio-shell" data-studio data-stage="portrait" data-work-mode="list">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header studio-header"><div class="row">
     <a class="studio-brand" href="#about" aria-label="Aakash Dahal, portrait"><svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><line x1="14" y1="3" x2="14" y2="25"/><line x1="3" y1="14" x2="25" y2="14"/><line x1="6" y1="6" x2="22" y2="22"/><line x1="6" y1="22" x2="22" y2="6"/><circle cx="14" cy="14" r="5"/></svg><span>Aakash Dahal</span></a>
     <nav class="studio-header-links" aria-label="Primary"><a href="#work-list">Work</a><a href="#contact">Contact</a><a href="https://github.com/skysssup">GitHub</a><button type="button" class="tool-button theme-switch" aria-label="Light theme" aria-pressed="false" data-lamp><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/></svg></button><button type="button" class="tool-button index-open" aria-label="Open site index" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-index" data-index-open><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg></button></nav>
   </div></header>
-  <main id="main">
-    <section class="hero studio-stage" id="hero" aria-labelledby="hero-name">
-      <span id="about" aria-hidden="true" style="position:absolute;top:0"></span>
+  <main id="main" class="studio-frame">
+    <div class="studio-figure-slot" aria-hidden="false">
       <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles."><div class="still" aria-hidden="true"></div></div>
+    </div>
+    <section class="studio-layer studio-layer--portrait is-active" data-studio-layer="portrait" id="hero" aria-labelledby="hero-name">
+      <span id="about" aria-hidden="true"></span>
       <div class="studio-identity" data-studio-panel="about">
         <h1 id="hero-name">Aakash Dahal</h1>
         <p>Developer tools and interactive physics software.</p>
@@ -51,7 +53,7 @@
         <a class="studio-next" href="#work-list">Work</a>
       </div>
     </section>
-    <section class="studio-work" id="work-list" aria-labelledby="work-title">
+    <section class="studio-layer studio-layer--work" data-studio-layer="work" id="work-list" aria-labelledby="work-title" inert>
       <div class="studio-work-head"><h2 id="work-title">Work</h2><p>3 projects. Hover previews. Click keeps a selection. <a href="/work/">All notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
@@ -63,7 +65,7 @@
           </ul>
         </div>
         <div class="studio-detail" data-studio-detail aria-live="off">
-          <p class="studio-list-jump"><a href="#studio-projects">Project list</a></p>
+          <p class="studio-list-jump"><button type="button" data-studio-list-back>Project list</button></p>
           <article class="studio-panel work-card" id="project-agentcrucible" data-studio-panel="agentcrucible" data-scene="agentcrucible" data-studio-view="evidence" tabindex="-1">
             <figure class="studio-evidence" data-studio-evidence><img src="/work/agentcrucible/media/console.png" width="1440" height="900" alt="AgentCrucible&#39;s local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data." loading="lazy" decoding="async"><figcaption>The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="agentcrucible" aria-label="View AgentCrucible evidence large">view large</button></figure>
             <div class="studio-copy">
@@ -183,7 +185,7 @@
         </div>
       </div>
     </section>
-    <section class="studio-contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title">
+    <section class="studio-layer studio-layer--contact" data-studio-layer="contact" id="contact" data-studio-panel="contact" aria-labelledby="contact-title" inert>
       <h2 id="contact-title">Contact</h2>
       <p data-contact-note>Email reaches me fastest.</p>
       <div class="studio-mail"><a href="mailto:hello@aakashdahal.fun" data-email-text>hello@aakashdahal.fun</a><button type="button" class="copy" aria-label="Copy email address" data-copy="hello@aakashdahal.fun"><span data-copy-label>Copy</span></button></div>

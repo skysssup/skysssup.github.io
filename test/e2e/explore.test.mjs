@@ -41,23 +41,12 @@ const visibleProjects = page => page.locator('.project:visible').evaluateAll(row
 async function contactReached(page) {
   await page.waitForFunction(() => {
     const contact = document.getElementById('contact');
-    const header = document.querySelector('.studio-header');
-    if (!contact || !header || location.hash !== '#contact' || window.SkyStudio?.slug() !== 'contact') return false;
-    const headerBottom = header.getBoundingClientRect().bottom;
-    const box = contact.getBoundingClientRect();
-    const desired = box.top + scrollY - (headerBottom + 8);
-    const maxScroll = Math.max(0, document.documentElement.scrollHeight - innerHeight);
-    const reachable = Math.min(Math.max(0, desired), maxScroll);
-    const fullyVisible = node => {
-      const rect = node.getBoundingClientRect();
-      return rect.height > 0 && rect.top >= headerBottom - 1 && rect.bottom <= innerHeight + 1;
-    };
+    if (!contact || location.hash !== '#contact' || window.SkyStudio?.slug() !== 'contact') return false;
+    if (window.SkyStudio?.stage && window.SkyStudio.stage() !== 'contact') return false;
     const copy = contact.querySelector('[data-copy]');
     const mail = contact.querySelector('a[href^="mailto:"]');
-    return Math.abs(scrollY - reachable) <= 2
-      && box.top >= headerBottom - 1
-      && box.bottom <= innerHeight + 1
-      && copy && mail && fullyVisible(copy) && fullyVisible(mail);
+    const box = contact.getBoundingClientRect();
+    return !contact.inert && box.height > 0 && box.top < innerHeight && copy && mail;
   });
 }
 

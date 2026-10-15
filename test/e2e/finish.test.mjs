@@ -110,7 +110,7 @@ test('site index clear restores results, keeps the dialog expanded, and Escape r
   });
 });
 
-test('three upright rows keep selection, preview, and the marker on the same project while the page still scrolls', async () => {
+test('three upright rows keep selection, preview, and the marker on the same project while the viewport stays locked', async () => {
   await withPage({ url: '/', reduced: false }, async (page, errors) => {
     await readyBench(page);
     assert.equal(await page.locator('[data-studio-wheel], [data-studio-picker], [data-studio-step]').count(), 0);
@@ -319,8 +319,7 @@ test('a hidden document pauses the selected recording and other recordings stay 
 test('selection still resolves when the preview starts below a short viewport', async () => {
   await withPage({ url: '/', reduced: false, height: 480 }, async (page, errors) => {
     await readyBench(page);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.evaluate(() => SkyStudio.select(4));
+    await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
     await page.waitForFunction(() => SkyStudio.selected() === 3 && SkyStudio.settled() && SkyStudio.slug() === 'shipgate');
     assert.equal(await page.locator('#project-shipgate.is-shown').count(), 1);
     assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true');

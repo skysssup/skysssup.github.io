@@ -1,18 +1,24 @@
-/* Project list, evidence, and the portrait viewer. The page scrolls natively. */
+/* Project list, evidence, and the portrait viewer. The home page stays in one viewport; the hash is the stage. */
 (function () {
   'use strict';
   var root = document.querySelector('[data-studio]');
   if (!root) return;
   var data = JSON.parse(document.getElementById('studio-data').textContent);
-  var panels = Array.prototype.slice.call(root.querySelectorAll('[data-studio-panel]'));
+  var layers = {
+    portrait: root.querySelector('[data-studio-layer="portrait"]'),
+    work: root.querySelector('[data-studio-layer="work"]'),
+    contact: root.querySelector('[data-studio-layer="contact"]')
+  };
   var rows = Array.prototype.slice.call(root.querySelectorAll('[data-studio-pick]'));
   var list = document.getElementById('studio-projects');
   var detail = root.querySelector('[data-studio-detail]');
   var work = document.getElementById('work-list');
   var marker = root.querySelector('[data-studio-marker]');
   var announce = document.querySelector('[data-announce]');
+  var figure = document.getElementById('figure');
+  var listBack = root.querySelector('[data-studio-list-back]');
   var motion = window.SkyMotion;
-  var projectPanels = panels.filter(function (panel) { return panel.classList.contains('work-card'); });
+  var projectPanels = Array.prototype.slice.call(root.querySelectorAll('.work-card[data-studio-panel]'));
   var labs = projectPanels.map(function (panel) {
     if (!window.SkyProjectLab || typeof window.SkyProjectLab.mount !== 'function') return null;
     return window.SkyProjectLab.mount(panel, { motion: motion });
@@ -30,13 +36,16 @@
   var dwell = 0;
   var current = 1;
   var booting = true;
+  var stage = 'portrait';
   var viewer = document.getElementById('studio-viewer');
   var viewerStage = viewer.querySelector('.studio-viewer-stage');
   var returnFocus = null;
   var parked = null;
   var skipViewerFocus = false;
+  var leaveTimers = {};
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (motion && motion.setScrollLocked) motion.setScrollLocked(true);
 
   function reducedMotion() {
     if (document.documentElement.getAttribute('data-motion') === 'reduced') return true;
@@ -51,22 +60,17 @@
   }
   function dataIndexForProject(i) { return projectIndexFromSlug(rows[i].id); }
   function shownPanel() { return shown >= 0 ? projectPanels[shown] : null; }
-  function headerOffset() {
-    var header = root.querySelector('.studio-header');
-    return (header ? header.getBoundingClientRect().height : 52) + 8;
-  }
   function readHash() {
     try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return ''; }
   }
   function routeIndex() {
     var raw = readHash();
     if (raw === 'contact') return data.length - 1;
+    if (!raw || raw === 'hero' || raw === 'about') return 0;
     var slug = raw.indexOf('project-') === 0 ? raw.slice(8) : raw;
-    var section = !slug || slug === 'hero' || slug === 'about' || slug === 'work-list' || slug === 'studio-projects';
-    if (!section) {
-      var exact = data.findIndex(function (item) { return item.slug === slug && item.kind !== 'profile'; });
-      if (exact >= 0) return exact;
-    }
+    if (slug === 'work-list' || slug === 'studio-projects') return dataIndexForProject(committed);
+    var exact = data.findIndex(function (item) { return item.slug === slug && item.kind !== 'profile'; });
+    if (exact >= 0) return exact;
     return dataIndexForProject(committed);
   }
   function rowIndexFrom(node) {
@@ -74,11 +78,14 @@
     if (!row) return -1;
     return rows.indexOf(row);
   }
+  function narrowWork() {
+    return window.matchMedia('(max-width: 720px)').matches;
+  }
 
   function onStage(item, i) {
     var panel = projectPanels[i];
     var open = viewer.open && parked && parked.node.contains(item.video);
-    return open || (panel === shownPanel() && item.visible);
+    return open || (stage === 'work' && panel === shownPanel() && item.visible);
   }
   function bumpMedia(video) {
     video._mediaGuard = (video._mediaGuard || 0) + 1;
@@ -106,7 +113,7 @@
   function syncEvidence() {
     videos.forEach(function (item, i) {
       if (!item) return;
-      var blocked = item.userPaused || !enabled || document.hidden || !onStage(item, i);
+      var blocked = item.userPaused || !enabled || document.hidden || stage !== 'work' || !onStage(item, i);
       if (blocked || (reducedMotion() && !item.holdPlay)) {
         drivePause(item.video);
         return;
@@ -137,7 +144,7 @@
         if (item) item.visible = record.isIntersecting;
       });
       syncEvidence();
-    }, { threshold: 0.2 });
+    }, { threshold: 0.2, root: detail || null });
     videoByEl.forEach(function (item) { videoWatch.observe(item.video); });
   }
 
@@ -146,7 +153,7 @@
     return !!(details && details.open);
   }
   function syncLabs() {
-    var allow = enabled && !document.hidden && !reducedMotion();
+    var allow = enabled && !document.hidden && !reducedMotion() && stage === 'work';
     labs.forEach(function (lab, i) {
       if (!lab) return;
       var run = allow && i === shown && labOpen(i) && labSeen[i];
@@ -168,7 +175,7 @@
     new IntersectionObserver(function (records) {
       labSeen[i] = records[records.length - 1].isIntersecting;
       syncLabs();
-    }, { threshold: 0.12 }).observe(labEl);
+    }, { threshold: 0.12, root: detail || null }).observe(labEl);
   });
 
   function clearLeaving(panel) {
@@ -194,8 +201,11 @@
       if (panel._onLeave === onLeave) onLeave(null);
     }, 700);
   }
-  function paint(index) {
+  function paint(index, opts) {
     if (index < 0) return;
+    opts = opts || {};
+    var previewing = !!opts.previewing;
+    if (detail) detail.classList.toggle('is-previewing', previewing && !reducedMotion());
     if (index !== shown) {
       detail.dataset.dir = shown < 0 || index > shown ? 'down' : 'up';
       projectPanels.forEach(function (panel, i) {
@@ -240,59 +250,63 @@
     marker.style.height = row.offsetHeight + 'px';
   }
 
-  function narrowWork() {
-    return window.matchMedia('(max-width: 720px)').matches;
+  function setWorkMode(mode) {
+    root.dataset.workMode = mode === 'detail' ? 'detail' : 'list';
   }
-  function revealRow(row) {
-    if (!row) return;
-    var rect = row.getBoundingClientRect();
-    var topLimit = headerOffset();
-    var bottomLimit = window.innerHeight - 12;
-    var delta = 0;
-    if (rect.top < topLimit) delta = rect.top - topLimit;
-    else if (rect.bottom > bottomLimit) delta = rect.bottom - bottomLimit;
-    if (delta !== 0) window.scrollBy({ top: delta, behavior: reducedMotion() ? 'auto' : 'smooth' });
-  }
-  function placeListJump() {
-    if (!detail) return;
-    var jump = detail.querySelector('.studio-list-jump');
-    if (!jump) return;
-    var header = root.querySelector('.studio-header');
-    var headerH = header ? header.getBoundingClientRect().height : 52;
-    var narrow = narrowWork();
-    jump.style.gridArea = '1 / 1';
-    jump.style.alignSelf = 'start';
-    jump.style.justifySelf = 'start';
-    jump.style.zIndex = '3';
-    jump.style.top = narrow ? headerH + 'px' : '';
-    var pad = narrow ? jump.offsetHeight : 0;
-    projectPanels.forEach(function (panel) { panel.style.paddingTop = pad ? pad + 'px' : ''; });
-  }
-  function scrollDetailIntoView() {
-    if (!detail) return;
-    placeListJump();
-    var behavior = reducedMotion() ? 'auto' : 'smooth';
-    var run = function () {
-      var article = projectPanels[committed] || detail;
-      if (!article) return;
-      var top = article.getBoundingClientRect().top + window.scrollY - headerOffset();
-      window.scrollTo({ top: Math.max(0, top), behavior: behavior });
-    };
-    run();
-    window.requestAnimationFrame(run);
-  }
-  function scrollToSection(id) {
-    if (id === 'about' || id === 'hero' || !id) {
-      window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
-      return;
+  function clearLayerLeave(name) {
+    var layer = layers[name];
+    if (!layer) return;
+    if (leaveTimers[name]) {
+      window.clearTimeout(leaveTimers[name]);
+      leaveTimers[name] = 0;
     }
-    var el = document.getElementById(id);
-    if (!el) return;
-    var top = el.getBoundingClientRect().top + window.scrollY - headerOffset();
-    window.scrollTo({ top: Math.max(0, top), behavior: reducedMotion() ? 'auto' : 'smooth' });
+    layer.classList.remove('is-leaving');
   }
+  function setStage(next, meta) {
+    meta = meta || {};
+    if (next !== 'portrait' && next !== 'work' && next !== 'contact') next = 'portrait';
+    var prev = stage;
+    stage = next;
+    root.dataset.stage = next;
+    Object.keys(layers).forEach(function (name) {
+      var layer = layers[name];
+      if (!layer) return;
+      var on = name === next;
+      if (on) {
+        clearLayerLeave(name);
+        layer.classList.add('is-active');
+        layer.inert = false;
+        layer.removeAttribute('aria-hidden');
+      } else if (layer.classList.contains('is-active')) {
+        layer.classList.remove('is-active');
+        layer.inert = true;
+        layer.setAttribute('aria-hidden', 'true');
+        if (!reducedMotion() && prev === name) {
+          layer.classList.add('is-leaving');
+          leaveTimers[name] = window.setTimeout(function () {
+            layer.classList.remove('is-leaving');
+            leaveTimers[name] = 0;
+          }, 400);
+        } else {
+          clearLayerLeave(name);
+        }
+      } else {
+        layer.inert = true;
+        layer.setAttribute('aria-hidden', 'true');
+      }
+    });
+    if (figure) figure.setAttribute('aria-hidden', next === 'portrait' ? 'false' : 'true');
+    if (next !== 'work') setWorkMode('list');
+    else if (narrowWork() && meta.workMode) setWorkMode(meta.workMode);
+    else if (!narrowWork()) setWorkMode('list');
+    syncLabs();
+    syncEvidence();
+    placeNav();
+    if (next === 'work') window.requestAnimationFrame(moveMarker);
+  }
+
   function writeHash(mode, id) {
-    var url = '#project-' + id;
+    var url = id.indexOf('#') === 0 ? id : '#' + id;
     if (location.hash === url) return;
     if (mode === 'push') history.pushState({ studio: id }, '', url);
     else history.replaceState({ studio: id }, '', url);
@@ -320,20 +334,22 @@
     });
     list.setAttribute('aria-activedescendant', rows[index].id);
     root.dataset.selected = rows[index].id;
-    paint(index);
-    if (meta.focusDetail) {
-      scrollDetailIntoView();
-      if (meta.focus) {
+    if (!meta.holdStage) {
+      if (stage !== 'work') setStage('work', { workMode: narrowWork() ? (meta.focusDetail ? 'detail' : 'list') : 'list' });
+      else if (narrowWork() && meta.focusDetail) setWorkMode('detail');
+    }
+    paint(index, { previewing: false });
+    if (meta.focus) {
+      if (meta.focusDetail && narrowWork()) {
         var article = projectPanels[index];
         var focusArticle = function () {
           if (article && article.isConnected) article.focus({ preventScroll: true });
         };
         focusArticle();
         window.requestAnimationFrame(focusArticle);
-      }
-    } else if (meta.focus) rows[index].focus({ preventScroll: true });
-    if (meta.scroll) revealRow(rows[index]);
-    if (meta.history) writeHash(meta.history, rows[index].id);
+      } else rows[index].focus({ preventScroll: true });
+    }
+    if (meta.history) writeHash(meta.history, 'project-' + rows[index].id);
     if (meta.announce && announce && data[current]) announce.textContent = data[current].name + ' selected';
     if (prev !== index) document.dispatchEvent(new CustomEvent('sky:workselect', { detail: { index: index } }));
     placeNav();
@@ -344,11 +360,24 @@
     if (index === preview) return;
     preview = index;
     rows.forEach(function (row, n) { row.classList.toggle('is-preview', n === index); });
-    paint(index < 0 ? committed : index);
+    paint(index < 0 ? committed : index, { previewing: index >= 0 });
+  }
+
+  function openCaseStudy(index) {
+    var row = rows[index];
+    if (!row) return;
+    var panel = projectPanels[index];
+    var link = panel && panel.querySelector('.scene-links a[href^="/work/"]');
+    if (link) {
+      location.href = link.getAttribute('href');
+      return;
+    }
+    location.href = '/work/' + row.id + '/';
   }
 
   rows.forEach(function (row, i) {
     row.addEventListener('pointerenter', function () {
+      if (stage !== 'work') return;
       clearTimeout(dwell);
       dwell = setTimeout(function () { setPreview(i); }, 40);
     });
@@ -359,17 +388,19 @@
         setPreview(i);
       }
     });
-    row.addEventListener('focus', function () { setPreview(i); });
+    row.addEventListener('focus', function () {
+      if (stage === 'work') setPreview(i);
+    });
     row.addEventListener('click', function (event) {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
       if (narrowWork()) commit(i, { history: 'push', announce: true, focusDetail: true });
-      else commit(i, { history: 'push', announce: true, scroll: true });
+      else commit(i, { history: 'push', announce: true });
     });
   });
 
   function pinPreviewForDetail() {
-    if (preview >= 0 && preview !== committed) commit(preview, { history: 'replace', announce: false, scroll: false });
+    if (preview >= 0 && preview !== committed) commit(preview, { history: 'replace', announce: false });
   }
   if (detail) {
     detail.addEventListener('pointerdown', pinPreviewForDetail, true);
@@ -388,6 +419,12 @@
       setPreview(-1);
     });
   }
+  if (listBack) {
+    listBack.addEventListener('click', function () {
+      setWorkMode('list');
+      if (rows[committed]) rows[committed].focus({ preventScroll: true });
+    });
+  }
 
   list.addEventListener('keydown', function (event) {
     var focused = rowIndexFrom(event.target);
@@ -397,44 +434,55 @@
     else if (event.key === 'ArrowUp') next = Math.max(0, focused - 1);
     else if (event.key === 'Home') next = 0;
     else if (event.key === 'End') next = rows.length - 1;
-    else if (event.key === 'Enter' || event.key === ' ') {
+    else if (event.key === 'Enter') {
       event.preventDefault();
-      if (narrowWork()) commit(focused, { history: 'push', announce: true, focusDetail: true, focus: true });
-      else commit(focused, { history: 'push', announce: true, scroll: true, focus: true });
+      if (focused === committed && stage === 'work') openCaseStudy(focused);
+      else commit(focused, { history: 'push', announce: true, focus: true, focusDetail: narrowWork() });
+      return;
+    } else if (event.key === ' ') {
+      event.preventDefault();
+      commit(focused, { history: 'push', announce: true, focus: true, focusDetail: narrowWork() });
       return;
     } else return;
     event.preventDefault();
-    commit(next, { history: 'replace', announce: true, focus: true, scroll: true });
+    commit(next, { history: 'replace', announce: true, focus: true });
   });
 
-  function applyHash(fromHistory, skipScroll) {
+  function applyHash(fromHistory) {
     var raw = readHash();
-    if (!raw) {
-      if (!booting) commit(0, { history: false, scroll: false, announce: !!fromHistory });
-      if (fromHistory) scrollToSection('about');
+    if (!raw || raw === 'hero' || raw === 'about') {
+      setPreview(-1);
+      current = 0;
+      setStage('portrait');
       placeNav();
       return;
     }
-    if (raw === 'hero' || raw === 'about' || raw === 'work-list' || raw === 'studio-projects') {
+    if (raw === 'work-list' || raw === 'studio-projects') {
       setPreview(-1);
       current = dataIndexForProject(committed);
-      if (!skipScroll && !(booting && (raw === 'hero' || raw === 'about'))) scrollToSection(raw === 'about' || raw === 'hero' ? 'about' : raw);
+      setStage('work', { workMode: 'list' });
+      paint(committed, { previewing: false });
       placeNav();
       return;
     }
     if (raw === 'contact') {
       setPreview(-1);
       current = data.length - 1;
-      if (!skipScroll) scrollToSection('contact');
+      setStage('contact');
       placeNav();
       return;
     }
     var slug = raw.replace(/^project-/, '');
     var index = rows.findIndex(function (row) { return row.id === slug; });
     if (index >= 0) {
-      var jump = !skipScroll && (fromHistory || !booting || index !== 0);
-      if (booting && index === 0) jump = false;
-      commit(index, { history: false, announce: !!fromHistory, scroll: jump });
+      commit(index, {
+        history: false,
+        announce: !!fromHistory,
+        focusDetail: narrowWork() && !booting
+      });
+      setStage('work', { workMode: narrowWork() ? 'detail' : 'list' });
+    } else {
+      setStage('portrait');
     }
     placeNav();
   }
@@ -445,7 +493,7 @@
   document.addEventListener('click', function () {
     if (location.hash === seenHash) return;
     noteHash();
-    applyHash(false, true);
+    applyHash(false);
   });
 
   root.querySelectorAll('a[href^="#"]').forEach(function (link) {
@@ -473,7 +521,11 @@
   if (motion && motion.subscribe) motion.subscribe(function () {
     syncMotionClass();
     labs.forEach(function (lab) { if (lab && lab.motionChanged) lab.motionChanged(); });
-    if (reducedMotion()) projectPanels.forEach(clearLeaving);
+    if (reducedMotion()) {
+      projectPanels.forEach(clearLeaving);
+      Object.keys(layers).forEach(clearLayerLeave);
+      if (detail) detail.classList.remove('is-previewing');
+    }
     syncLabs();
     syncEvidence();
     scheduleLayout();
@@ -488,9 +540,10 @@
     layoutFrame = window.requestAnimationFrame(function () {
       layoutFrame = 0;
       moveMarker();
-      placeListJump();
       placeGear(null);
       placeNav();
+      if (narrowWork() && stage === 'work' && root.dataset.workMode !== 'detail') setWorkMode('list');
+      if (!narrowWork() && stage === 'work') setWorkMode('list');
     });
   }
   window.addEventListener('resize', scheduleLayout);
@@ -590,23 +643,10 @@
   var nav = root.querySelector('.studio-header-links');
   var navMark = null;
   var navLinks = nav ? Array.prototype.filter.call(nav.querySelectorAll('a[href^="#"]'), function () { return true; }) : [];
-  var sectionRatios = { about: 0, 'work-list': 0, contact: 0 };
   function activeSection() {
-    var raw = readHash();
-    if (raw === 'contact') return 'contact';
-    if (raw === 'work-list' || raw.indexOf('project-') === 0) {
-      if (sectionRatios.contact > sectionRatios['work-list'] && sectionRatios.contact > 0.45) return 'contact';
-      return 'work-list';
-    }
-    var best = 'about';
-    var bestRatio = -1;
-    Object.keys(sectionRatios).forEach(function (key) {
-      if (sectionRatios[key] > bestRatio) {
-        bestRatio = sectionRatios[key];
-        best = key;
-      }
-    });
-    return best;
+    if (stage === 'contact') return 'contact';
+    if (stage === 'work') return 'work-list';
+    return 'about';
   }
   function placeNav() {
     var section = activeSection();
@@ -635,29 +675,18 @@
     navMark.className = 'studio-nav-mark';
     navMark.setAttribute('aria-hidden', 'true');
     nav.appendChild(navMark);
-    if (typeof IntersectionObserver === 'function') {
-      [['hero', 'about'], ['work-list', 'work-list'], ['contact', 'contact']].forEach(function (pair) {
-        var section = document.getElementById(pair[0]);
-        if (!section) return;
-        new IntersectionObserver(function (records) {
-          var record = records[records.length - 1];
-          sectionRatios[pair[1]] = record.isIntersecting ? record.intersectionRatio : 0;
-          placeNav();
-        }, { threshold: [0, 0.15, 0.35, 0.6, 0.9], rootMargin: '-' + Math.round(headerOffset()) + 'px 0px -35% 0px' }).observe(section);
-      });
-    }
   }
 
   syncMotionClass();
-  detail.classList.add('is-instant');
-  commit(0, { history: false, scroll: false });
+  if (detail) detail.classList.add('is-instant');
+  commit(0, { history: false, holdStage: true });
   applyHash(false);
-  if (!readHash()) window.scrollTo(0, 0);
+  window.scrollTo(0, 0);
   booting = false;
   placeGear(null);
   placeNav();
   window.requestAnimationFrame(function () {
-    detail.classList.remove('is-instant');
+    if (detail) detail.classList.remove('is-instant');
     moveMarker();
     placeGear(null);
     placeNav();
@@ -679,7 +708,7 @@
     }
     var slug = data[index].slug;
     var row = rows.findIndex(function (item) { return item.id === slug; });
-    if (row >= 0) commit(row, { history: 'push', announce: true, scroll: true });
+    if (row >= 0) commit(row, { history: 'push', announce: true });
   }
   window.SkyStudio = {
     select: apiSelect,
@@ -690,7 +719,14 @@
     selected: function () { return routeIndex(); },
     settled: function () { return preview < 0; },
     position: function () { return routeIndex(); },
+    stage: function () { return stage; },
+    workMode: function () { return root.dataset.workMode || 'list'; },
     slug: function () {
+      if (stage === 'contact') return 'contact';
+      if (stage === 'portrait') {
+        var about = data[0];
+        return about && about.slug === 'about' ? 'about' : 'about';
+      }
       var i = routeIndex();
       return data[i] ? data[i].slug : rows[committed].id;
     },
@@ -698,14 +734,14 @@
       var index = shown >= 0 ? shown : committed;
       var lab = labs[index];
       if (!lab || !lab.snapshot) return false;
-      if (!enabled || document.hidden || reducedMotion()) return false;
+      if (!enabled || document.hidden || reducedMotion() || stage !== 'work') return false;
       if (!labRunning[index] || index !== shown || !labOpen(index) || !labSeen[index]) return false;
       var snap = lab.snapshot();
       return !!(snap && snap.playing);
     },
     snapshot: function () {
       var lab = labs[shown >= 0 ? shown : committed];
-      return { selected: current, slug: data[current] ? data[current].slug : '', scene: lab && lab.snapshot ? lab.snapshot() : null };
+      return { selected: current, slug: data[current] ? data[current].slug : '', stage: stage, scene: lab && lab.snapshot ? lab.snapshot() : null };
     },
     wheel: null
   };

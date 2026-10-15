@@ -31,7 +31,7 @@ async function open(options = {}) {
   await page.goto(site.origin + url);
   if (javaScriptEnabled) {
     await page.locator('[data-studio].is-ready').waitFor();
-    await page.locator('#hero > #figure.is-live').waitFor();
+    await page.locator('#figure.is-live').waitFor();
     await page.waitForFunction(() => window.SkyStudio && window.SkyStudio.settled());
   }
   return { context, page, errors };
@@ -47,7 +47,8 @@ async function rowTop(page, slug) {
 
 test('the project list scrolls the page and selects by hover, focus, click, keys, and history', async () => {
   const { page, context, errors } = await open({ url: '/#hero' });
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible');
+  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'about');
+  assert.equal(await page.evaluate(() => SkyStudio.stage()), 'portrait');
   assert.equal(await page.evaluate(() => SkyStudio.wheel), null);
   assert.equal(await page.locator('[data-studio-wheel], [data-studio-picker], [data-studio-step]').count(), 0);
   assert.equal(await page.evaluate(() => window.SkyWorkbench), undefined);
@@ -63,8 +64,13 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   const list = await page.locator('#studio-projects').boundingBox();
   await page.mouse.move(list.x + 40, list.y + 30);
   await page.mouse.wheel(0, 480);
-  await page.waitForFunction(start => scrollY > start + 40, beforeScroll);
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible', 'page scroll does not change the project');
+  await page.waitForTimeout(200);
+  assert.equal(await page.evaluate(() => scrollY), beforeScroll, 'the home viewport does not scroll');
+  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'about', 'portrait stage keeps the about slug');
+
+  await page.locator('a[href="#work-list"]').first().click();
+  await page.waitForFunction(() => SkyStudio.stage && SkyStudio.stage() === 'work');
+  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible');
 
   await page.locator('#shipgate').hover();
   await page.waitForFunction(() => document.getElementById('project-shipgate').classList.contains('is-shown'));
@@ -160,7 +166,7 @@ test('desktop, tablet, and phone keep a centered portrait, a vertical list, and 
     });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 0, `${width} overflows by ${overflow}px`);
-    const figure = await page.locator('#hero > #figure').boundingBox();
+    const figure = await page.locator('#figure').boundingBox();
     const stage = await page.locator('#hero').boundingBox();
     assert.ok(figure.width >= 180 && figure.height >= 180, `${width} portrait is ${figure.width}x${figure.height}`);
     assert.ok(Math.abs((figure.x + figure.width / 2) - (stage.x + stage.width / 2)) <= 8, `${width} portrait is off center`);
@@ -196,7 +202,7 @@ test('desktop, tablet, and phone keep a centered portrait, a vertical list, and 
 
 
 
-test('avatar appearance stays on the original figure and the page keeps scrolling', async () => {
+test('avatar appearance stays on the original figure and the viewport stays locked', async () => {
   for (const width of [1440, 390]) {
     const { page, context, errors } = await open({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
     const paper = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
@@ -215,7 +221,8 @@ test('avatar appearance stays on the original figure and the page keeps scrollin
     assert.equal(await page.locator('[data-lamp]').getAttribute('aria-pressed'), 'true');
     const start = await page.evaluate(() => scrollY);
     await page.mouse.wheel(0, 700);
-    await page.waitForFunction(value => scrollY > value, start);
+    await page.waitForTimeout(200);
+    assert.equal(await page.evaluate(() => scrollY), start, 'home page stays locked');
     assert.deepEqual(errors, []);
     await context.close();
   }
@@ -232,7 +239,7 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
   const away = await page.evaluate(() => window.portraitDraws);
   await page.waitForTimeout(250);
   assert.ok(await page.evaluate(() => window.portraitDraws) > away, 'selecting a project leaves the portrait running');
-  assert.equal(await page.locator('#hero > #figure').count(), 1);
+  assert.equal(await page.locator('#figure').count(), 1);
   await page.locator('[data-motion-toggle]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-motion') === 'reduced');
   const paused = await page.evaluate(() => window.portraitDraws);
@@ -253,7 +260,7 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
   assert.equal(await page.locator('#figure').count(), 1);
   assert.equal(figure, await page.locator('#figure canvas').count());
   await page.locator('[data-studio-viewer-close]').click();
-  assert.equal(await page.evaluate(() => document.querySelector('#hero > #figure') && document.getElementById('figure').dataset.instance === 'hermes'), true);
+  assert.equal(await page.evaluate(() => document.querySelector('#figure') && document.getElementById('figure').dataset.instance === 'hermes'), true);
   assert.equal(await page.locator('[data-studio-zoom="about"]').evaluate(button => button === document.activeElement), true);
   assert.deepEqual(errors, []);
   await context.close();
@@ -261,7 +268,7 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
 
 test('without JavaScript the portrait, three projects, evidence, and contact stay in the document', async () => {
   const { page, context } = await open({ javaScriptEnabled: false, url: '/' });
-  assert.equal(await page.locator('#hero > #figure .still').count(), 1);
+  assert.equal(await page.locator('#figure .still').count(), 1);
   assert.equal(await page.locator('#studio-projects a').count(), 3);
   assert.deepEqual(await page.locator('#studio-projects a').evaluateAll(nodes => nodes.map(node => node.getAttribute('href'))), PROJECTS.map(slug => `#project-${slug}`));
   assert.equal(await page.locator('article.work-card').count(), 3);
@@ -341,6 +348,52 @@ test('AirForge playground stays unloaded until a plain click, then releases the 
   await page.waitForFunction(() => !document.querySelector('dialog.project-playground')?.open);
   assert.equal(await page.locator('iframe').count(), 0);
   assert.equal(await link.evaluate(node => node === document.activeElement), true);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+
+test('locked viewport keeps hash stages, committed selection, and reduced motion', async () => {
+  const { page, context, errors } = await open({ url: '/', viewport: { width: 1440, height: 900 } });
+  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overflow), 'hidden');
+  assert.equal(await page.evaluate(() => SkyStudio.stage()), 'portrait');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true);
+  await page.locator('a[href="#work-list"]').first().click();
+  await page.waitForFunction(() => SkyStudio.stage() === 'work' && location.hash === '#work-list');
+  await page.locator('#airforge').click();
+  await page.waitForFunction(() => SkyStudio.slug() === 'airforge' && location.hash === '#project-airforge' && SkyStudio.settled());
+  assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true');
+  await page.locator('#shipgate').hover();
+  await page.waitForFunction(() => document.getElementById('project-shipgate').classList.contains('is-shown'));
+  assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true', 'preview does not drop the commit');
+  await page.mouse.move(8, 8);
+  await page.waitForFunction(() => document.getElementById('project-airforge').classList.contains('is-shown'));
+  await page.locator('a[href="#contact"]').first().click();
+  await page.waitForFunction(() => SkyStudio.stage() === 'contact' && SkyStudio.slug() === 'contact');
+  await page.goBack();
+  await page.waitForFunction(() => SkyStudio.stage() === 'work' && SkyStudio.slug() === 'airforge');
+  await page.goBack();
+  await page.waitForFunction(() => SkyStudio.stage() === 'work' && location.hash === '#work-list');
+  await page.goBack();
+  await page.waitForFunction(() => SkyStudio.stage() === 'portrait');
+  await page.locator('[data-motion-toggle]').click();
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-motion') === 'reduced');
+  await page.locator('a[href="#work-list"]').first().click();
+  await page.waitForFunction(() => SkyStudio.stage() === 'work');
+  assert.equal(await page.locator('[data-studio-panel].work-card.is-shown').count(), 1);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test('phone work replaces the list with evidence and returns through one control', async () => {
+  const { page, context, errors } = await open({ url: '/#work-list', viewport: { width: 390, height: 844 }, hasTouch: true, reducedMotion: 'reduce' });
+  await page.waitForFunction(() => SkyStudio.stage() === 'work');
+  assert.equal(await page.evaluate(() => SkyStudio.workMode()), 'list');
+  await page.locator('#shipgate').click();
+  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.workMode() === 'detail');
+  assert.equal(await page.locator('#project-shipgate.is-shown').isVisible(), true);
+  await page.locator('[data-studio-list-back]').click();
+  await page.waitForFunction(() => SkyStudio.workMode() === 'list');
   assert.deepEqual(errors, []);
   await context.close();
 });
