@@ -311,6 +311,49 @@ Ship the local note inspector.</textarea></div>
 <button type="button" data-action="clear">Clear votes</button>
 </div>
 </form>
+<div class="project-lab__board" data-node="board">
+<div class="project-lab__board-head">
+<div class="project-lab__board-title-wrap">
+<span class="project-lab__board-kicker">Toy proposal</span>
+<p class="project-lab__board-title" data-node="proposal-title">Fund treasury</p>
+</div>
+<div class="project-lab__board-decision">
+<span class="project-lab__board-kicker">Decision</span>
+<span class="project-lab__badge" data-node="decision-badge" data-state="hold">hold</span>
+</div>
+</div>
+<div class="project-lab__track-block">
+<div class="project-lab__track-meta">
+<span class="project-lab__board-kicker">Vote share</span>
+<span class="project-lab__track-val" data-node="track-val">Empty track (0–0)</span>
+</div>
+<div class="project-lab__track" data-node="track" role="img" aria-label="Vote share track is empty (0 yes, 0 no)">
+<span class="project-lab__track-share project-lab__track-share--yes" data-node="share-yes" style="width: 0%;"></span>
+<span class="project-lab__track-share project-lab__track-share--no" data-node="share-no" style="width: 0%;"></span>
+</div>
+</div>
+<div class="project-lab__seats-block">
+<div class="project-lab__seats-meta">
+<span class="project-lab__board-kicker">Window: last 7 votes</span>
+<span class="project-lab__seats-count" data-node="seats-count">0 of 7 cast</span>
+</div>
+<ol class="project-lab__seats" data-node="seats" aria-label="Last seven seats">
+<li class="project-lab__seat" data-seat="0" data-state="empty" aria-label="Seat 1: empty"><span class="project-lab__seat-num">1</span><span class="project-lab__seat-val">—</span></li>
+<li class="project-lab__seat" data-seat="1" data-state="empty" aria-label="Seat 2: empty"><span class="project-lab__seat-num">2</span><span class="project-lab__seat-val">—</span></li>
+<li class="project-lab__seat" data-seat="2" data-state="empty" aria-label="Seat 3: empty"><span class="project-lab__seat-num">3</span><span class="project-lab__seat-val">—</span></li>
+<li class="project-lab__seat" data-seat="3" data-state="empty" aria-label="Seat 4: empty"><span class="project-lab__seat-num">4</span><span class="project-lab__seat-val">—</span></li>
+<li class="project-lab__seat" data-seat="4" data-state="empty" aria-label="Seat 5: empty"><span class="project-lab__seat-num">5</span><span class="project-lab__seat-val">—</span></li>
+<li class="project-lab__seat" data-seat="5" data-state="empty" aria-label="Seat 6: empty"><span class="project-lab__seat-num">6</span><span class="project-lab__seat-val">—</span></li>
+<li class="project-lab__seat" data-seat="6" data-state="empty" aria-label="Seat 7: empty"><span class="project-lab__seat-num">7</span><span class="project-lab__seat-val">—</span></li>
+</ol>
+</div>
+<dl class="project-lab__meters">
+<div><dt>Yes</dt><dd data-node="meter-yes">0</dd></div>
+<div><dt>No</dt><dd data-node="meter-no">0</dd></div>
+<div><dt>Window</dt><dd data-node="meter-window">7 seats</dd></div>
+<div><dt>Majority</dt><dd data-node="meter-majority">hold</dd></div>
+</dl>
+</div>
 <ul class="project-lab__reasons" data-out="proposals"></ul>
 <p class="project-lab__status" data-out="tally" aria-live="polite"></p>
 

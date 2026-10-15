@@ -778,9 +778,87 @@
       clear(list);
       rows.forEach(function (row) { addItem(list, row.title + ' — ' + row.detail); });
       var tally = tallyVotes(votes);
-      text(root.querySelector('[data-out="tally"]'), rows.length
+      var matched = rows.length > 0;
+      text(root.querySelector('[data-out="tally"]'), matched
         ? tally.yes + ' yes, ' + tally.no + ' no. Toy decision: ' + tally.decision + '.'
         : 'No example proposal matches.');
+
+      var board = root.querySelector('[data-node="board"]');
+      if (board) board.setAttribute('data-matched', matched ? 'true' : 'false');
+
+      var titleNode = root.querySelector('[data-node="proposal-title"]');
+      if (titleNode) titleNode.textContent = matched ? rows[0].title : 'No matching proposal';
+
+      var badge = root.querySelector('[data-node="decision-badge"]');
+      if (badge) {
+        badge.textContent = matched ? tally.decision : '—';
+        badge.setAttribute('data-state', matched ? tally.decision : 'none');
+      }
+
+      var total = tally.yes + tally.no;
+      var yesPct = (matched && total > 0) ? (tally.yes / total) * 100 : 0;
+      var noPct = (matched && total > 0) ? (tally.no / total) * 100 : 0;
+
+      var barYes = root.querySelector('[data-node="share-yes"]');
+      var barNo = root.querySelector('[data-node="share-no"]');
+      if (barYes) barYes.style.width = yesPct.toFixed(1) + '%';
+      if (barNo) barNo.style.width = noPct.toFixed(1) + '%';
+
+      var track = root.querySelector('[data-node="track"]');
+      if (track) {
+        track.setAttribute('aria-label', matched
+          ? (total > 0 ? 'Vote share: ' + Math.round(yesPct) + '% yes, ' + Math.round(noPct) + '% no' : 'Vote share track is empty (0 yes, 0 no)')
+          : 'Vote share track disabled');
+      }
+
+      var trackVal = root.querySelector('[data-node="track-val"]');
+      if (trackVal) {
+        if (!matched) {
+          trackVal.textContent = '—';
+        } else if (total === 0) {
+          trackVal.textContent = 'Empty track (0–0)';
+        } else {
+          trackVal.textContent = Math.round(yesPct) + '% yes · ' + Math.round(noPct) + '% no';
+        }
+      }
+
+      var seatNodes = root.querySelectorAll('[data-node="seats"] [data-seat]');
+      for (var i = 0; i < seatNodes.length; i += 1) {
+        var seatEl = seatNodes[i];
+        var valEl = seatEl.querySelector('.project-lab__seat-val');
+        if (!matched) {
+          seatEl.setAttribute('data-state', 'dimmed');
+          seatEl.setAttribute('aria-label', 'Seat ' + (i + 1) + ': dimmed (no match)');
+          if (valEl) valEl.textContent = '—';
+        } else if (i < tally.votes.length) {
+          var voteVal = tally.votes[i];
+          seatEl.setAttribute('data-state', voteVal);
+          seatEl.setAttribute('aria-label', 'Seat ' + (i + 1) + ': ' + voteVal);
+          if (valEl) valEl.textContent = voteVal;
+        } else {
+          seatEl.setAttribute('data-state', 'empty');
+          seatEl.setAttribute('aria-label', 'Seat ' + (i + 1) + ': empty');
+          if (valEl) valEl.textContent = '—';
+        }
+      }
+
+      var seatsCount = root.querySelector('[data-node="seats-count"]');
+      if (seatsCount) {
+        seatsCount.textContent = matched ? tally.votes.length + ' of 7 cast' : '—';
+      }
+
+      var meterYes = root.querySelector('[data-node="meter-yes"]');
+      if (meterYes) meterYes.textContent = matched ? String(tally.yes) : '—';
+
+      var meterNo = root.querySelector('[data-node="meter-no"]');
+      if (meterNo) meterNo.textContent = matched ? String(tally.no) : '—';
+
+      var meterWindow = root.querySelector('[data-node="meter-window"]');
+      if (meterWindow) meterWindow.textContent = '7 seats';
+
+      var meterMajority = root.querySelector('[data-node="meter-majority"]');
+      if (meterMajority) meterMajority.textContent = matched ? tally.decision : '—';
+
       return tally;
     }
 
