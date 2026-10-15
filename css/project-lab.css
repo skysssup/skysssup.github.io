@@ -160,3 +160,258 @@
   .project-lab :is(input, select, textarea, button) { border-color: CanvasText; }
   .project-lab :focus-visible { outline-color: Highlight; }
 }
+
+/* MoltDAO vote board: scoped to moltdao only */
+[data-project-lab="moltdao"] .project-lab__board {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--pl-line);
+  background: transparent;
+  color: var(--pl-ink);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+[data-project-lab="moltdao"] .project-lab__board[data-matched="false"] {
+  opacity: 0.65;
+}
+
+[data-project-lab="moltdao"] .project-lab__board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+[data-project-lab="moltdao"] .project-lab__board-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+[data-project-lab="moltdao"] .project-lab__board-kicker {
+  color: var(--pl-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+}
+
+[data-project-lab="moltdao"] .project-lab__board-title {
+  color: var(--pl-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-project-lab="moltdao"] .project-lab__board-decision {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+[data-project-lab="moltdao"] .project-lab__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--pl-line);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pl-ink);
+  background: transparent;
+  text-align: center;
+}
+
+[data-project-lab="moltdao"] .project-lab__badge[data-state="pass"] {
+  color: var(--pl-mark);
+  border-color: var(--pl-mark);
+  background: color-mix(in srgb, var(--pl-mark) 14%, transparent);
+}
+
+[data-project-lab="moltdao"] .project-lab__badge[data-state="reject"] {
+  color: var(--pl-muted);
+  border-color: var(--pl-muted);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+[data-project-lab="moltdao"] .project-lab__badge[data-state="hold"] {
+  color: var(--pl-ink);
+  border-color: var(--pl-line);
+}
+
+[data-project-lab="moltdao"] .project-lab__badge[data-state="none"] {
+  color: var(--pl-muted);
+  border-color: var(--pl-line);
+  opacity: 0.5;
+}
+
+[data-project-lab="moltdao"] .project-lab__track-block {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+[data-project-lab="moltdao"] .project-lab__track-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-project-lab="moltdao"] .project-lab__track-val {
+  color: var(--pl-muted);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.75rem;
+}
+
+[data-project-lab="moltdao"] .project-lab__track {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  border: 1px solid var(--pl-line);
+  background: transparent;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+[data-project-lab="moltdao"] .project-lab__track-share {
+  height: 100%;
+  display: block;
+}
+
+[data-project-lab="moltdao"] .project-lab__track-share--yes {
+  background: var(--pl-mark);
+}
+
+[data-project-lab="moltdao"] .project-lab__track-share--no {
+  background: color-mix(in srgb, currentColor 45%, transparent);
+}
+
+[data-project-lab="moltdao"] .project-lab__seats-block {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+[data-project-lab="moltdao"] .project-lab__seats-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-project-lab="moltdao"] .project-lab__seats-count {
+  color: var(--pl-muted);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.75rem;
+}
+
+[data-project-lab="moltdao"] .project-lab__seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+[data-project-lab="moltdao"] .project-lab__seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 4px 2px;
+  border: 1px solid var(--pl-line);
+  background: transparent;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+[data-project-lab="moltdao"] .project-lab__seat-num {
+  font-size: 0.7rem;
+  color: var(--pl-muted);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  line-height: 1;
+}
+
+[data-project-lab="moltdao"] .project-lab__seat-val {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+[data-project-lab="moltdao"] .project-lab__seat[data-state="empty"] {
+  border-style: dashed;
+  color: var(--pl-muted);
+  background: transparent;
+}
+
+[data-project-lab="moltdao"] .project-lab__seat[data-state="yes"] {
+  border-color: var(--pl-mark);
+  color: var(--pl-mark);
+  background: color-mix(in srgb, var(--pl-mark) 14%, transparent);
+}
+
+[data-project-lab="moltdao"] .project-lab__seat[data-state="no"] {
+  border-color: var(--pl-muted);
+  color: var(--pl-muted);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+[data-project-lab="moltdao"] .project-lab__seat[data-state="dimmed"] {
+  border-color: var(--pl-line);
+  color: var(--pl-muted);
+  opacity: 0.35;
+  background: transparent;
+}
+
+[data-project-lab="moltdao"] :is(.project-lab__board, .project-lab__badge, .project-lab__track-share, .project-lab__seat) {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 360px) {
+  [data-project-lab="moltdao"] .project-lab__seats {
+    gap: 4px;
+  }
+  [data-project-lab="moltdao"] .project-lab__seat {
+    min-height: 40px;
+    padding: 2px 1px;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-project-lab="moltdao"] :is(.project-lab__board, .project-lab__badge, .project-lab__track, .project-lab__seat) {
+    border-color: CanvasText;
+  }
+  [data-project-lab="moltdao"] .project-lab__track-share--yes {
+    background: Highlight;
+  }
+  [data-project-lab="moltdao"] .project-lab__track-share--no {
+    background: CanvasText;
+  }
+  [data-project-lab="moltdao"] .project-lab__seat[data-state="yes"] {
+    border-color: Highlight;
+    color: Highlight;
+  }
+}
+
