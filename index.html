@@ -52,7 +52,7 @@
       </div>
     </section>
     <section class="studio-work" id="work-list" aria-labelledby="work-title">
-      <div class="studio-work-head"><h2 id="work-title">Work</h2><p>8 projects. Hover previews. Click keeps a selection. <a href="/work/">All notes</a></p></div>
+      <div class="studio-work-head"><h2 id="work-title">Work</h2><p>3 projects. Hover previews. Click keeps a selection. <a href="/work/">All notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
           <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
@@ -60,11 +60,6 @@
             <li role="none"><a id="agentcrucible" class="studio-row is-selected" href="#project-agentcrucible" role="option" data-studio-pick="0" aria-selected="true" tabindex="0">01<span>AgentCrucible</span><small>Working tool</small></a></li>
             <li role="none"><a id="airforge" class="studio-row" href="#project-airforge" role="option" data-studio-pick="1" aria-selected="false" tabindex="-1">02<span>AirForge</span><small>Working tool</small></a></li>
             <li role="none"><a id="shipgate" class="studio-row" href="#project-shipgate" role="option" data-studio-pick="2" aria-selected="false" tabindex="-1">03<span>Shipgate</span><small>Working tool</small></a></li>
-            <li role="none"><a id="recall-ai" class="studio-row" href="#project-recall-ai" role="option" data-studio-pick="3" aria-selected="false" tabindex="-1">04<span>Recall</span><small>Working tool</small></a></li>
-            <li role="none"><a id="spanforge" class="studio-row" href="#project-spanforge" role="option" data-studio-pick="4" aria-selected="false" tabindex="-1">05<span>Spanforge</span><small>Prototype</small></a></li>
-            <li role="none"><a id="localpulse" class="studio-row" href="#project-localpulse" role="option" data-studio-pick="5" aria-selected="false" tabindex="-1">06<span>LocalPulse</span><small>Prototype</small></a></li>
-            <li role="none"><a id="ghost-notetaker" class="studio-row" href="#project-ghost-notetaker" role="option" data-studio-pick="6" aria-selected="false" tabindex="-1">07<span>Ghost Notetaker</span><small>Working tool</small></a></li>
-            <li role="none"><a id="moltdao" class="studio-row" href="#project-moltdao" role="option" data-studio-pick="7" aria-selected="false" tabindex="-1">08<span>MoltDAO</span><small>Experiment</small></a></li>
           </ul>
         </div>
         <div class="studio-detail" data-studio-detail aria-live="off">
@@ -185,181 +180,6 @@
 </section></details>
             </div>
           </article>
-          <article class="studio-panel work-card" id="project-recall-ai" data-studio-panel="recall-ai" data-scene="recall-ai" data-studio-view="evidence" tabindex="-1">
-            <div class="studio-evidence studio-evidence-empty" data-studio-evidence><p>Public repository link unavailable</p></div>
-            <div class="studio-copy">
-              <h3 class="work-card-name">Recall</h3>
-              <p class="work-card-desc">Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode result capture.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Unavailable</dd><dt>stack</dt><dd>Python · FastAPI · SQLite · React</dd></dl>
-              <nav class="scene-links" aria-label="Recall links"><a href="/work/recall-ai/">Project notes</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="recall-ai" aria-label="Recall. Recall local schedule inspector">
-<p class="project-lab__banner"><strong>Local example.</strong> Three example cards. Intervals use the published constants, rounded in JavaScript. Nothing is saved.</p>
-
-<form class="project-lab__form" data-lab-form="recall-ai">
-<div class="project-lab__field project-lab__field--wide"><label for="pl-recall-query">Find example card</label>
-<input id="pl-recall-query" data-field="query" type="search" value="" placeholder="binary, graph"></div>
-<div class="project-lab__field"><label for="pl-recall-card">Example card</label>
-<select id="pl-recall-card" data-field="card">
-<option value="binary-search" selected>Binary search</option>
-<option value="two-sum">Two sum</option>
-<option value="graph-bfs">Graph BFS</option>
-</select></div>
-<div class="project-lab__actions" role="group" aria-label="Rating">
-<button type="button" data-action="rate" data-rating="1">Again</button>
-<button type="button" data-action="rate" data-rating="2">Hard</button>
-<button type="button" data-action="rate" data-rating="3">Good</button>
-<button type="button" data-action="rate" data-rating="4">Easy</button>
-</div>
-</form>
-<ul class="project-lab__reasons" data-out="cards"></ul>
-<dl class="project-lab__meters">
-<div><dt>Stability</dt><dd data-out="stability"></dd></div>
-<div><dt>Difficulty</dt><dd data-out="difficulty"></dd></div>
-<div><dt>Interval</dt><dd data-out="interval"></dd></div>
-<div><dt>Lapses</dt><dd data-out="lapses"></dd></div>
-</dl>
-
-</section></details>
-            </div>
-          </article>
-          <article class="studio-panel work-card" id="project-spanforge" data-studio-panel="spanforge" data-scene="spanforge" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/spanforge/media/overview.mp4" poster="/work/spanforge/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of the Spanforge dashboard: a run with plan, web_search, http_fetch and finalize spans shown as a waterfall, then a span detail panel and a span graph."></video><figcaption>Inspecting a fixture run: the span waterfall, one span’s detail, and the span graph.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="spanforge" aria-label="View Spanforge evidence large">view large</button></figure>
-            <div class="studio-copy">
-              <h3 class="work-card-name">Spanforge</h3>
-              <p class="work-card-desc">Local OpenAI-compatible trace proxy with a waterfall dashboard and limited, pattern-based redaction.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Prototype">Prototype</dd><dt>source</dt><dd>Private</dd><dt>stack</dt><dd>TypeScript · Node.js · React</dd></dl>
-              <nav class="scene-links" aria-label="Spanforge links"><a href="/work/spanforge/">Project notes</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="spanforge" aria-label="Spanforge. Spanforge local waterfall inspector">
-<p class="project-lab__banner"><strong>Local example.</strong> Five example intervals. Not a captured proxy trace.</p>
-
-<form class="project-lab__form" data-lab-form="spanforge">
-<div class="project-lab__field"><label for="pl-spanforge-duration">Tool span <span data-readout="duration">220 ms</span></label>
-<input id="pl-spanforge-duration" data-field="duration" type="range" min="80" max="420" step="10" value="220"></div>
-<div class="project-lab__field"><label for="pl-spanforge-parallel"><input id="pl-spanforge-parallel" data-field="parallel" type="checkbox" checked> Tool and fetch overlap</label></div>
-<div class="project-lab__field project-lab__field--wide"><label for="pl-spanforge-query">Find span</label>
-<input id="pl-spanforge-query" data-field="query" type="search" value=""></div>
-</form>
-<div class="project-lab__fall" data-out="waterfall"></div>
-<ul class="project-lab__reasons" data-out="spans"></ul>
-</section></details>
-            </div>
-          </article>
-          <article class="studio-panel work-card" id="project-localpulse" data-studio-panel="localpulse" data-scene="localpulse" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/localpulse/media/overview.mp4" poster="/work/localpulse/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of the LocalPulse dashboard showing total cost, p95 latency, error rate and token counts, a cost and latency chart, and anomaly flags, using synthetic demo data."></video><figcaption>The dashboard on its bundled synthetic metrics: totals, cost and latency over time, anomaly flags.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="localpulse" aria-label="View LocalPulse evidence large">view large</button></figure>
-            <div class="studio-copy">
-              <h3 class="work-card-name">LocalPulse</h3>
-              <p class="work-card-desc">Local dashboard and collector for LLM token usage, latency, and estimated costs; caller-supplied metadata is retained.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Prototype">Prototype</dd><dt>source</dt><dd>Private</dd><dt>stack</dt><dd>TypeScript · Node.js · React</dd></dl>
-              <nav class="scene-links" aria-label="LocalPulse links"><a href="/work/localpulse/">Project notes</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="localpulse" aria-label="LocalPulse. LocalPulse token sum inspector">
-<p class="project-lab__banner"><strong>Local example.</strong> Token sums for two example calls. No price, because this page has no rate table.</p>
-
-<form class="project-lab__form" data-lab-form="localpulse">
-<div class="project-lab__field"><label for="pl-localpulse-prompt">Prompt tokens</label>
-<input id="pl-localpulse-prompt" data-field="prompt" type="number" inputmode="numeric" min="0" max="100000" step="1" value="120"></div>
-<div class="project-lab__field"><label for="pl-localpulse-completion">Completion tokens</label>
-<input id="pl-localpulse-completion" data-field="completion" type="number" inputmode="numeric" min="0" max="100000" step="1" value="40"></div>
-<div class="project-lab__field project-lab__field--wide"><label for="pl-localpulse-query">Find example call</label>
-<input id="pl-localpulse-query" data-field="query" type="search" value=""></div>
-</form>
-<ul class="project-lab__reasons" data-out="calls"></ul>
-<p class="project-lab__status" data-out="sum" aria-live="polite"></p>
-
-</section></details>
-            </div>
-          </article>
-          <article class="studio-panel work-card" id="project-ghost-notetaker" data-studio-panel="ghost-notetaker" data-scene="ghost-notetaker" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/ghost-notetaker/media/overview.mp4" poster="/work/ghost-notetaker/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of colored sticky notes on a dark desktop, with a new note created from the clipboard."></video><figcaption>Quick capture: clipboard text becomes a new note on the desktop.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="ghost-notetaker" aria-label="View Ghost Notetaker evidence large">view large</button></figure>
-            <div class="studio-copy">
-              <h3 class="work-card-name">Ghost Notetaker</h3>
-              <p class="work-card-desc">Local desktop sticky notes with Markdown, workspaces, quick capture, and best-effort screen-capture exclusion.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Private</dd><dt>stack</dt><dd>JavaScript · Electron</dd></dl>
-              <nav class="scene-links" aria-label="Ghost Notetaker links"><a href="/work/ghost-notetaker/">Project notes</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="ghost-notetaker" aria-label="Ghost Notetaker. Ghost Notetaker local note inspector">
-<p class="project-lab__banner"><strong>Local example.</strong> Counts and a plain-text preview. The note is not written to disk.</p>
-
-<form class="project-lab__form" data-lab-form="ghost-notetaker">
-<div class="project-lab__field project-lab__field--wide"><label for="pl-ghost-markdown">Markdown</label>
-<textarea id="pl-ghost-markdown" data-field="markdown" rows="5" maxlength="2000" spellcheck="false"># Standup
-Ship the local note inspector.</textarea></div>
-</form>
-<dl class="project-lab__meters">
-<div><dt>Characters</dt><dd data-out="chars"></dd></div>
-<div><dt>Headings</dt><dd data-out="headings"></dd></div>
-</dl>
-<pre class="project-lab__preview" data-out="preview"></pre>
-
-</section></details>
-            </div>
-          </article>
-          <article class="studio-panel work-card" id="project-moltdao" data-studio-panel="moltdao" data-scene="moltdao" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/moltdao/media/overview.mp4" poster="/work/moltdao/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of the MoltDAO dashboard connected to a local chain, sending USDC to the treasury and listing proposals with vote counts."></video><figcaption>The dashboard on a local chain: funding the treasury and reading proposals. Addresses are masked.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="moltdao" aria-label="View MoltDAO evidence large">view large</button></figure>
-            <div class="studio-copy">
-              <h3 class="work-card-name">MoltDAO</h3>
-              <p class="work-card-desc">Toy agent-governance experiment with ERC-20 voting and treasury proposals; not production-safe.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Experiment">Experiment</dd><dt>source</dt><dd>Private</dd><dt>stack</dt><dd>Solidity · Foundry · ethers</dd></dl>
-              <nav class="scene-links" aria-label="MoltDAO links"><a href="/work/moltdao/">Project notes</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="moltdao" aria-label="MoltDAO. MoltDAO local vote inspector">
-<p class="project-lab__banner"><strong>Local example.</strong> One toy proposal, last seven votes, simple majority. Not a treasury.</p>
-
-<form class="project-lab__form" data-lab-form="moltdao">
-<div class="project-lab__field project-lab__field--wide"><label for="pl-moltdao-query">Find proposal</label>
-<input id="pl-moltdao-query" data-field="query" type="search" value="" placeholder="treasury"></div>
-<div class="project-lab__actions">
-<button type="button" data-action="yes">Yes</button>
-<button type="button" data-action="no">No</button>
-<button type="button" data-action="clear">Clear votes</button>
-</div>
-</form>
-<div class="project-lab__board" data-node="board">
-<div class="project-lab__board-head">
-<div class="project-lab__board-title-wrap">
-<span class="project-lab__board-kicker">Toy proposal</span>
-<p class="project-lab__board-title" data-node="proposal-title">Fund treasury</p>
-</div>
-<div class="project-lab__board-decision">
-<span class="project-lab__board-kicker">Decision</span>
-<span class="project-lab__badge" data-node="decision-badge" data-state="hold">hold</span>
-</div>
-</div>
-<div class="project-lab__track-block">
-<div class="project-lab__track-meta">
-<span class="project-lab__board-kicker">Vote share</span>
-<span class="project-lab__track-val" data-node="track-val">Empty track (0–0)</span>
-</div>
-<div class="project-lab__track" data-node="track" role="img" aria-label="Vote share track is empty (0 yes, 0 no)">
-<span class="project-lab__track-share project-lab__track-share--yes" data-node="share-yes" style="width: 0%;"></span>
-<span class="project-lab__track-share project-lab__track-share--no" data-node="share-no" style="width: 0%;"></span>
-</div>
-</div>
-<div class="project-lab__seats-block">
-<div class="project-lab__seats-meta">
-<span class="project-lab__board-kicker">Window: last 7 votes</span>
-<span class="project-lab__seats-count" data-node="seats-count">0 of 7 cast</span>
-</div>
-<ol class="project-lab__seats" data-node="seats" aria-label="Last seven seats">
-<li class="project-lab__seat" data-seat="0" data-state="empty" aria-label="Seat 1: empty"><span class="project-lab__seat-num">1</span><span class="project-lab__seat-val">—</span></li>
-<li class="project-lab__seat" data-seat="1" data-state="empty" aria-label="Seat 2: empty"><span class="project-lab__seat-num">2</span><span class="project-lab__seat-val">—</span></li>
-<li class="project-lab__seat" data-seat="2" data-state="empty" aria-label="Seat 3: empty"><span class="project-lab__seat-num">3</span><span class="project-lab__seat-val">—</span></li>
-<li class="project-lab__seat" data-seat="3" data-state="empty" aria-label="Seat 4: empty"><span class="project-lab__seat-num">4</span><span class="project-lab__seat-val">—</span></li>
-<li class="project-lab__seat" data-seat="4" data-state="empty" aria-label="Seat 5: empty"><span class="project-lab__seat-num">5</span><span class="project-lab__seat-val">—</span></li>
-<li class="project-lab__seat" data-seat="5" data-state="empty" aria-label="Seat 6: empty"><span class="project-lab__seat-num">6</span><span class="project-lab__seat-val">—</span></li>
-<li class="project-lab__seat" data-seat="6" data-state="empty" aria-label="Seat 7: empty"><span class="project-lab__seat-num">7</span><span class="project-lab__seat-val">—</span></li>
-</ol>
-</div>
-<dl class="project-lab__meters">
-<div><dt>Yes</dt><dd data-node="meter-yes">0</dd></div>
-<div><dt>No</dt><dd data-node="meter-no">0</dd></div>
-<div><dt>Window</dt><dd data-node="meter-window">7 seats</dd></div>
-<div><dt>Majority</dt><dd data-node="meter-majority">hold</dd></div>
-</dl>
-</div>
-<ul class="project-lab__reasons" data-out="proposals"></ul>
-<p class="project-lab__status" data-out="tally" aria-live="polite"></p>
-
-</section></details>
-            </div>
-          </article>
         </div>
       </div>
     </section>
@@ -394,11 +214,6 @@ Ship the local note inspector.</textarea></div>
         <li data-index-item data-search="AgentCrucible agentcrucible Break tool calls. Check what committed and what the agent claimed. AI systems TypeScript Node.js YAML"><a href="/work/agentcrucible/"><span class="t-label muted">01</span><span class="index-project-name">AgentCrucible<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
         <li data-index-item data-search="AirForge airforge Draw ramps, balls, platforms, and curves; Rapier simulates them in 2.5D. Physics software TypeScript React Three.js Rapier MediaPipe"><a href="/work/airforge/"><span class="t-label muted">02</span><span class="index-project-name">AirForge<span class="t-small muted">Physics software</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
         <li data-index-item data-search="Shipgate shipgate A Git gate that scans what a coding agent is about to push. Developer tools TypeScript Node.js Git"><a href="/work/shipgate/"><span class="t-label muted">03</span><span class="index-project-name">Shipgate<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
-        <li data-index-item data-search="Recall recall-ai Spaced repetition for algorithm practice, kept on your machine. Developer tools Python FastAPI SQLite React"><a href="/work/recall-ai/"><span class="t-label muted">04</span><span class="index-project-name">Recall<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
-        <li data-index-item data-search="Spanforge spanforge A local trace proxy for LLM calls, with waterfalls. AI systems · Developer tools TypeScript Node.js React"><a href="/work/spanforge/"><span class="t-label muted">05</span><span class="index-project-name">Spanforge<span class="t-small muted">AI systems&nbsp;· Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
-        <li data-index-item data-search="LocalPulse localpulse Token usage, latency, and cost for LLM calls, on disk. AI systems · Developer tools TypeScript Node.js React"><a href="/work/localpulse/"><span class="t-label muted">06</span><span class="index-project-name">LocalPulse<span class="t-small muted">AI systems&nbsp;· Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
-        <li data-index-item data-search="Ghost Notetaker ghost-notetaker Desktop sticky notes that try to stay out of screen shares. Developer tools JavaScript Electron"><a href="/work/ghost-notetaker/"><span class="t-label muted">07</span><span class="index-project-name">Ghost Notetaker<span class="t-small muted">Developer tools</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
-        <li data-index-item data-search="MoltDAO moltdao Agents propose and vote on a treasury, on a local chain. AI systems Solidity Foundry ethers"><a href="/work/moltdao/"><span class="t-label muted">08</span><span class="index-project-name">MoltDAO<span class="t-small muted">AI systems</span></span><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></a></li>
       </ol>
     </nav>
     <p class="index-empty t-small muted" data-index-empty hidden>No matches. Try a project name, a technology, or “contact”.</p>
@@ -411,7 +226,7 @@ Ship the local note inspector.</textarea></div>
 </dialog>
 <dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title"><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage"></div></dialog>
 <span class="vh" aria-live="polite" data-announce></span>
-<script type="application/json" id="studio-data">[{"slug":"about","name":"Aakash Dahal","status":"profile","kind":"profile"},{"slug":"agentcrucible","name":"AgentCrucible","status":"Working tool","kind":"project","evidence":{"label":"Screenshot","caption":"The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data."}},{"slug":"airforge","name":"AirForge","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform."}},{"slug":"shipgate","name":"Shipgate","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each."}},{"slug":"recall-ai","name":"Recall","status":"Working tool","kind":"project","evidence":null},{"slug":"spanforge","name":"Spanforge","status":"Prototype","kind":"project","evidence":{"label":"Recording","caption":"Inspecting a fixture run: the span waterfall, one span’s detail, and the span graph."}},{"slug":"localpulse","name":"LocalPulse","status":"Prototype","kind":"project","evidence":{"label":"Recording","caption":"The dashboard on its bundled synthetic metrics: totals, cost and latency over time, anomaly flags."}},{"slug":"ghost-notetaker","name":"Ghost Notetaker","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"Quick capture: clipboard text becomes a new note on the desktop."}},{"slug":"moltdao","name":"MoltDAO","status":"Experiment","kind":"project","evidence":{"label":"Recording","caption":"The dashboard on a local chain: funding the treasury and reading proposals. Addresses are masked."}},{"slug":"contact","name":"Contact","status":"email","kind":"contact"}]</script>
+<script type="application/json" id="studio-data">[{"slug":"about","name":"Aakash Dahal","status":"profile","kind":"profile"},{"slug":"agentcrucible","name":"AgentCrucible","status":"Working tool","kind":"project","evidence":{"label":"Screenshot","caption":"The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data."}},{"slug":"airforge","name":"AirForge","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform."}},{"slug":"shipgate","name":"Shipgate","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each."}},{"slug":"contact","name":"Contact","status":"email","kind":"contact"}]</script>
 <script src="/js/theme.js?v=fluid-2" defer></script>
 <script src="/js/motion.js?v=fluid-2" defer></script>
 <script src="/js/hero.js?v=fluid-2" defer></script>

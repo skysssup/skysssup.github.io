@@ -194,9 +194,6 @@ test('projectLab html is local, escaped, and scoped', async () => {
   const ship = projectLab({ slug: 'shipgate', name: 'Shipgate', description: 'CLI.' });
   assert.match(ship, /Not the Shipgate scanner/);
   assert.match(ship, /data-out="diff"/);
-  const span = projectLab({ slug: 'spanforge', name: 'Spanforge', description: 'Waterfalls everywhere.' });
-  assert.match(span, /data-out="waterfall"/);
-  assert.equal(span.includes('Waterfalls everywhere.'), false);
   const other = projectLab({ slug: 'nope', name: 'Nope', description: 'x' });
   assert.match(other, /No local inspector/);
 });

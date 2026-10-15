@@ -28,32 +28,6 @@ const labs = {
     `<p class="lab-label">Illustration preview. Blocks a cloud secret, a private key, or a password assignment.</p>`,
     `<div class="lab-actions"><button type="button" data-lab-action="preview">Preview</button></div>`,
   ].join('')),
-
-  'recall-ai': () => group('recall-ai', 'Recall review illustration, not a saved study schedule', [
-    `<div class="lab-actions"><button type="button" data-lab-action="again">Again</button><button type="button" data-lab-action="good">Good</button></div>`,
-    `<span class="lab-value" data-lab-readout></span>`,
-  ].join('')),
-
-  spanforge: () => group('spanforge', 'Spanforge waterfall illustration, not a measured trace', [
-    field(`<label class="lab-label" for="lab-spanforge-duration">Tool duration</label><input id="lab-spanforge-duration" type="range" min="80" max="420" step="10" value="220" data-lab-control="duration" aria-describedby="lab-spanforge-duration-value"><span class="lab-value" id="lab-spanforge-duration-value">220 ms</span>`),
-    field(`<label class="lab-label" for="lab-spanforge-parallel"><input id="lab-spanforge-parallel" type="checkbox" data-lab-control="parallel" checked> Parallel tool and fetch</label>`),
-    `<div class="lab-actions"><button type="button" data-lab-action="trace">Trace</button></div>`,
-  ].join('')),
-
-  localpulse: () => group('localpulse', 'LocalPulse token illustration, not customer metrics', [
-    field(`<label class="lab-label" for="lab-localpulse-tokens">Tokens</label><input id="lab-localpulse-tokens" type="number" inputmode="numeric" min="0" max="100000" step="1" value="0" data-lab-control="tokens">`),
-    `<div class="lab-actions"><button type="button" data-lab-action="add">Add call</button></div>`,
-  ].join('')),
-
-  'ghost-notetaker': () => group('ghost-notetaker', 'Ghost Notetaker capture illustration, not a saved note', [
-    field(`<label class="lab-label" for="lab-ghost-notetaker-markdown">Markdown</label><textarea id="lab-ghost-notetaker-markdown" rows="2" maxlength="280" spellcheck="false" data-lab-control="markdown" placeholder="A local note"></textarea>`),
-    `<div class="lab-actions"><button type="button" data-lab-action="capture">Capture note</button><button type="button" data-lab-action="copy">Copy Markdown</button></div>`,
-  ].join('')),
-
-  moltdao: () => group('moltdao', 'MoltDAO vote illustration, not a wallet or treasury product', [
-    `<div class="lab-actions"><button type="button" data-lab-action="yes">Yes</button><button type="button" data-lab-action="no">No</button></div>`,
-    `<span class="lab-value" data-lab-readout></span>`,
-  ].join('')),
 };
 
 export function labControls(slug) {

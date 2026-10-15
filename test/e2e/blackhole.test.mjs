@@ -55,7 +55,7 @@ test('the studio is usable immediately, with no black-hole gate and no dead load
     assert.equal(await page.locator('#figure').count(), 1);
     assert.equal(await page.locator('#agentcrucible').getAttribute('aria-selected'), 'true');
     assert.equal(await page.locator('[data-studio-pick][aria-selected="true"]').count(), 1);
-    assert.equal(await page.locator('[data-studio-pick]').count(), 8);
+    assert.equal(await page.locator('[data-studio-pick]').count(), 3);
     assert.equal(await page.locator('[data-studio-panel="agentcrucible"]').evaluate(el => el.classList.contains('is-shown') && !el.inert), true);
     assert.equal(await page.locator('.work-card:not(.is-shown)').evaluateAll(els => els.every(el => el.inert)), true);
     assert.equal(await page.locator('#about, #contact').evaluateAll(els => els.every(el => !el.inert)), true);

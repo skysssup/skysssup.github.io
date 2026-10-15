@@ -113,7 +113,7 @@ test('case studies retain their authored sections or concise project notes, stac
 });
 
 test('the work index lists every case study once, and the home page lists each one', () => {
-  const order = ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao'];
+  const order = ['agentcrucible', 'airforge', 'shipgate'];
   const listed = [...html['work/index.html'].matchAll(/<h2><a href="\/work\/([a-z-]+)\/"[^>]*>/g)].map(m => m[1]);
   assert.deepEqual([...listed].sort(), caseStudies.map(p => p.split('/')[1]).sort());
   const home = html['index.html'];

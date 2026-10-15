@@ -241,11 +241,6 @@ const builders = {
   agentcrucible: agent,
   airforge: air,
   shipgate: ship,
-  'recall-ai': recall,
-  spanforge: span,
-  localpulse: pulse,
-  'ghost-notetaker': ghost,
-  moltdao: molt,
 };
 
 export function projectLab(p) {

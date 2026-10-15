@@ -1,20 +1,39 @@
 {
-  "origin": "https://skysssup.github.io",
-  "name": "Aakash Dahal",
-  "github": "skysssup",
-  "x": "skysssup",
-  "email": "hello@aakashdahal.fun",
-  "tz": "Asia/Kathmandu",
-  "bio": "Developer tools and interactive physics software.",
-  "why": { "title": "Why the statue", "body": "It’s Hermes. On the day he was born he stole fifty of Apollo’s cattle and walked them backwards so the tracks pointed the wrong way. Agents pull the same trick with their logs. I build the trackers. Robots are next and I expect they’ll try it too." },
-  "dots": "81,465",
-  "ringLine": "I stole Apollo’s cattle on day one. Your agent won’t sneak one past me",
-  "themes": [
-    { "id": "ai-systems", "name": "AI systems" },
-    { "id": "developer-tools", "name": "Developer tools" },
-    { "id": "physics-software", "name": "Physics software" }
-  ],
-  "order": ["agentcrucible", "airforge", "shipgate", "recall-ai", "spanforge", "localpulse", "ghost-notetaker", "moltdao"],
-  "featured": ["agentcrucible", "airforge", "shipgate", "recall-ai"]
+ "origin": "https://skysssup.github.io",
+ "name": "Aakash Dahal",
+ "github": "skysssup",
+ "x": "skysssup",
+ "email": "hello@aakashdahal.fun",
+ "tz": "Asia/Kathmandu",
+ "bio": "Developer tools and interactive physics software.",
+ "why": {
+  "title": "Why the statue",
+  "body": "It\u2019s Hermes. On the day he was born he stole fifty of Apollo\u2019s cattle and walked them backwards so the tracks pointed the wrong way. Agents pull the same trick with their logs. I build the trackers. Robots are next and I expect they\u2019ll try it too."
+ },
+ "dots": "81,465",
+ "ringLine": "I stole Apollo\u2019s cattle on day one. Your agent won\u2019t sneak one past me",
+ "themes": [
+  {
+   "id": "ai-systems",
+   "name": "AI systems"
+  },
+  {
+   "id": "developer-tools",
+   "name": "Developer tools"
+  },
+  {
+   "id": "physics-software",
+   "name": "Physics software"
+  }
+ ],
+ "order": [
+  "agentcrucible",
+  "airforge",
+  "shipgate"
+ ],
+ "featured": [
+  "agentcrucible",
+  "airforge",
+  "shipgate"
+ ]
 }
-

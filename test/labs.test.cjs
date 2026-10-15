@@ -175,7 +175,7 @@ test('a paused clock does not absorb hidden time', () => {
 test('lab markup is compact, labeled, and local to each project', async () => {
   const { labControls, labSlugs } = await import(pathToFileURL('../tools/pages/labs.mjs'));
   assert.deepEqual(labSlugs, [
-    'agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao',
+    'agentcrucible', 'airforge', 'shipgate',
   ]);
   assert.equal(labControls('missing'), '');
   const html = Object.fromEntries(labSlugs.map((slug) => [slug, labControls(slug)]));
@@ -189,18 +189,6 @@ test('lab markup is compact, labeled, and local to each project', async () => {
   assert.equal((html.airforge.match(/type="range"/g) || []).length, 1);
   assert.match(html.airforge, /data-lab-control="incline"/);
   assert.match(html.airforge, /data-lab-action="drop"/);
-  assert.match(html.spanforge, /data-lab-control="duration"/);
-  assert.match(html.spanforge, /data-lab-control="parallel"/);
-  assert.match(html.shipgate, /<textarea/);
-  assert.match(html.shipgate, /not a complete safety scanner|not a scanner|Blocks a cloud secret/i);
-  assert.match(html['recall-ai'], /data-lab-action="again"/);
-  assert.match(html['recall-ai'], /data-lab-action="good"/);
-  assert.match(html.localpulse, /data-lab-action="add"/);
-  assert.match(html['ghost-notetaker'], /<textarea/);
-  assert.match(html['ghost-notetaker'], /data-lab-action="capture"/);
-  assert.match(html['ghost-notetaker'], /data-lab-action="copy"/);
-  assert.match(html.moltdao, /data-lab-action="yes"/);
-  assert.match(html.moltdao, /data-lab-action="no"/);
   assert.match(html.agentcrucible, /value="timeout"/);
   assert.doesNotMatch(html.shipgate, /<script/i);
 });

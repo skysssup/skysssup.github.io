@@ -8,8 +8,8 @@ import { chromium } from 'playwright';
 import { serve } from './server.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const pages = ['/#agentcrucible', '/work/', '/work/agentcrucible/', '/work/airforge/', '/work/shipgate/', '/work/recall-ai/', '/work/spanforge/', '/work/localpulse/', '/work/ghost-notetaker/', '/work/moltdao/'];
-const projectNames = ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO'];
+const pages = ['/#agentcrucible', '/work/', '/work/agentcrucible/', '/work/airforge/', '/work/shipgate/'];
+const projectNames = ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'Shipgate'];
 
 let browser, site;
 before(async () => {
@@ -110,7 +110,7 @@ test('site index clear restores results, keeps the dialog expanded, and Escape r
   });
 });
 
-test('eight upright rows keep selection, preview, and the marker on the same project while the page still scrolls', async () => {
+test('three upright rows keep selection, preview, and the marker on the same project while the page still scrolls', async () => {
   await withPage({ url: '/', reduced: false }, async (page, errors) => {
     await readyBench(page);
     assert.equal(await page.locator('[data-studio-wheel], [data-studio-picker], [data-studio-step]').count(), 0);
@@ -149,10 +149,10 @@ test('eight upright rows keep selection, preview, and the marker on the same pro
     await page.locator('#airforge').focus();
     await page.keyboard.press('End');
     await settle(page);
-    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'moltdao');
+    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
     await page.keyboard.press('ArrowDown');
     await settle(page);
-    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'moltdao', 'the list does not wrap into contact');
+    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate', 'the list does not wrap into contact');
     await page.keyboard.press('Home');
     await settle(page);
     assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible');
@@ -173,21 +173,21 @@ test('narrow rows stay upright across resize and keyboard endpoints', async () =
   await withPage({ url: '/#agentcrucible', width: 390, height: 800, touch: true }, async (page, errors) => {
     await readyBench(page);
     const rows = await rowLayout(page);
-    assert.equal(rows.length, 8);
+    assert.equal(rows.length, 3);
     for (let i = 1; i < rows.length; i++) assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1);
     await page.locator('#agentcrucible').focus();
     await page.keyboard.press('End');
     await settle(page);
-    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'moltdao');
-    const selected = await page.locator('#moltdao').boundingBox();
+    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
+    const selected = await page.locator('#shipgate').boundingBox();
     const view = page.viewportSize();
     assert.ok(selected.y >= 0 && selected.y + selected.height <= view.height + 1, 'End keeps the last row in view');
     await page.locator('#agentcrucible').click();
     await settle(page);
     assert.equal(await page.locator('#project-agentcrucible .work-card-name').innerText(), 'AgentCrucible');
-    await page.locator('#moltdao').click();
+    await page.locator('#shipgate').click();
     await settle(page);
-    assert.equal(await page.locator('#project-moltdao.is-shown .work-card-name').innerText(), 'MoltDAO');
+    assert.equal(await page.locator('#project-shipgate.is-shown .work-card-name').innerText(), 'Shipgate');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 0, `narrow home overflows by ${overflow}px`);
     assert.deepEqual(errors, []);
@@ -204,9 +204,9 @@ test('resizing during keyboard selection keeps the requested project', async () 
     await page.locator('#airforge').focus();
     await page.keyboard.press('End');
     await page.setViewportSize({ width: 391, height: 844 });
-    await page.waitForFunction(() => SkyStudio.slug() === 'moltdao' && SkyStudio.settled());
+    await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled());
     await page.setViewportSize({ width: 768, height: 844 });
-    await page.waitForFunction(() => SkyStudio.slug() === 'moltdao' && SkyStudio.settled() && document.querySelector('#moltdao').getAttribute('aria-selected') === 'true');
+    await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled() && document.querySelector('#shipgate').getAttribute('aria-selected') === 'true');
     const rows = await rowLayout(page);
     for (let i = 1; i < rows.length; i++) assert.ok(Math.abs(rows[i].left - rows[0].left) <= 2);
     assert.deepEqual(errors, []);
@@ -321,17 +321,17 @@ test('selection still resolves when the preview starts below a short viewport', 
     await readyBench(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.evaluate(() => SkyStudio.select(4));
-    await page.waitForFunction(() => SkyStudio.selected() === 4 && SkyStudio.settled() && SkyStudio.slug() === 'recall-ai');
-    assert.equal(await page.locator('#project-recall-ai.is-shown').count(), 1);
-    assert.equal(await page.locator('#recall-ai').getAttribute('aria-selected'), 'true');
+    await page.waitForFunction(() => SkyStudio.selected() === 3 && SkyStudio.settled() && SkyStudio.slug() === 'shipgate');
+    assert.equal(await page.locator('#project-shipgate.is-shown').count(), 1);
+    assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true');
     assert.deepEqual(errors, []);
   });
   await withPage({ url: '/', width: 390, height: 800, touch: true }, async (page, errors) => {
     await readyBench(page);
-    await page.evaluate(() => SkyStudio.selectSlug('recall-ai'));
-    await page.waitForFunction(() => SkyStudio.slug() === 'recall-ai' && SkyStudio.settled());
-    assert.equal(await page.locator('#recall-ai').getAttribute('aria-selected'), 'true');
-    assert.equal(await page.locator('#project-recall-ai.is-shown').count(), 1);
+    await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
+    await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled());
+    assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true');
+    assert.equal(await page.locator('#project-shipgate.is-shown').count(), 1);
     assert.equal(await page.locator('[data-studio-picker]').count(), 0);
     assert.deepEqual(errors, []);
   });

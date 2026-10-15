@@ -8,7 +8,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { serve } from './server.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const PROJECTS = ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao'];
+const PROJECTS = ['agentcrucible', 'airforge', 'shipgate'];
 let browser, site;
 before(async () => { site = await serve(root); browser = await chromium.launch({ channel: 'chrome' }); });
 after(async () => { await browser?.close(); site?.server.close(); });
@@ -55,8 +55,8 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   assert.equal(await page.evaluate(() => window.SkyScrollField), undefined);
   const entries = await page.evaluate(() => JSON.parse(document.getElementById('studio-data').textContent).map(item => item.slug));
   assert.deepEqual(entries, ['about', ...PROJECTS, 'contact']);
-  assert.equal(await page.locator('#studio-projects [data-studio-pick]').count(), 8);
-  assert.equal(await page.locator('#studio-projects [role="option"]').count(), 8);
+  assert.equal(await page.locator('#studio-projects [data-studio-pick]').count(), 3);
+  assert.equal(await page.locator('#studio-projects [role="option"]').count(), 3);
   assert.equal(await page.locator('#about.studio-row, #contact.studio-row').count(), 0);
 
   const beforeScroll = await page.evaluate(() => scrollY);
@@ -80,8 +80,8 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   await page.mouse.move(8, 8);
   await page.waitForFunction(() => document.getElementById('project-agentcrucible').classList.contains('is-shown'));
 
-  await page.locator('#spanforge').focus();
-  await page.waitForFunction(() => document.getElementById('project-spanforge').classList.contains('is-shown'));
+  await page.locator('#airforge').focus();
+  await page.waitForFunction(() => document.getElementById('project-airforge').classList.contains('is-shown'));
   assert.equal(await page.locator('#agentcrucible').getAttribute('aria-selected'), 'true');
 
   const origin = await page.locator('[data-studio-marker]').evaluate(node => {
@@ -102,16 +102,16 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
     };
     requestAnimationFrame(tick);
   }));
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'moltdao');
-  assert.equal(await page.evaluate(() => location.hash), '#project-moltdao');
+  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
+  assert.equal(await page.evaluate(() => location.hash), '#project-shipgate');
   const destination = samples[samples.length - 1];
   assert.ok(samples.some(top => top > origin + 8 && top < destination - 4), `the marker travels between rows (${origin} -> ${destination})`);
   await page.waitForFunction(() => {
     const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect().top;
-    const row = document.getElementById('moltdao').getBoundingClientRect().top;
+    const row = document.getElementById('shipgate').getBoundingClientRect().top;
     return Math.abs(marker - row) <= 2;
   });
-  const endBox = await page.locator('#moltdao').boundingBox();
+  const endBox = await page.locator('#shipgate').boundingBox();
   const view = page.viewportSize();
   assert.ok(endBox.y >= 0 && endBox.y + endBox.height <= view.height + 1, 'End keeps the selected row in view');
 
@@ -119,9 +119,9 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowUp');
   await page.waitForTimeout(500);
-  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'ghost-notetaker', 'a reversal replaces the in-flight selection');
+  assert.equal(await page.evaluate(() => SkyStudio.slug()), 'airforge', 'a reversal replaces the in-flight selection');
   assert.equal(await page.locator('[aria-selected="true"]').count(), 1);
-  assert.ok(Math.abs(await markerTop(page) - await rowTop(page, 'ghost-notetaker')) <= 2);
+  assert.ok(Math.abs(await markerTop(page) - await rowTop(page, 'airforge')) <= 2);
 
   await page.keyboard.press('Home');
   assert.equal(await page.evaluate(() => SkyStudio.slug()), 'agentcrucible');
@@ -131,21 +131,21 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
 
   await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
   await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && location.hash === '#project-shipgate');
-  await page.evaluate(() => SkyStudio.selectSlug('localpulse'));
-  await page.waitForFunction(() => SkyStudio.slug() === 'localpulse');
+  await page.evaluate(() => SkyStudio.selectSlug('shipgate'));
+  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
   await page.goBack();
   await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && location.hash === '#project-shipgate');
   await page.goForward();
-  await page.waitForFunction(() => SkyStudio.slug() === 'localpulse');
+  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
   await page.goto(site.origin + '/#work-list');
-  await page.waitForFunction(() => SkyStudio.slug() === 'localpulse' && location.hash === '#work-list');
+  await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && location.hash === '#work-list');
   await page.goto(site.origin + '/#contact');
   await page.waitForFunction(() => SkyStudio.slug() === 'contact');
   assert.equal(await page.locator('#contact a[href^="mailto:"]').getAttribute('href'), 'mailto:hello@aakashdahal.fun');
-  await page.locator('#ghost-notetaker').click();
-  await page.waitForFunction(() => SkyStudio.slug() === 'ghost-notetaker' && document.getElementById('project-ghost-notetaker').classList.contains('is-shown'));
-  await page.locator('#project-ghost-notetaker .scene-links a').first().click();
-  await page.waitForURL('**/work/ghost-notetaker/');
+  await page.locator('#airforge').click();
+  await page.waitForFunction(() => SkyStudio.slug() === 'airforge' && document.getElementById('project-airforge').classList.contains('is-shown'));
+  await page.locator('#project-airforge .scene-links a').first().click();
+  await page.waitForURL('**/work/airforge/');
   assert.deepEqual(errors, []);
   await context.close();
 });
@@ -259,12 +259,12 @@ test('the persistent portrait keeps drawing across projects, pauses when reduced
   await context.close();
 });
 
-test('without JavaScript the portrait, eight projects, evidence, and contact stay in the document', async () => {
+test('without JavaScript the portrait, three projects, evidence, and contact stay in the document', async () => {
   const { page, context } = await open({ javaScriptEnabled: false, url: '/' });
   assert.equal(await page.locator('#hero > #figure .still').count(), 1);
-  assert.equal(await page.locator('#studio-projects a').count(), 8);
+  assert.equal(await page.locator('#studio-projects a').count(), 3);
   assert.deepEqual(await page.locator('#studio-projects a').evaluateAll(nodes => nodes.map(node => node.getAttribute('href'))), PROJECTS.map(slug => `#project-${slug}`));
-  assert.equal(await page.locator('article.work-card').count(), 8);
+  assert.equal(await page.locator('article.work-card').count(), 3);
   for (const slug of PROJECTS) {
     assert.equal(await page.locator(`#project-${slug}`).isVisible(), true, slug);
     assert.equal(await page.locator(`#project-${slug} [data-project-lab="${slug}"]`).count(), 1);

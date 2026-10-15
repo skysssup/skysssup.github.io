@@ -140,7 +140,7 @@ test('reduced motion drops the route animation and evidence controls stay tappab
   assert.deepEqual(quiet.errors, []);
   await quiet.context.close();
 
-  const evidence = await openCase({ width: 390, height: 844 }, 'ghost-notetaker', false);
+  const evidence = await openCase({ width: 390, height: 844 }, 'airforge', false);
   await evidence.page.locator('.fig-ctrl').waitFor();
   await evidence.page.locator('.lead-media').screenshot({ path: path.join(shots, 'ghost-evidence-390.png') });
   const control = await evidence.page.locator('.fig-ctrl').evaluate(el => {
@@ -153,7 +153,7 @@ test('reduced motion drops the route animation and evidence controls stay tappab
   assert.deepEqual(evidence.errors, []);
   await evidence.context.close();
 
-  const recall = await openCase({ width: 1280, height: 800 }, 'recall-ai', false);
+  const recall = await openCase({ width: 1280, height: 800 }, 'shipgate', false);
   await recall.page.locator('.toc').screenshot({ path: path.join(shots, 'recall-toc-1280.png') });
   assert.equal(await recall.page.locator('[data-diagram] .node').count(), 3);
   assert.equal(await recall.page.locator('[data-diagram]').getAttribute('data-stage'), '0');

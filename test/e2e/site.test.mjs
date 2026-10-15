@@ -331,7 +331,7 @@ test('the home page keeps every project and a concise contact section', async ()
   const { page, context, problems } = await open('/');
   await page.waitForFunction(() => window.SkyStudio?.settled());
   const names = await page.locator('#studio-projects .studio-row > span').allTextContents();
-  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO']);
+  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'Shipgate']);
   assert.equal(await page.locator('#about').count(), 1);
   assert.equal(await page.locator('#contact').count(), 1);
   assert.equal(await page.locator('header.studio-header').count(), 1);

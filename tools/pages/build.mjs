@@ -185,7 +185,7 @@ function home() {
 function work() {
   const counts = Object.fromEntries(site.themes.map(t => [t.id, projects.filter(p => p.themes.includes(t.id)).length]));
   const filterBoot = `(function(r){var m=/[?&]theme=(${site.themes.map(t => t.id).join('|')})(&|$)/.exec(location.search);if(m)r.setAttribute("data-filter",m[1]);try{if(localStorage.getItem("sky-work-view")==="grid")r.setAttribute("data-work-view","grid")}catch(e){}})(document.documentElement);`;
-  return `${head({ title: 'Work — Aakash Dahal', description: 'Eight projects by Aakash Dahal across AI systems, developer tools, and physics software, each with a case study.', url: '/work/', image: '/assets/og/work.png', imageAlt: 'Work by Aakash Dahal: eight projects', boot: filterBoot })}
+  return `${head({ title: 'Work — Aakash Dahal', description: 'Three projects by Aakash Dahal across AI systems, developer tools, and physics software, each with a case study.', url: '/work/', image: '/assets/og/work.png', imageAlt: 'Work by Aakash Dahal: three projects', boot: filterBoot })}
 <body class="page-work">
 ${header('work')}
 <main id="main">
@@ -232,12 +232,7 @@ const SECTIONS = [
 ];
 
 const NOTE_FLOWS = {
-  shipgate: [['Staged changes', 'Git diff', 'The CLI scans staged Git changes.'], ['Local policies', 'scan decision', 'Configured local policies determine the scan result.'], ['Commit / push', 'Git workflow', 'That result gates the commit and push workflow.']],
-  'recall-ai': [['Practice', 'algorithms', 'Algorithm practice is the input to the review workflow.'], ['Scheduling', 'spaced repetition', 'The scheduler places the next review along the practice timeline.'], ['SQLite', 'local data', 'Scheduling data stays on the local machine in SQLite.']],
-  spanforge: [['Local proxy', 'LLM requests', 'The local trace proxy receives LLM application requests.'], ['Traces', 'request spans', 'Recorded spans describe the request timeline.'], ['Waterfall', 'inspection', 'The waterfall makes nesting and overlap visible.']],
-  localpulse: [['Call metadata', 'caller supplied', 'The caller supplies the metadata shown in the local usage view.'], ['Local storage', 'retained data', 'Collected metadata is retained locally.'], ['Usage view', 'inspection', 'The dashboard presents the recorded call series.']],
-  'ghost-notetaker': [['Quick capture', 'clipboard text', 'Clipboard text becomes a new note in the captured workflow.'], ['Markdown', 'local note', 'The note is stored as local Markdown.'], ['Workspaces', 'organization', 'Workspaces organize the captured notes.']],
-  moltdao: [['Proposal', 'local experiment', 'An agent proposes an action in the local experiment.'], ['Votes', 'agent decisions', 'Agent votes contribute to the treasury decision.'], ['Treasury', 'toy workflow', 'The workflow is an experiment, not a production-safe treasury system.']]
+  shipgate: [['Staged changes', 'Git diff', 'The CLI scans staged Git changes.'], ['Local policies', 'scan decision', 'Configured local policies determine the scan result.'], ['Commit / push', 'Git workflow', 'That result gates the commit and push workflow.']]
 };
 function noteDiagram(p) {
   const flow = NOTE_FLOWS[p.slug];

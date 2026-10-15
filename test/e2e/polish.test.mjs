@@ -191,7 +191,7 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
       const box = row.getBoundingClientRect();
       return { top: box.top, left: box.left, height: box.height };
     }));
-    assert.equal(rows.length, 8);
+    assert.equal(rows.length, 3);
     for (let i = 1; i < rows.length; i++) {
       assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1, 'project rows stay upright');
       assert.ok(Math.abs(rows[i].left - rows[0].left) <= 2, 'project rows share one column');

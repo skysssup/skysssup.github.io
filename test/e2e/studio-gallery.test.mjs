@@ -68,11 +68,11 @@ test('project evidence uses one media node, restores focus, and pauses for hidde
     await video.scrollIntoViewIfNeeded();
     await page.waitForFunction(() => !window.galleryVideo.paused);
 
-    await page.locator('#moltdao').click();
-    await page.waitForFunction(() => SkyStudio.slug() === 'moltdao');
+    await page.locator('#shipgate').click();
+    await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
     await page.waitForFunction(() => {
       const videos = [...document.querySelectorAll('[data-studio-video]')];
-      return videos.filter(node => !node.paused).every(node => node.closest('#project-moltdao'))
+      return videos.filter(node => !node.paused).every(node => node.closest('#project-shipgate'))
         && videos.filter(node => node.closest('#project-airforge')).every(node => node.paused);
     });
     assert.deepEqual(errors, []);

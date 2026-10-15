@@ -66,14 +66,14 @@ test('the site index is searchable by technology and navigable without a mouse',
   await page.keyboard.press('/');
   assert.equal(await page.locator('.site-index').evaluate(d => d.open), true);
   assert.equal(await page.locator('[data-index-search]').evaluate(el => el === document.activeElement), true);
-  await page.locator('[data-index-search]').fill('python');
+  await page.locator('[data-index-search]').fill('rapier');
   assert.equal(await page.locator('[data-index-item]:visible').count(), 1);
-  assert.equal(await page.locator('.index-projects a:visible').getAttribute('href'), '/work/recall-ai/');
+  assert.equal(await page.locator('.index-projects a:visible').getAttribute('href'), '/work/airforge/');
   await page.keyboard.press('ArrowDown');
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('href')), '/work/recall-ai/');
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('href')), '/work/airforge/');
   await page.keyboard.press('Enter');
-  await page.waitForURL('**/work/recall-ai/');
-  assert.equal(await page.locator('h1').textContent(), 'Recall');
+  await page.waitForURL('**/work/airforge/');
+  assert.equal(await page.locator('h1').textContent(), 'AirForge');
   assert.deepEqual(errors, []);
   await context.close();
 });
@@ -127,22 +127,22 @@ test('the index locks the background and releases scrolling before an in-page li
 });
 
 test('project search combines with themes, survives reload, and resets an empty result', async () => {
-  const { page, context, errors } = await open('/work/?theme=developer-tools&q=python');
-  assert.deepEqual(await visibleProjects(page), ['recall-ai']);
-  assert.equal(await page.locator('[data-work-search]').inputValue(), 'python');
+  const { page, context, errors } = await open('/work/?theme=developer-tools&q=git');
+  assert.deepEqual(await visibleProjects(page), ['shipgate']);
+  assert.equal(await page.locator('[data-work-search]').inputValue(), 'git');
   assert.equal(await page.locator('[data-count]').textContent(), '01');
   await page.locator('[data-filter="physics-software"]').click();
   assert.deepEqual(await visibleProjects(page), []);
   assert.equal(await page.locator('[data-work-empty]').isVisible(), true);
   await page.locator('[data-clear-work]').click();
-  assert.equal((await visibleProjects(page)).length, 8);
+  assert.equal((await visibleProjects(page)).length, 3);
   assert.equal(new URL(page.url()).search, '');
   await page.locator('[data-work-search]').fill('TypeScript React');
-  assert.deepEqual(await visibleProjects(page), ['airforge', 'spanforge', 'localpulse']);
+  assert.deepEqual(await visibleProjects(page), ['airforge']);
   await page.reload({ waitUntil: 'networkidle' });
-  assert.deepEqual(await visibleProjects(page), ['airforge', 'spanforge', 'localpulse']);
+  assert.deepEqual(await visibleProjects(page), ['airforge']);
   await page.locator('[data-clear-search]').click();
-  assert.equal((await visibleProjects(page)).length, 8);
+  assert.equal((await visibleProjects(page)).length, 3);
   assert.equal(await page.locator('[data-work-search]').evaluate(el => el === document.activeElement), true);
   assert.deepEqual(errors, []);
   await context.close();
@@ -154,7 +154,7 @@ test('browser history restores filters and saved views keep matching rows', asyn
   await page.locator('[data-filter="physics-software"]').click();
   await page.goBack();
   assert.equal(await page.locator('[data-filter="ai-systems"]').getAttribute('aria-pressed'), 'true');
-  assert.equal((await visibleProjects(page)).length, 4);
+  assert.equal((await visibleProjects(page)).length, 1);
   await page.goForward();
   assert.deepEqual(await visibleProjects(page), ['airforge']);
   await page.locator('button[data-work-view="grid"]').click();
@@ -225,12 +225,12 @@ test('the HTML-first portfolio remains readable with JavaScript disabled', async
   const { page, context } = await open('/', { width: 390, javaScriptEnabled: false });
   assert.equal(await page.locator('h1').textContent(), 'Aakash Dahal');
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
-  assert.equal(await page.locator('[data-studio-pick]').count(), 8);
-  assert.equal(await page.locator('article.work-card').count(), 8);
+  assert.equal(await page.locator('[data-studio-pick]').count(), 3);
+  assert.equal(await page.locator('article.work-card').count(), 3);
   assert.equal(await page.locator('#about').count(), 1);
   assert.equal(await page.locator('#contact').count(), 1);
   assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
-  for (const slug of ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']) {
+  for (const slug of ['agentcrucible', 'airforge', 'shipgate']) {
     const href = `/work/${slug}/`;
     assert.ok(await page.locator(`a[href="${href}"]`).count() >= 1, href);
     assert.equal((await page.request.get(site.origin + href)).status(), 200, href);
@@ -240,7 +240,7 @@ test('the HTML-first portfolio remains readable with JavaScript disabled', async
     assert.equal(await page.locator(`${sel}:visible`).count(), 0, `${sel} must not offer a dead control without JavaScript`);
   }
   await page.locator('#work-list a[href="/work/"]').click();
-  assert.equal((await visibleProjects(page)).length, 8);
+  assert.equal((await visibleProjects(page)).length, 3);
   assert.equal(await page.locator('.work-toolbar').isVisible(), false);
   assert.equal(await page.locator('.filters').isVisible(), false);
   await context.close();
