@@ -342,10 +342,15 @@ async function select(page, projectIndex) {
     assert.equal(await page.locator('[data-studio-picker]').evaluate(el => el === document.activeElement), true);
   }
   const slug = await page.evaluate(() => SkyStudio.slug());
-  const details = page.locator(`#project-${slug} details.studio-model`);
-  if (await details.count()) {
-    await details.evaluate(node => { node.open = true; });
-    await page.locator(`#project-${slug} .lab-controls`).waitFor({ state: 'visible' });
+  const card=page.locator(`#project-${slug}`);
+  const view=card.locator('[data-studio-view-pick="illustration"]');
+  if(await view.count() && await view.getAttribute('aria-pressed')!=='true') await view.click();
+  const details=card.locator('details.studio-model');
+  if(await details.count()) {
+    if(!await details.evaluate(node=>node.open)) await details.locator('summary').click();
+    await card.locator('.scene-drawing').waitFor({state:'visible'});
+    if(slug==='airforge') await card.locator('.physics-ball').waitFor({state:'visible'});
+    await card.locator('.lab-controls').waitFor({state:'visible'});
   }
 }
 

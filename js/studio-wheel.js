@@ -186,10 +186,10 @@
       var el = wheelWindow || root;
       if (!el.getBoundingClientRect || !view) return true;
       var rect = el.getBoundingClientRect();
-      if (!rect.width && !rect.height) return true;
+      if (rect.width <= 0 || rect.height <= 0) return false;
       var vw = view.innerWidth || 0;
       var vh = view.innerHeight || 0;
-      if (!vw || !vh) return true;
+      if (!vw || !vh) return false;
       return rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
     }
 
@@ -618,8 +618,8 @@
       position: function () { return position; },
       settled: function () {
         // A settled spring can still have a queued resize observation.
-        var measured = (wheelWindow || root).clientHeight;
-        if (measured > 0 && Math.abs(measured - height) >= 1) return false;
+        var measured = (wheelWindow || root).getBoundingClientRect().height;
+        if (visible && geometricallyVisible() && measured > 0 && Math.abs(measured - height) >= 1) return false;
         return !motion && !snapTimer && !drag && Math.abs(position - goal) <= SPRING.epsilon && Math.abs(velocity) <= SPRING.velocityEpsilon;
       },
       refresh: refresh,

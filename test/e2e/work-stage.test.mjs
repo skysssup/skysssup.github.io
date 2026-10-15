@@ -425,21 +425,23 @@ test('wheel selection follows visible position and a button cancels an unfinishe
   await page.waitForTimeout(180);
   assert.equal(await page.evaluate(() => SkyStudio.selected()), picked, 'an old wheel timeout cannot replace button input');
   assert.ok(picked <= ((beforeButton % 10) + 10) % 10 + 1, 'previous input reverses the unfinished gesture');
-  await page.evaluate(() => {
+  const hiddenRequest = await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, get() { return true; } });
     document.dispatchEvent(new Event('visibilitychange'));
     SkyStudio.select(4);
+    return SkyStudio.settled() && SkyStudio.selected()===4 && SkyStudio.slug()==='recall-ai';
   });
-  assert.equal(await page.evaluate(() => SkyStudio.settled() && SkyStudio.selected() === 4 && SkyStudio.slug() === 'recall-ai'), true);
-  await page.evaluate(() => {
+  assert.equal(hiddenRequest,true);
+  const offscreenRequest = await page.evaluate(() => {
     delete document.hidden;
     document.dispatchEvent(new Event('visibilitychange'));
     const node = document.querySelector('.studio-wheel-window');
     node.style.position = 'fixed';
     node.style.top = '-5000px';
     SkyStudio.select(6);
+    return SkyStudio.settled() && SkyStudio.slug()==='localpulse';
   });
-  assert.equal(await page.evaluate(() => SkyStudio.settled() && SkyStudio.slug() === 'localpulse'), true);
+  assert.equal(offscreenRequest,true,'hidden requests commit before a queued layout observation');
   assert.deepEqual(errors, []);
   await context.close();
 });
