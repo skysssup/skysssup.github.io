@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scenes } from './scenes.mjs';
 import { labControls } from './labs.mjs';
+import { studioBody } from './studio.mjs';
 import { headerMark, favicon } from './mark.mjs';
 
 const SRC = path.dirname(fileURLToPath(import.meta.url));
@@ -24,7 +25,7 @@ const md = s => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}">${t}</a>`);
 const year = 2026;
-const ASSET_VERSION = 'experience-6';
+const ASSET_VERSION = 'studio-1';
 const ARROW = '&nbsp;<span class="ext" aria-hidden="true">↗</span>';
 const UP = '&nbsp;<span aria-hidden="true">↑</span>';
 const OPEN = '&nbsp;<span class="go" aria-hidden="true">→</span>';
@@ -34,7 +35,7 @@ const DOWN = '&nbsp;<span aria-hidden="true">↓</span>';
 const SEARCH = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
 const NEXT = '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg>';
 
-function head({ title, description, url, image, imageAlt, type = 'website', boot = '', extra = '' }) {
+function head({ title, description, url, image, imageAlt, type = 'website', boot = '', extra = '', studio = false }) {
   return `<!DOCTYPE html>
 <html lang="en" data-polished>
 <head>
@@ -63,13 +64,10 @@ function head({ title, description, url, image, imageAlt, type = 'website', boot
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=${ASSET_VERSION}" sizes="180x180">
 <link rel="preload" href="/assets/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+${studio ? '<link rel="preload" href="/assets/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>' : ''}
 <script>${BOOT}${boot}</script>
 <link rel="stylesheet" href="/css/site.css?v=${ASSET_VERSION}">
-<link rel="stylesheet" href="/css/polish.css?v=${ASSET_VERSION}">
-<link rel="stylesheet" href="/css/craft.css?v=${ASSET_VERSION}">
-<link rel="stylesheet" href="/css/finish.css?v=${ASSET_VERSION}">
-<link rel="stylesheet" href="/css/reading.css?v=${ASSET_VERSION}">
-<link rel="stylesheet" href="/css/experience.css?v=${ASSET_VERSION}">
+${(studio ? ['studio'] : ['polish','craft','finish','reading','experience']).map(name=>`<link rel="stylesheet" href="/css/${name}.css?v=${ASSET_VERSION}">`).join('\n')}
 <link rel="stylesheet" href="/css/lab-controls.css?v=${ASSET_VERSION}">
 ${extra}</head>`;
 }
@@ -177,65 +175,10 @@ function cover(p, sizes, priority = '') {
 const vt = p => ` class="vt" style="view-transition-name: t-${p.slug}"`;
 
 /* ── home ─────────────────────────────────────────── */
-const PROJECT_MARKS = ["<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4 18.4 5.6\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m3 17 8-11 10 11H3ZM3 21h18M11 6v11\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 8 4v6c0 4-4 7-8 9-4-2-8-5-8-9V7l8-4Z\"/><path d=\"m8 12 3 3 5-6\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M19 8a8 8 0 1 0 1 7M19 3v5h-5\"/><path d=\"M12 7v6l4 2\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M3 10h12M7 15h14M11 20h10\"/><path d=\"M3 3v4M7 8v4M11 13v4M15 18v4\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 12h4l3-7 5 14 3-7h5\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 3h10l4 4v14H5Z\"/><path d=\"M15 3v5h4M8 12h8M8 16h6\"/></svg>","<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 9 16H3L12 3ZM12 3v16M3 19l13-9M21 19 8 10\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/></svg>"];
 
 function home() {
   const jsonld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, url: site.origin + '/', email: 'mailto:' + site.email, sameAs: [`https://github.com/${site.github}`, `https://x.com/${site.x}`], description: site.bio };
-  return `${head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` })}
-<body class="page-home">
-<canvas class="scroll-field" data-scroll-field aria-hidden="true"></canvas>
-<nav class="scroll-waypoints" aria-label="Page sections"><span class="waypoint-line" aria-hidden="true"></span><a href="#hero" aria-label="Avatar"><span aria-hidden="true"></span><b>Avatar</b></a><a href="#work-list" aria-label="Work"><span aria-hidden="true"></span><b>Work</b></a><a href="#contact" aria-label="Contact"><span aria-hidden="true"></span><b>Contact</b></a></nav>
-<div class="fx-flash" aria-hidden="true"></div>
-${header('home')}
-<main id="main">
-  <section class="hero" id="hero" aria-labelledby="hero-name"><canvas class="hero-presence" data-presence="hero" aria-hidden="true"></canvas>
-    <div class="row">
-      <h1 class="vh" id="hero-name">Aakash Dahal</h1>
-      <div class="hero-figure" id="figure" role="img" aria-label="Hermes, my GitHub avatar, rendered in gold and marble particles.">
-        <div class="still" aria-hidden="true"></div>
-      </div>
-      <div class="hero-links"><a class="link-ui" href="#work-list">Selected work <span class="go" aria-hidden="true">↓</span></a><a class="link-ui" href="https://github.com/${site.github}">GitHub${ARROW}</a></div>
-    </div>
-  </section>
-
-  <section class="workbench" id="work-list" aria-labelledby="work-title" data-workbench>
-    <div class="bench-title"><h2 id="work-title">Selected work</h2><div class="bench-options"><button type="button" class="bench-live" data-bench-live aria-pressed="true">Pause examples <span aria-hidden="true">Ⅱ</span></button><a class="link-ui" href="/work/">All projects${OPEN}</a></div></div>
-    <div class="bench-body"><canvas class="bench-presence" data-presence="work" aria-hidden="true"></canvas><canvas class="bench-connections" data-bench-connections aria-hidden="true"></canvas>
-      <nav class="project-orbit" aria-label="Select a project" data-orbit>
-        <canvas class="orbit-lattice" aria-hidden="true"></canvas>
-        <div class="orbit-window"><ol class="home-work">
-${projects.map((p, i) => `          <li class="orbit-item" data-orbit-item><button type="button" class="project-pick" disabled data-work-pick="${i}" aria-pressed="${i === 0}" aria-controls="project-${p.slug}"><span class="orbit-index">${pad(i + 1)}</span><span class="orbit-symbol" aria-hidden="true">${PROJECT_MARKS[i]}</span><span class="orbit-name">${esc(p.name)}</span><span class="orbit-status">${esc(p.status)}</span></button><a class="orbit-open" href="/work/${p.slug}/" aria-label="Open ${esc(p.name)}" data-work-link>↗</a></li>`).join('\n')}
-        </ol></div>
-        <div class="orbit-footer"><button type="button" class="orbit-step" aria-label="Previous project" data-orbit-step="-1">↑</button><output data-orbit-count aria-label="Selected project">01 / ${pad(projects.length)}</output><button type="button" class="orbit-step" aria-label="Next project" data-orbit-step="1">↓</button></div>
-      </nav>
-      <div class="work-details" data-work-detail>
-${projects.map((p, i) => { const s = scenes[p.slug]; return `        <article class="work-card${i === 0 ? ' is-on' : ''}" id="project-${p.slug}" data-scene="${p.slug}" aria-hidden="${i !== 0}"${i ? ' inert' : ''}>
-          <div class="scene-stage">
-          <div class="scene-heading"><span>${esc(s.label)}</span><span class="scene-number">${pad(i + 1)} / ${pad(projects.length)}</span></div>
-          <div class="scene-drawing" tabindex="0" role="button" aria-label="Replay ${esc(p.name)} workflow illustration" aria-keyshortcuts="Enter Space" title="Click or press Enter to replay the illustration">${s.svg}</div>
-          ${labControls(p.slug)}
-          <div class="scene-toolbar"><span class="scene-caption">Illustration <span aria-hidden="true">·</span> <span data-scene-status>${esc(s.idle)}</span></span><button type="button" class="scene-action" aria-pressed="false" data-scene-action data-idle-label="Replay example" data-active-label="Reset example">Replay example <span aria-hidden="true">↗</span></button></div>
-          </div>
-          <div class="scene-copy"><div><h3 class="work-card-name">${esc(p.name)}</h3><p class="work-card-role">${esc(p.status)}${DOT}${esc(p.visibility)}</p></div><p class="work-card-desc">${esc(p.summary || p.tagline)}</p><ul class="work-card-stack">${p.stack.map(t => `<li>${esc(t)}</li>`).join('')}</ul><div class="scene-links"><a class="link-ui" href="/work/${p.slug}/">${p.placeholder ? 'Project notes' : 'Case study'}${OPEN}</a>${p.repo ? `<a class="link-ui" href="${p.repo}">Source${ARROW}</a>` : ''}</div></div>
-        </article>`; }).join('\n')}
-      </div>
-    </div>
-    <div class="bench-floor"><span class="bench-category" data-bench-category>${themesOf(projects[0])}</span><div class="bench-keys"><kbd data-echo-key="ArrowUp">↑</kbd><kbd data-echo-key="ArrowDown">↓</kbd><span>Select</span><kbd data-echo-key="Home">Home</kbd><kbd data-echo-key="End">End</kbd></div><a href="#contact" class="link-ui">Email${ARROW}</a></div>
-    <script type="application/json" id="workbench-data">${JSON.stringify(projects.map(p => ({slug:p.slug, name:p.name, category:themesOf(p), scene: { idle: scenes[p.slug].idle, steps: scenes[p.slug].steps, points: scenes[p.slug].points, inspect: scenes[p.slug].inspect } }))).replace(/</g, '\u003c')}</script>
-  </section>
-
-  <section class="contact-sheet" id="contact" aria-labelledby="contact-title" data-reveal>
-    <div class="contact-heading"><h2 id="contact-title">Contact</h2><p data-contact-note>Email reaches me fastest.</p></div>
-    <div class="contact-mail-row"><a class="contact-address" href="mailto:${site.email}"><span data-email-text>${site.email}</span><span aria-hidden="true">↗</span></a><button class="copy contact-copy" type="button" aria-label="Copy email address" data-copy="${site.email}"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><g class="copy-paper"><path d="M7 6V3h10v10h-3M3 7h10v10H3Z"/></g><path class="copy-check" d="m4 10 4 4 8-9"/></svg><span data-copy-label>Copy</span></button></div>
-    <nav class="contact-social" aria-label="Elsewhere"><a href="https://github.com/${site.github}">GitHub <span aria-hidden="true">↗</span></a><a href="https://x.com/${site.x}">X <span aria-hidden="true">↗</span></a></nav>
-  </section>
-</main>
-${footer()}
-<span class="vh" aria-live="polite" data-announce></span>
-${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/blackhole.js', '/js/hero.js', '/js/page.js', '/js/lab-controls.js', '/js/workbench.js', '/js/scroll-field.js', '/js/presence.js'])}
-</body>
-</html>
-`;
+  return head({ title: 'Aakash Dahal', description: site.bio, url: '/', image: '/assets/og/home.png', imageAlt: 'Aakash Dahal: developer tools and interactive physics software', boot: PREVIEW, studio: true, extra: `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` }) + studioBody({site, projects, scenes, labControls, headerMark, siteIndex, scripts});
 }
 
 /* ── work index ───────────────────────────────────── */
@@ -316,7 +259,7 @@ function evidenceOf(p) {
       </section>
 ${noteDiagram(p)}      <section id="status" aria-labelledby="status-title">
         <h2 id="status-title">Status</h2>
-        <p>${esc(p.status)}. ${p.repo ? `<a href="${p.repo}">Source on GitHub</a>.` : 'Private repository.'}</p>
+        <p>${esc(p.status)}. ${p.repo ? `<a href="${p.repo}">Source on GitHub</a>.` : esc(p.sourceNote || 'Private repository') + '.'}</p>
       </section>`;
   const numbers = `          <dl><div><dt>${esc(p.status)}</dt><dd>Status</dd></div><div><dt>${esc(p.visibility)}</dt><dd>Repository</dd></div></dl>`;
   return { prose, numbers, sections: [['problem', 'Overview'], ...(NOTE_FLOWS[p.slug] ? [['how', 'Workflow illustration']] : []), ['status', 'Status']] };
@@ -342,7 +285,7 @@ function caseStudy(p, i) {
   const toc = body.sections;
   const repoRow = p.repo
     ? `<dt class="t-label">Code</dt><dd><a href="${p.repo}">github.com/${site.github}/${p.slug}</a>${ARROW}</dd>`
-    : `<dt class="t-label">Code</dt><dd>Private repository</dd>`;
+    : `<dt class="t-label">Code</dt><dd>${esc(p.sourceNote || 'Private repository')}</dd>`;
   const lead = p.lead;
   const leadFig = lead
     ? `<figure class="fig c2-4">

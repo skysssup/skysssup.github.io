@@ -45,7 +45,14 @@ test('titles and descriptions are unique per page', () => {
 });
 
 test('each page has exactly one h1, a skip link to main, and landmarks', () => {
+  const home = html['index.html'];
+  assert.equal((home.match(/<h1[\s>]/g) || []).length, 1, 'index.html h1 count');
+  assert.match(home, /<a class="skip" href="#main">/);
+  assert.match(home, /<main\b[^>]*id="main"/);
+  assert.match(home, /<header class="site-header\b/);
+  assert.match(home, /<footer class="studio-status">/);
   for (const [p, doc] of Object.entries(html)) {
+    if (p === 'index.html') continue;
     assert.equal((doc.match(/<h1[\s>]/g) || []).length, 1, `${p} h1 count`);
     assert.match(doc, /<a class="skip" href="#main">/, p);
     assert.match(doc, /<main id="main">/, p);
@@ -80,15 +87,18 @@ test('images have alt text and dimensions; videos are muted, inline, labelled, a
   }
 });
 
-test('the header and footer are identical on every page apart from the current-page marker', () => {
+test('the header and footer are identical on every non-home page apart from the current-page marker', () => {
   const part = (doc, tag) => doc.match(new RegExp(`<${tag} class="site-${tag}">[\\s\\S]*?</${tag}>`))[0].replace(/ aria-current="page"/g, '');
-  const header = part(html['index.html'], 'header');
-  const footer = part(html['index.html'], 'footer');
+  const header = part(html['work/index.html'], 'header');
+  const footer = part(html['work/index.html'], 'footer');
   for (const [p, doc] of Object.entries(html)) {
+    if (p === 'index.html') continue;
     assert.equal(part(doc, 'header'), header, `${p} header`);
     assert.equal(part(doc, 'footer'), footer, `${p} footer`);
   }
   assert.match(html['work/index.html'], /<a href="\/work\/" aria-current="page">Work<\/a>/);
+  assert.notEqual(html['index.html'].match(/<header class="site-header[^"]*">[\s\S]*?<\/header>/)[0], header);
+  assert.doesNotMatch(html['index.html'], /<footer class="site-footer">/);
 });
 
 test('case studies retain their authored sections or concise project notes, stack, and code link', () => {
@@ -97,20 +107,34 @@ test('case studies retain their authored sections or concise project notes, stac
     const sections = fs.existsSync(path.join(root, 'tools/pages/bodies', p.split('/')[1] + '.html')) ? ['problem', 'built', 'how', 'decisions', 'hard', 'status', 'stack'] : ['problem', 'status', 'stack'];
     for (const id of sections) assert.match(doc, new RegExp(`<section id="${id}"`), `${p} #${id}`);
     for (const id of sections) assert.match(doc, new RegExp(`<a href="#${id}">`), `${p} index links #${id}`);
-    assert.match(doc, /<dt class="t-label">Code<\/dt><dd>(<a href="https:\/\/github\.com\/skysssup\/[a-z-]+">|Private repository)/, `${p} code link`);
+    assert.match(doc, /<dt class="t-label">Code<\/dt><dd>(<a href="https:\/\/github\.com\/skysssup\/[a-z-]+">|Private repository|Public repository link unavailable)/, `${p} code link`);
     assert.match(doc, /<nav class="row pager" aria-label="More projects">/, p);
   }
 });
 
 test('the work index lists every case study once, and the home page lists each one', () => {
+  const order = ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao'];
   const listed = [...html['work/index.html'].matchAll(/<h2><a href="\/work\/([a-z-]+)\/"[^>]*>/g)].map(m => m[1]);
   assert.deepEqual([...listed].sort(), caseStudies.map(p => p.split('/')[1]).sort());
-  const home = [...html['index.html'].matchAll(/<ol class="home-work">([\s\S]*?)<\/ol>/g)][0][1];
-  const slugs = [...home.matchAll(/<a\b[^>]*href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]);
+  const home = html['index.html'];
+  const slugs = [...home.matchAll(/<article class="studio-panel work-card" id="project-([a-z-]+)"/g)].map(m => m[1]);
+  assert.deepEqual(slugs, order);
   assert.deepEqual([...slugs].sort(), caseStudies.map(p => p.split('/')[1]).sort());
-  assert.deepEqual(slugs, ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']);
-  assert.doesNotMatch(html['index.html'], /Work by theme/);
-  for (const slug of slugs) assert.ok(fs.existsSync(resolve('/work/' + slug + '/')));
+  for (const slug of slugs) {
+    const card = home.match(new RegExp(`<article class="studio-panel work-card" id="project-${slug}"[\\s\\S]*?</article>`))[0];
+    assert.deepEqual([...card.matchAll(/href="\/work\/([a-z-]+)\/"/g)].map(m => m[1]), [slug], `${slug} link`);
+    assert.ok(fs.existsSync(resolve('/work/' + slug + '/')), slug);
+  }
+  assert.match(home, /data-studio-panel="about"/);
+  assert.match(home, /data-studio-panel="contact"/);
+  assert.match(home, /href="mailto:hello@aakashdahal\.fun"/);
+  assert.match(home, /<p data-contact-note>Email reaches me fastest\.<\/p>/);
+  assert.equal((home.match(/<details class="studio-model">/g) || []).length, order.length);
+  assert.equal((home.match(/<details class="studio-model" open>/g) || []).length, 0);
+  const data = JSON.parse(home.match(/<script type="application\/json" id="studio-data">([^<]+)<\/script>/)[1]);
+  assert.deepEqual(data.map(entry => entry.slug), ['about', ...order, 'contact']);
+  assert.equal((home.match(/data-studio-pick="/g) || []).length, 10);
+  assert.doesNotMatch(home, /Work by theme|ol class="home-work"|data-workbench|data-presence|data-scroll-field|SkyWorkbench|SkyPresence|SkyScrollField/);
 });
 
 test('copy avoids marketing filler and shouting', () => {

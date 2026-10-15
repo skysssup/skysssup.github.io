@@ -930,5 +930,5 @@
     };
   }
 
-  return { model: model, controls: { mount: mount } };
+  return { model: model, controls: { mount: mount, previewRamp: simulateRamp } };
 });

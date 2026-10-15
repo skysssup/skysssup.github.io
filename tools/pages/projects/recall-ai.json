@@ -1,8 +1,8 @@
 {
  "slug": "recall-ai",
  "name": "Recall",
- "visibility": "Public",
- "repo": "https://github.com/skysssup/recall-ai",
+ "visibility": "Unavailable",
+ "repo": null,
  "themes": [
   "developer-tools"
  ],
@@ -18,5 +18,6 @@
  "summary": "Local-first spaced repetition for algorithm practice, with SQLite scheduling and optional LeetCode result capture.",
  "placeholder": true,
  "cover": null,
- "lead": null
+ "lead": null,
+ "sourceNote": "Public repository link unavailable"
 }

@@ -22,6 +22,9 @@ test('compact lab controls change the workbench drawings', {
       const page = await open(browser, site.origin, { width: 1440, height: 900, reduced: true });
       try {
         const order = await slugs(page);
+        assert.deepEqual(order, ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']);
+        assert.equal(await page.locator('details.studio-model[open]').count(), 0);
+        assert.equal(await page.locator('#project-airforge input[data-lab-control]').isVisible(), false);
         const originals = {};
         const defaults = {};
         for (const slug of order) {
@@ -139,11 +142,16 @@ test('compact lab controls change the workbench drawings', {
         await select(page, order.indexOf('shipgate'));
         await select(page, order.indexOf('airforge'));
         assert.deepEqual(await controlValues(page, 'airforge'), defaults.airforge, 'leaving AirForge resets its controls');
-        assert.deepEqual(await readCard(page, 'airforge').then(card => [card.ball.cx, card.ball.cy, card.ball.transform, card.ball.style]), [originals.airforge.ball.cx, originals.airforge.ball.cy, originals.airforge.ball.transform, originals.airforge.ball.style]);
+        const landing = await page.evaluate(() => window.SkyLabControls.previewRamp(30).samples.at(-1).map(String));
+        const returned = await readCard(page, 'airforge');
+        assert.deepEqual([returned.ball.cx, returned.ball.cy], landing, 'returning to AirForge paints the 30° ramp sample, not the edited pose');
+        assert.equal(returned.ball.transform, originals.airforge.ball.transform);
         assert.equal(await page.evaluate(() => window.__labs.airforge.activated()), false, 'AirForge deactivates on selection reset');
         await select(page, order.indexOf('shipgate'));
         assert.deepEqual(await controlValues(page, 'shipgate'), defaults.shipgate, 'leaving Shipgate clears the staged diff');
-        assert.deepEqual((await readCard(page, 'shipgate')).routes, originals.shipgate.routes);
+        const shipReturned = await readCard(page, 'shipgate');
+        assert.deepEqual(shipReturned.routes.map(route => ({ d: route.d, text: route.text, hidden: route.hidden })), originals.shipgate.routes.map(route => ({ d: route.d, text: route.text, hidden: route.hidden })));
+        assert.ok(shipReturned.routes.every(route => route.opacity === '1'), 'the preview restores route geometry and paints the finished opacity');
         assert.equal(await page.evaluate(() => window.__labs.shipgate.activated()), false);
 
         await select(page, order.indexOf('airforge'));
@@ -189,13 +197,19 @@ test('compact lab controls change the workbench drawings', {
         await frames(page, 8);
         assert.deepEqual((await readCard(page, 'airforge')).ball, hidden, 'hidden tab holds the ball');
         await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
-        await page.setViewportSize({ width: 1440, height: 480 });
-        await page.locator('#contact').scrollIntoViewIfNeeded();
+        // A short scrollport lets the real controls below the drawing move it fully out of view.
+        await page.setViewportSize({ width: 1440, height: 300 });
+        await page.evaluate(() => {
+          const panel = document.getElementById('project-airforge');
+          const drawing = panel.querySelector('.scene-drawing');
+          panel.scrollTop = drawing.offsetTop + drawing.offsetHeight + panel.clientHeight;
+        });
         await page.waitForFunction(() => window.__labs.airforge.snapshot().paused);
         const offscreen = (await readCard(page, 'airforge')).ball;
         await frames(page, 8);
         assert.deepEqual((await readCard(page, 'airforge')).ball, offscreen, 'offscreen drawing holds the ball');
-        await page.locator('#project-airforge .scene-drawing').scrollIntoViewIfNeeded();
+        await page.setViewportSize({ width:1440,height:900 });
+        await page.evaluate(() => { document.getElementById('project-airforge').scrollTop = 0; });
         await page.waitForFunction(() => !window.__labs.airforge.snapshot().paused);
         assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
       } finally { await page.context().close(); }
@@ -298,25 +312,41 @@ async function open(browser, origin, options) {
   });
   const page = await context.newPage();
   page.on('pageerror', error => page.evaluate(message => window.__pageErrors.push(message), String(error)).catch(() => {}));
-  await page.goto(origin + '/#work-list', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.querySelector('.workbench.is-ready') && window.SkyWorkbench && window.SkyLabControls);
+  await page.goto(origin + '/#about', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('[data-studio].is-ready') && window.SkyStudio && window.SkyLabControls && window.SkyLabControls.previewRamp);
   return page;
 }
 
 async function slugs(page) {
-  return page.evaluate(() => JSON.parse(document.getElementById('workbench-data').textContent).map(row => row.slug));
+  return page.evaluate(() => JSON.parse(document.getElementById('studio-data').textContent).map(row => row.slug).filter(slug => slug !== 'about' && slug !== 'contact'));
 }
 
-async function select(page, index) {
-  const current = page.locator('[data-work-pick][aria-pressed="true"]');
-  await current.focus();
-  await current.press('Home');
+async function select(page, projectIndex) {
+  const index = projectIndex + 1;
+  const width = page.viewportSize().width;
+  if (width <= 600) {
+    const picker = page.locator('[data-studio-picker]');
+    if (await picker.getAttribute('aria-expanded') !== 'true') await picker.click();
+  }
+  await page.locator('[data-studio-pick][aria-selected="true"]').focus();
+  await page.keyboard.press('Home');
   for (let i = 0; i < index; i++) await page.keyboard.press('ArrowRight');
   await page.waitForFunction(index => {
-    const pick = document.querySelector(`[data-work-pick="${index}"]`);
+    const pick = document.querySelector(`[data-studio-pick="${index}"]`);
     const card = document.getElementById(pick.getAttribute('aria-controls'));
-    return window.SkyWorkbench.settled() && card.classList.contains('is-on') && !card.inert;
+    return window.SkyStudio.settled() && pick.getAttribute('aria-selected') === 'true' && card.classList.contains('is-current') && card.classList.contains('is-on') && !card.inert;
   }, index);
+  if (width <= 600) {
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelector('[data-studio-picker]').getAttribute('aria-expanded') === 'false');
+    assert.equal(await page.locator('[data-studio-picker]').evaluate(el => el === document.activeElement), true);
+  }
+  const slug = await page.evaluate(() => SkyStudio.slug());
+  const details = page.locator(`#project-${slug} details.studio-model`);
+  if (await details.count()) {
+    await details.evaluate(node => { node.open = true; });
+    await page.locator(`#project-${slug} .lab-controls`).waitFor({ state: 'visible' });
+  }
 }
 
 async function readCard(page, slug) {

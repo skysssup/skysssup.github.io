@@ -27,9 +27,11 @@ test('the main avatar stays large and animates without pointer distortion', asyn
   await page.locator('#figure.is-live').waitFor();
   await page.waitForTimeout(700);
   const figure = page.locator('#figure');
+  const frame = await page.locator('#hero').boundingBox();
   const bounds = await figure.boundingBox(), draws = await page.evaluate(() => window.portraitDraws);
   const before = await figure.screenshot();
-  assert.ok(bounds.width > 600, 'the main portrait must remain prominent');
+  assert.ok(Math.abs(frame.width - 535) <= 1 && Math.abs(frame.height - 301) <= 1, `portrait frame is ${frame.width}×${frame.height}, expected 535×301`);
+  assert.ok(Math.abs(bounds.width - (frame.width-2)) <= 1 && Math.abs(bounds.height - (frame.height-2)) <= 1, 'the figure fills its frame');
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.down();
   await page.mouse.move(bounds.x + bounds.width * .8, bounds.y + bounds.height * .7, { steps: 15 });
@@ -51,6 +53,17 @@ test('the main avatar stays large and animates without pointer distortion', asyn
   assert.equal(await page.locator('.fx-ring, .ember-trail').count(), 0);
   await page.locator('[data-lamp]').click();
   await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light');
+  const opener = page.locator('[data-studio-zoom="about"]');
+  const beforeViewer = await page.evaluate(() => window.portraitDraws);
+  await opener.click();
+  await page.waitForFunction(() => document.getElementById('studio-viewer').open);
+  assert.equal(await figure.evaluate(el => el.parentElement.classList.contains('studio-viewer-stage') && !!el.querySelector('canvas.hero-dots')), true);
+  const large = await figure.boundingBox();
+  assert.ok(large.width > 600 && large.height > 400, `viewer portrait is ${large.width}×${large.height}`);
+  await page.waitForFunction(n => window.portraitDraws > n, beforeViewer);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.getElementById('studio-viewer').open && document.getElementById('figure').closest('#hero'));
+  await page.waitForFunction(() => document.activeElement === document.querySelector('[data-studio-zoom="about"]'));
   assert.deepEqual(errors, []);
   await context.close();
 });
@@ -88,8 +101,9 @@ test('the actual homepage retains the original light sweep, lightning, full reso
     });
     const page = await context.newPage();
     try {
-    await page.goto(site.origin);
+    await page.goto(site.origin + '/#about');
     await page.locator('#figure.is-live').waitFor();
+    await page.waitForFunction(() => window.SkyStudio?.slug() === 'about');
     await page.waitForFunction(() => window.avatarEffects.sweep, null, { timeout: 18000 });
     assert.equal(await page.evaluate(() => window.avatarEffects.dpr), 2, 'retain the original high-density raster');
     await page.locator('[data-gear-toggle]').click();
@@ -152,19 +166,60 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
     const page = await context.newPage();
     await page.goto(site.origin);
     await page.locator('#figure.is-live').waitFor();
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    assert.equal(await page.locator('.workbench img').count(), 0);
+    await page.waitForFunction(() => window.SkyStudio?.settled());
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 0), true);
+    assert.equal(await page.locator('.workbench img, [data-scroll-field], .scroll-waypoints').count(), 0);
+    const shell = await page.locator('[data-studio]').boundingBox();
+    const header = await page.locator('.studio-header').boundingBox();
+    const footer = await page.locator('.studio-status').boundingBox();
+    assert.ok(Math.abs(header.height - 78) <= 1, `header ${header.height}`);
+    assert.ok(Math.abs(footer.height - 46) <= 1, `footer ${footer.height}`);
+    if (width === 1440) {
+      const editor = await page.locator('.studio-editor').boundingBox();
+      const wheel = await page.locator('[data-studio-wheel]').boundingBox();
+      assert.ok(Math.abs(shell.width - 1008) <= 1 && Math.abs(shell.x - 216) <= 1, `shell ${shell.width} at ${shell.x}`);
+      assert.ok(Math.abs(wheel.width - 230) <= 1, `wheel ${wheel.width}`);
+      assert.ok(Math.abs(editor.height - 579) <= 1, `editor ${editor.height}`);
+    }
+    if (width === 768) {
+      assert.ok(Math.abs(shell.width - 728) <= 1, `tablet shell ${shell.width}`);
+      assert.match(await page.locator('.studio-editor').evaluate(el => getComputedStyle(el).gridTemplateColumns), /230px/);
+    }
+    if (width <= 600) {
+      assert.equal(await page.getAttribute('[data-studio-picker]', 'aria-expanded'), 'false');
+      assert.equal(await page.locator('[data-studio-wheel]').evaluate(el => getComputedStyle(el).visibility), 'hidden');
+      await page.locator('[data-studio-picker]').click();
+      await page.waitForFunction(() => document.querySelector('[data-studio-picker]').getAttribute('aria-expanded') === 'true');
+      assert.equal(await page.locator('[data-studio-wheel]').evaluate(el => getComputedStyle(el).visibility), 'visible');
+    }
     if (process.env.POLISH_SHOTS) {
       fs.mkdirSync(process.env.POLISH_SHOTS, { recursive: true });
       await page.screenshot({ path: path.join(process.env.POLISH_SHOTS, `home-${width}.png`), fullPage: true });
     }
-    const first = page.locator('[data-work-pick]').first();
-    await first.focus();
-    await page.keyboard.press('ArrowDown');
-    assert.equal(await page.locator('.work-card.is-on h3').innerText(), 'AirForge');
+    await page.locator('[data-studio-pick][aria-selected="true"]').focus();
+    for (let step = 0; step < 8 && await page.evaluate(() => window.SkyStudio.slug()) !== 'airforge'; step++) {
+      await page.keyboard.press('ArrowDown');
+      await page.waitForFunction(() => window.SkyStudio.settled());
+    }
+    await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'airforge');
+    assert.equal(await page.locator('#studio-pick-airforge').getAttribute('aria-selected'), 'true');
+    if (width <= 600) {
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => document.querySelector('[data-studio-picker]').getAttribute('aria-expanded') === 'false');
+    }
+    await page.locator('[data-studio-panel="airforge"] [data-studio-view-pick="illustration"]').click();
+    const replay = page.locator('[data-studio-panel="airforge"] [data-scene-action]');
+    const zoom = page.locator('[data-studio-panel="airforge"] [data-studio-zoom]');
+    await replay.click();
+    assert.equal(await page.locator('#studio-viewer').evaluate(el => el.open), false, 'Replay is not the artwork zoom');
+    await zoom.click();
+    await page.waitForFunction(() => document.getElementById('studio-viewer').open);
+    assert.equal(await page.locator('#studio-viewer svg').count(), 1);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('studio-viewer').open);
     const a11y = await new AxeBuilder({ page }).analyze();
     assert.deepEqual(a11y.violations.map(v => v.id), []);
-    await page.locator('.work-card.is-on .scene-links a').first().click();
+    await page.locator('[data-studio-panel="airforge"].is-current .scene-links a[href="/work/airforge/"]').click();
     await page.waitForURL('**/work/airforge/');
     assert.equal(await page.locator('h1').innerText(), 'AirForge');
     await context.close();

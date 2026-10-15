@@ -83,6 +83,12 @@ test('content rails stay inside the viewport across pages and screen sizes', asy
   for (const url of PAGES) for (const [width, height] of WIDTHS) {
     const { page, context } = await open(url, { width, height, touch: width < 768 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, url + ' ' + width);
+    if (url === '/' && (width === 1440 || width === 768)) {
+      const studio = await page.locator('[data-studio]').boundingBox();
+      const expected = width === 1440 ? 1008 : width - 40;
+      assert.ok(Math.abs(studio.width - expected) <= 1, `studio shell ${width} is ${studio.width}, expected ${expected}`);
+      if (width === 1440) assert.ok(Math.abs(studio.x - 216) <= 1, `studio shell x is ${studio.x}`);
+    }
     const rails = await page.locator('.row, .workbench, .contact-sheet').evaluateAll(elements => elements.filter(el => el.getBoundingClientRect().width > 0).map(el => { const box = el.getBoundingClientRect(); return {left:box.left,right:box.right}; }));
     for (const box of rails) assert.ok(box.left >= -1 && box.right <= width + 1, url + ' ' + width + ' content rail');
     await context.close();
@@ -95,6 +101,7 @@ test('below the header, nothing is boxed on four sides except the panel, the dia
     if (view === 'grid') await page.click('button[data-work-view="grid"]');
     const boxed = await page.evaluate(() => [...document.querySelectorAll('main *, .site-footer *')].filter(el => {
       if (el.closest('.panel, dialog, .btn, .scene-drawing') || el.matches('input, select, textarea, button, kbd')) return false;
+      if (location.pathname === '/' && el.closest('.studio-art-frame, [data-studio-wheel], .studio-status')) return false;
       const cs = getComputedStyle(el);
       return cs.display !== 'none' && ['Top', 'Right', 'Bottom', 'Left'].every(side => parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== 'none' && cs[`border${side}Color`] !== 'rgba(0, 0, 0, 0)');
     }).map(el => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`));
@@ -168,7 +175,9 @@ test('the AirForge demo loads only on request, by keyboard, framed without camer
 
 test('avatar effects settle and appearances persist independently of light mode', async () => {
   const { page, context, problems } = await open('/', { mode: 'dark' });
-  for (const [selector, value] of [['[data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
+  await page.waitForFunction(() => window.SkyStudio?.slug() === 'about');
+  for (const [selector, value] of [['#about [data-gear-toggle]', 'two'], ['[data-gear-blue]', 'blue']]) {
+    if (value === 'blue') await page.waitForURL('**/work/**');
     await page.locator(selector).click();
     await page.waitForFunction(value => document.documentElement.getAttribute('data-gear') === value, value);
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-phase'));
@@ -279,13 +288,13 @@ test('case-study videos play on screen, pause on request, and stay still under r
 
 test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Two instant', async () => {
   const { page, context } = await open('/');
-  await page.waitForTimeout(600);
-  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), true);
+  await page.waitForFunction(() => window.SkyStudio?.settled() && window.SkyStudio.slug() === 'about');
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'hidden');
   await page.click('[data-motion-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
-  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
   assert.equal(await page.getAttribute('[data-motion-toggle]', 'aria-pressed'), 'true');
-  await page.click('[data-gear-toggle]');
+  await page.click('#about [data-gear-toggle]');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-gear')), 'two');
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-phase')), null);
   await page.reload({ waitUntil: 'networkidle' });
@@ -294,6 +303,12 @@ test('reduced motion: the footer toggle stops smooth scrolling and makes Gear Tw
   const os = await open('/', { reduced: true });
   assert.equal(await os.page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
   await os.context.close();
+  const study = await open('/work/agentcrucible/');
+  assert.equal(await study.page.evaluate(() => document.documentElement.classList.contains('lenis')), true);
+  await study.page.click('[data-motion-toggle]');
+  assert.equal(await study.page.evaluate(() => document.documentElement.getAttribute('data-motion')), 'reduced');
+  assert.equal(await study.page.evaluate(() => document.documentElement.classList.contains('lenis')), false);
+  await study.context.close();
 });
 
 test('keyboard: the skip link comes first, and focus is always visible', async () => {
@@ -312,10 +327,15 @@ test('keyboard: the skip link comes first, and focus is always visible', async (
 
 test('the home page keeps every project and a concise contact section', async () => {
   const { page, context, problems } = await open('/');
-  const names = await page.locator('.orbit-name').allTextContents();
-  assert.deepEqual(names, ['AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO']);
+  await page.waitForFunction(() => window.SkyStudio?.settled());
+  const names = await page.locator('.studio-tile-name').allTextContents();
+  assert.deepEqual(names, ['about', 'AgentCrucible', 'AirForge', 'Shipgate', 'Recall', 'Spanforge', 'LocalPulse', 'Ghost Notetaker', 'MoltDAO', 'contact']);
+  assert.equal(await page.locator('header.studio-header').count(), 1);
+  assert.equal(await page.locator('footer.studio-status').count(), 1);
+  assert.equal(await page.locator('header .nav').count(), 0);
   assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
-  await page.locator('#contact').scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.SkyStudio.selectSlug('contact'));
+  await page.waitForFunction(() => window.SkyStudio.settled() && document.getElementById('contact').classList.contains('is-current'));
   assert.equal(await page.locator('[data-contact-note]').innerText(), 'Email reaches me fastest.');
   assert.deepEqual(problems, []);
   await context.close();
@@ -325,6 +345,15 @@ test('contact stays concise and the public page has no rendering or construction
   const { page, context, problems } = await open('/');
   assert.equal((await page.textContent('[data-contact-note]')).replace(/\s+/g, ' '), 'Email reaches me fastest.');
   assert.equal(await page.locator('[data-dial], [data-grid-toggle], [data-hero-telemetry], .essentially').count(), 0);
+  const models = await page.locator('details.studio-model').evaluateAll(nodes => nodes.map(node => ({
+    open: node.open,
+    shown: [...node.querySelectorAll('input, select, textarea, button')].filter(el => el.getClientRects().length > 0).length,
+  })));
+  assert.equal(models.length, 8);
+  for (const model of models) {
+    assert.equal(model.open, false);
+    assert.equal(model.shown, 0);
+  }
   assert.deepEqual(problems, []);
   await context.close();
 });

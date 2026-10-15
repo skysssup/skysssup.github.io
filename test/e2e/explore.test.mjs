@@ -82,8 +82,9 @@ test('the index handles empty search, focus trapping, Escape, and focus restorat
 
 test('the index locks the background and releases scrolling before an in-page link', async () => {
   const { page, context } = await open('/', { reduced: false });
+  await page.waitForFunction(() => window.SkyStudio?.settled());
   await page.locator('[data-index-open]').click();
-  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis-stopped')), true);
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('index-is-open')), true);
   const y = await page.evaluate(() => scrollY);
   await page.mouse.move(80, 400);
   await page.mouse.wheel(0, 700);
@@ -91,8 +92,8 @@ test('the index locks the background and releases scrolling before an in-page li
   assert.equal(await page.evaluate(() => scrollY), y);
   await page.locator('.index-pages a[href="/#contact"]').click();
   await page.waitForFunction(() => !document.documentElement.classList.contains('index-is-open'));
-  await page.waitForFunction(() => scrollY > 500);
-  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('lenis-stopped')), false);
+  await page.waitForFunction(() => window.SkyStudio.settled() && document.getElementById('contact').classList.contains('is-current'));
+  assert.equal(await page.evaluate(() => scrollY), 0);
   await page.locator('[data-index-open]').click();
   await page.locator('[data-index-motion]').click();
   assert.equal(await page.locator('html').getAttribute('data-motion'), 'reduced');
@@ -184,12 +185,14 @@ test('mobile and tablet readers can use the sticky section index without covered
 
 test('copying the email reports success and offers selectable text when permission is denied', async () => {
   const { page, context } = await open('/');
+  await page.evaluate(() => window.SkyStudio.selectSlug('contact'));
+  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'contact');
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.copiedText = text; } } }));
-  await page.locator('[data-copy]').click();
+  await page.locator('#contact [data-copy]').click();
   assert.equal(await page.evaluate(() => window.copiedText), 'hello@aakashdahal.fun');
   assert.equal(await page.locator('[data-copy]').textContent(), 'Copied');
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('Permission denied'); } } }));
-  await page.locator('[data-copy]').click();
+  await page.locator('#contact [data-copy]').click();
   assert.equal(await page.evaluate(() => getSelection().toString()), 'hello@aakashdahal.fun');
   await page.waitForFunction(() => document.querySelector('[data-announce]').textContent.includes('unavailable'));
   await context.close();
@@ -199,9 +202,18 @@ test('the HTML-first portfolio remains readable with JavaScript disabled', async
   const { page, context } = await open('/', { width: 390, javaScriptEnabled: false });
   assert.equal(await page.locator('h1').textContent(), 'Aakash Dahal');
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
-  assert.equal(await page.locator('[data-index-open]').isVisible(), false);
-  assert.equal(await page.locator('dialog').isVisible(), false);
-  await page.locator('.nav a[href="/work/"]').click();
+  assert.equal(await page.locator('[data-studio-item]').count(), 10);
+  assert.equal(await page.locator('[data-studio-panel]').count(), 10);
+  assert.equal(await page.locator('a[href="mailto:hello@aakashdahal.fun"]').count(), 1);
+  for (const slug of ['agentcrucible', 'airforge', 'shipgate', 'recall-ai', 'spanforge', 'localpulse', 'ghost-notetaker', 'moltdao']) {
+    const href = `/work/${slug}/`;
+    assert.ok(await page.locator(`a[href="${href}"]`).count() >= 1, href);
+    assert.equal((await page.request.get(site.origin + href)).status(), 200, href);
+  }
+  for (const sel of ['[data-index-open]', '[data-studio-picker]', 'button[data-studio-zoom]', '[data-studio-zoom][role="button"]', '[data-scene-action]', '[data-gear-toggle]', '[data-motion-toggle]', '[data-lamp]', '[data-copy]', 'dialog']) {
+    assert.equal(await page.locator(`${sel}:visible`).count(), 0, `${sel} must not offer a dead control without JavaScript`);
+  }
+  await page.locator('#about a[href="/work/"]').click();
   assert.equal((await visibleProjects(page)).length, 8);
   assert.equal(await page.locator('.work-toolbar').isVisible(), false);
   assert.equal(await page.locator('.filters').isVisible(), false);
@@ -212,10 +224,10 @@ test('printing from an open index restores the complete page and hides navigatio
   const { page, context } = await open('/');
   await page.locator('[data-index-open]').click();
   await page.emulateMedia({ media: 'print' });
-  assert.equal(await page.locator('dialog').isVisible(), false);
+  assert.equal(await page.locator('#site-index').isVisible(), false);
   assert.equal(await page.locator('.hero-figure .still').isVisible(), true);
   assert.equal(await page.evaluate(() => getComputedStyle(document.body).overflow), 'visible');
-  assert.equal(await page.locator('.contact-sheet').isVisible(), true);
+  assert.equal(await page.locator('[data-studio-panel="contact"]').isVisible(), true);
   await context.close();
 });
 

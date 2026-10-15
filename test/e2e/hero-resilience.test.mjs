@@ -19,10 +19,10 @@ before(async () => {
 });
 after(async () => { await browser?.close(); site?.server.close(); });
 
-// Renderer behavior is covered here; blackhole.test.mjs covers the opening effect.
-async function open(t, { reduced = false, touch = false, setup, scheme = 'light', scale = 1 } = {}) {
+// Renderer behavior is covered here. The homepage studio has no black-hole gate (blackhole.test.mjs).
+async function open(t, { reduced = false, touch = false, setup, scheme = 'light', scale = 1, height } = {}) {
   const context = await browser.newContext({
-    viewport: touch ? { width: 390, height: 844 } : { width: 1280, height: 800 },
+    viewport: touch ? { width: 390, height: height || 844 } : { width: 1280, height: height || 800 },
     colorScheme: scheme, reducedMotion: reduced ? 'reduce' : 'no-preference', hasTouch: touch, isMobile: touch, deviceScaleFactor: scale,
   });
   t.after(() => context.close());
@@ -328,8 +328,13 @@ test('a reduced-motion initial load and context restoration stay still', async t
 test('off-screen heroes remain paused through preference changes and context restoration', async t => {
   const { page } = await open(t);
   await live(page);
-  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-  await page.waitForFunction(() => document.querySelector('#figure').getBoundingClientRect().bottom < 0);
+  await page.evaluate(() => window.SkyStudio.selectSlug('agentcrucible'));
+  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible' && !document.getElementById('about').classList.contains('is-current'));
+  const intersecting = await page.evaluate(() => new Promise(resolve => {
+    const watcher = new IntersectionObserver(entries => { resolve(entries[0].isIntersecting); watcher.disconnect(); });
+    watcher.observe(document.getElementById('figure'));
+  }));
+  assert.equal(intersecting, false, 'leaving About hides the portrait panel so the figure is not intersecting');
   await stillDrawing(page);
   const paused = (await state(page)).draws;
   await page.evaluate(() => { window.SkyMotion.set('reduced'); document.documentElement.setAttribute('data-theme', 'dark'); });
@@ -341,7 +346,8 @@ test('off-screen heroes remain paused through preference changes and context res
   assert.equal((await state(page)).draws, paused, 'context restoration must not draw off-screen');
   await stillDrawing(page);
   assert.equal(await page.locator('#figure').evaluate(el => el.classList.contains('is-live')), false);
-  await page.evaluate(() => scrollTo(0, 0));
+  await page.evaluate(() => window.SkyStudio.selectSlug('about'));
+  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'about');
   await live(page);
   await stillDrawing(page);
   assert.deepEqual((await state(page)).uniforms.u_time, [0]);
@@ -395,15 +401,18 @@ test('horizontal touch drags rotate through the springs and cancellation release
 });
 
 test('native vertical touch scrolling cancels hero interaction and allows the next touch', async t => {
-  const { page, context } = await open(t, { touch: true });
+  // 390×844 does not overflow About. A shorter mobile viewport makes the panel the scrollport.
+  const { page, context } = await open(t, { touch: true, height: 480 });
   await live(page);
   const touch = await touchAt(context, page);
+  const scroll = await page.evaluate(() => scrollY);
   await touch.send('touchStart');
   for (let step = 1; step <= 5; step++) await touch.send('touchMove', touch.x + 2, touch.y - step * 26);
   await touch.send('touchEnd');
-  await page.waitForFunction(() => scrollY > 20 && window.__heroProbe.touches.some(e => e.type === 'pointercancel'));
+  await page.waitForFunction(() => document.getElementById('about').scrollTop > 0 && window.__heroProbe.touches.some(e => e.type === 'pointercancel'));
+  assert.equal(await page.evaluate(() => scrollY), scroll, 'the document does not scroll; the About panel does');
   assert.equal((await state(page)).uniforms.u_pointer[2], 0);
-  await page.evaluate(() => scrollTo(0, 0));
+  await page.evaluate(() => { document.getElementById('about').scrollTop = 0; });
   await page.waitForTimeout(250);
   const next = await touchAt(context, page);
   const before = (await state(page)).touches.filter(e => e.type === 'pointerdown').length;
