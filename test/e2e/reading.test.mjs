@@ -142,23 +142,23 @@ test('reduced motion drops the route animation and evidence controls stay tappab
 
   const evidence = await openCase({ width: 390, height: 844 }, 'airforge', false);
   await evidence.page.locator('.fig-ctrl').waitFor();
-  await evidence.page.locator('.lead-media').screenshot({ path: path.join(shots, 'ghost-evidence-390.png') });
+  await evidence.page.locator('.lead-media').screenshot({ path: path.join(shots, 'airforge-evidence-390.png') });
   const control = await evidence.page.locator('.fig-ctrl').evaluate(el => {
     const r = el.getBoundingClientRect();
     return { w: r.width, h: r.height };
   });
   assert.ok(control.w >= 44 && control.h >= 44, JSON.stringify(control));
   const caption = await evidence.page.locator('.lead-media figcaption .t-small').innerText();
-  assert.match(caption, /Quick capture: clipboard text becomes a new note/);
+  assert.match(caption, /Drawing a ramp, a ball, and a platform/);
   assert.deepEqual(evidence.errors, []);
   await evidence.context.close();
 
-  const recall = await openCase({ width: 1280, height: 800 }, 'shipgate', false);
-  await recall.page.locator('.toc').screenshot({ path: path.join(shots, 'recall-toc-1280.png') });
-  assert.equal(await recall.page.locator('[data-diagram] .node').count(), 3);
-  assert.equal(await recall.page.locator('[data-diagram]').getAttribute('data-stage'), '0');
-  assert.equal(await recall.page.locator('.lead-media').count(), 0);
-  assert.match(await recall.page.locator('#problem p').innerText(), /Local-first spaced repetition/);
-  assert.deepEqual(recall.errors, []);
-  await recall.context.close();
+  const policy = await openCase({ width: 1280, height: 800 }, 'shipgate', false);
+  await policy.page.locator('.toc').screenshot({ path: path.join(shots, 'shipgate-toc-1280.png') });
+  assert.equal(await policy.page.locator('[data-diagram] .node').count(), 3);
+  assert.equal(await policy.page.locator('[data-diagram]').getAttribute('data-stage'), '0');
+  assert.equal(await policy.page.locator('.lead-media').count(), 1);
+  assert.match(await policy.page.locator('#problem p').innerText(), /staged|commit|policy/i);
+  assert.deepEqual(policy.errors, []);
+  await policy.context.close();
 });

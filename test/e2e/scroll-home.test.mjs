@@ -31,6 +31,15 @@ async function openPage(options = {}) {
   });
   await context.addInitScript(() => {
     try { sessionStorage.setItem('sky-intro', 'seen'); } catch (e) {}
+    window.__historyTrace = [];
+    for (const method of ['pushState', 'replaceState']) {
+      const original = history[method].bind(history);
+      history[method] = (...args) => {
+        window.__historyTrace.push({ method, hash: args[2], y: scrollY });
+        return original(...args);
+      };
+    }
+    addEventListener('popstate', () => window.__historyTrace.push({ method: 'popstate', hash: location.hash, y: scrollY }));
   });
   const page = await context.newPage();
   const errors = [];
@@ -66,7 +75,22 @@ function pose() {
 }
 
 async function lenisIdle(page) {
-  await page.waitForFunction(() => window.SkyStudio?.settled() && !document.documentElement.classList.contains('lenis-scrolling'));
+  let previous = null, quiet = 0;
+  for (let sample = 0; sample < 100; sample += 1) {
+    const state = await page.evaluate(() => ({ y: scrollY, busy: !window.SkyStudio?.settled() || document.documentElement.classList.contains('lenis-scrolling') }));
+    quiet = !state.busy && previous !== null && Math.abs(state.y - previous) < 0.5 ? quiet + 1 : 0;
+    if (quiet >= 3) return;
+    previous = state.y;
+    await page.waitForTimeout(50);
+  }
+  throw new Error('Document scrolling did not settle');
+}
+
+async function headerClick(page, hash) {
+  const box = await page.locator(`.studio-header a[href="${hash}"]`).boundingBox();
+  assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize().height, 'the sticky header link is visible');
+  // A native pointer click must not first scroll a sticky ancestor into view.
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 test('stacked home keeps three focusable articles and commits the viewing-band project', { timeout: 40000 }, async () => {
@@ -125,6 +149,7 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
 
     const before = await page.evaluate(() => scrollY);
     for (let step = 0; step < 28; step += 1) {
+      await lenisIdle(page);
       const probe = await page.evaluate(() => {
         const pad = document.querySelector('.studio-header').offsetHeight;
         const line = pad + (innerHeight - pad) * 0.34;
@@ -134,7 +159,7 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
       });
       if (probe.inBand) break;
       await page.mouse.wheel(0, probe.above ? -600 : 600);
-      await page.waitForTimeout(40);
+      await lenisIdle(page);
     }
     await page.waitForFunction(() => {
       const pad = document.querySelector('.studio-header').offsetHeight;
@@ -165,7 +190,7 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
     assert.equal(await page.locator('#project-airforge').evaluate(node => node.classList.contains('is-shown')), true);
     await page.mouse.move(8, 8);
 
-    await page.locator('a[href="#work-list"]').first().click();
+    await headerClick(page, '#work-list');
     await page.waitForFunction(() => {
       const pad = document.querySelector('.studio-header').offsetHeight;
       const work = document.getElementById('work-list').getBoundingClientRect();
@@ -181,7 +206,7 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
       const top = document.getElementById('project-shipgate').getBoundingClientRect().top;
       return location.hash === '#project-shipgate' && window.SkyStudio.settled() && top >= pad - 2 && top <= pad + 36;
     });
-    await page.locator('a[href="#contact"]').first().click();
+    await headerClick(page, '#contact');
     await page.waitForFunction(() => {
       const pad = document.querySelector('.studio-header').offsetHeight;
       const contact = document.getElementById('contact').getBoundingClientRect();
@@ -193,8 +218,13 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
         && contact.bottom > pad + 40
         && tail < 160;
     });
+    await lenisIdle(page);
     await page.goBack();
-    await page.waitForFunction(() => location.hash === '#project-shipgate' && window.SkyStudio.slug() === 'shipgate' && window.SkyStudio.settled() && !document.documentElement.classList.contains('lenis-scrolling'));
+    await page.waitForFunction(() => location.hash === '#project-shipgate' && window.SkyStudio.slug() === 'shipgate' && window.SkyStudio.settled() && !document.documentElement.classList.contains('lenis-scrolling'), null, { timeout: 8000 }).catch(async error => {
+      console.error('Back navigation state', await page.evaluate(() => ({ hash: location.hash, slug: SkyStudio.slug(), settled: SkyStudio.settled(), scroll: scrollY, max: document.documentElement.scrollHeight - innerHeight, classes: document.documentElement.className, history: window.__historyTrace.slice(-14) })));
+      throw error;
+    });
+    await lenisIdle(page);
     await page.goForward();
     await page.waitForFunction(() => location.hash === '#contact' && window.SkyStudio.slug() === 'contact' && window.SkyStudio.settled() && !document.documentElement.classList.contains('lenis-scrolling')).catch(async error => {
       console.error('Forward navigation state', await page.evaluate(() => ({ hash: location.hash, slug: SkyStudio.slug(), settled: SkyStudio.settled(), scroll: scrollY, max: document.documentElement.scrollHeight - innerHeight, classes: document.documentElement.className })));

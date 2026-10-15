@@ -382,9 +382,10 @@ test('a native pause on the studio video stays paused when the clip returns', as
     await waitLenisIdle(page);
     await page.waitForFunction(() => document.getElementById('project-airforge').getBoundingClientRect().bottom < 0);
     await wheelToArticle(page, 'airforge');
+    await page.locator('#airforge').click();
+    await waitLenisIdle(page);
     assert.equal(await video.evaluate(node => node.paused), true, 'a real pause must survive leaving and re-entering the viewport');
-    await video.focus();
-    await page.keyboard.press('Space');
+    await video.click();
     await page.waitForFunction(() => !document.querySelector('#project-airforge [data-studio-video]').paused);
     assert.deepEqual(errors, []);
   });

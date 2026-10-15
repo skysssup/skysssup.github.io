@@ -57,6 +57,12 @@ async function rowTop(page, slug) {
   return page.locator(`#${slug}`).evaluate(node => node.getBoundingClientRect().top);
 }
 
+async function headerClick(page, hash) {
+  const box = await page.locator(`.studio-header a[href="${hash}"]`).boundingBox();
+  assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize().height, 'the sticky header link is visible');
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+}
+
 function bandProbe(name) {
   const header = document.querySelector('.studio-header');
   const pad = header ? header.offsetHeight : 0;
@@ -509,7 +515,7 @@ test('native hashes, history, and reduced motion scroll the stacked page', async
   const overflow = await page.evaluate(() => getComputedStyle(document.documentElement).overflow);
   assert.notEqual(overflow, 'hidden');
   assert.ok(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight + 80));
-  await page.locator('a[href="#work-list"]').first().click();
+  await headerClick(page, '#work-list');
   await page.waitForFunction(() => {
     const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
     const article = document.getElementById('project-agentcrucible').getBoundingClientRect();
@@ -524,24 +530,28 @@ test('native hashes, history, and reduced motion scroll the stacked page', async
   assert.equal(await page.evaluate(() => location.hash), '#project-shipgate');
   assert.equal(await page.locator('#project-shipgate').evaluate(node => node.classList.contains('is-shown')), true);
   await page.mouse.move(8, 8);
-  await page.locator('a[href="#contact"]').first().click();
+  await headerClick(page, '#contact');
   await page.waitForFunction(() => {
     const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
     const contact = document.getElementById('contact').getBoundingClientRect();
     return location.hash === '#contact' && SkyStudio.slug() === 'contact' && contact.top >= header - 2;
   });
-  await page.locator('.studio-brand').click();
+  await headerClick(page, '#about');
   await page.waitForFunction(() => {
     const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
     const hero = document.getElementById('hero').getBoundingClientRect();
     return scrollY < 40 && hero.bottom > header && SkyStudio.settled();
   });
+  await waitLenisIdle(page);
   await page.goBack();
-  await page.waitForFunction(() => location.hash === '#contact' && SkyStudio.slug() === 'contact');
+  await page.waitForFunction(() => location.hash === '#contact' && SkyStudio.slug() === 'contact' && SkyStudio.settled());
+  await waitLenisIdle(page);
   await page.goBack();
   await committed(page, 'shipgate');
+  await waitLenisIdle(page);
   await page.goBack();
   await page.waitForFunction(() => location.hash === '#work-list' && SkyStudio.slug() === 'agentcrucible' && SkyStudio.settled());
+  await waitLenisIdle(page);
   await page.goBack();
   await page.waitForFunction(() => scrollY < 40 && !location.hash);
   await page.goto(site.origin + '/#project-shipgate');

@@ -357,7 +357,8 @@ test('contact stays concise and the public page has no rendering or construction
     open: node.open,
     shown: [...node.querySelectorAll('input, select, textarea, button')].filter(el => el.checkVisibility({ visibilityProperty: true, opacityProperty: true })).length,
   })));
-  assert.equal(models.length, 8);
+  assert.equal(models.length, 3);
+  assert.deepEqual(await page.locator('[data-studio-pick]').evaluateAll(nodes => nodes.map(node => node.id)), ['agentcrucible', 'airforge', 'shipgate']);
   for (const model of models) {
     assert.equal(model.open, false);
     assert.equal(model.shown, 0);

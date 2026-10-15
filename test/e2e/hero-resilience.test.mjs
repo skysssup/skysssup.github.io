@@ -9,6 +9,14 @@ import { serve } from './server.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 let browser, site;
 
+// Component fixture only. Production studio.js keeps the figure persistent beneath page content;
+// this suite measures the renderer with the figure in document flow and no studio controller.
+const rendererFixtureCss = `
+.studio-figure-slot { position: relative !important; height: auto !important; top: 0 !important; z-index: 3; }
+#figure { position: relative; transform: none !important; opacity: 1 !important; order: 0; pointer-events: auto !important; touch-action: pan-y; width: min(460px, 90vw) !important; margin: auto; }
+.hero-figure > canvas { transform: none !important; }
+`;
+
 before(async () => {
   site = await serve(root);
   browser = await chromium.launch({
@@ -138,8 +146,14 @@ async function open(t, { reduced = false, touch = false, setup, scheme = 'light'
     if (/\/assets\/hero\/(ink\.webp|depth\.webp|bluenoise\.png|hero\.json)$/.test(request.url())) assets.push(request.url());
   });
   t.after(() => assert.deepEqual(errors, [], 'the hero must not abort page initialization or event handlers'));
+  await page.route('**/js/studio.js*', route => route.fulfill({
+    status: 200,
+    contentType: 'text/javascript',
+    body: '',
+  }));
   if (setup) await setup(page);
   await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
+  await page.addStyleTag({ content: rendererFixtureCss });
   return { page, context, assets };
 }
 
@@ -328,9 +342,14 @@ test('a reduced-motion initial load and context restoration stay still', async t
 test('off-screen heroes remain paused through preference changes and context restoration', async t => {
   const { page } = await open(t);
   await live(page);
-  await page.evaluate(() => window.SkyStudio.selectSlug('agentcrucible'));
-  await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible');
   await page.locator('#contact').scrollIntoViewIfNeeded();
+  const contactHost = await page.evaluate(() => {
+    const contact = document.getElementById('contact').getBoundingClientRect();
+    const figure = document.getElementById('figure').getBoundingClientRect();
+    return { contactTop: contact.top, figureBottom: figure.bottom, height: innerHeight };
+  });
+  assert.ok(contactHost.contactTop < contactHost.height, 'the contact anchor is inside the host viewport');
+  assert.ok(contactHost.figureBottom <= 0, 'the figure has left the host viewport above the contact anchor');
   const intersecting = await page.evaluate(() => new Promise(resolve => {
     const watcher = new IntersectionObserver(entries => { resolve(entries[0].isIntersecting); watcher.disconnect(); });
     watcher.observe(document.getElementById('figure'));
@@ -347,10 +366,11 @@ test('off-screen heroes remain paused through preference changes and context res
   assert.equal((await state(page)).draws, paused, 'context restoration must not draw off-screen');
   await stillDrawing(page);
   assert.equal(await page.locator('#figure').evaluate(el => el.classList.contains('is-live')), false);
-  await page.locator('#hero').scrollIntoViewIfNeeded();
+  await page.locator('#figure').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => {
     const box = document.getElementById('figure').getBoundingClientRect();
-    return box.bottom > 80 && box.top < innerHeight && window.SkyStudio.settled();
+    const hero = document.getElementById('hero').getBoundingClientRect();
+    return box.bottom > 80 && box.top < innerHeight && hero.top < innerHeight;
   });
   await live(page);
   await stillDrawing(page);
