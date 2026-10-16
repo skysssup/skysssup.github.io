@@ -170,7 +170,22 @@ async function open(browser, origin, options) {
 
 async function lab(page, slug) {
   if (await page.evaluate(name => window.SkyStudio.slug() !== name, slug)) {
-    await page.locator(`#${slug}`).click();
+    if ((page.viewportSize()?.width || 1440) <= 720) {
+      await page.locator('[data-studio-project-select]').selectOption(slug);
+    } else {
+      const row = page.locator(`#${slug}`);
+      let box = await row.boundingBox();
+      const view = page.viewportSize();
+      if (!box || box.height === 0 || box.y < 0 || box.y + box.height > view.height) {
+        const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+        assert.ok(workLink && workLink.y >= 0 && workLink.y + workLink.height <= view.height, 'Work header link is visible');
+        await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
+        await settle(page);
+        box = await row.boundingBox();
+      }
+      assert.ok(box && box.height > 0 && box.y >= 0 && box.y + box.height <= page.viewportSize().height, `${slug} thumbnail is visible`);
+      await page.mouse.click(box.x + box.width / 2, box.y + Math.min(box.height / 2, 40));
+    }
     await page.waitForFunction(name => {
       const header = document.querySelector('.studio-header');
       const pad = header ? header.offsetHeight : 0;

@@ -197,8 +197,10 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
     assert.equal(await page.locator('[data-studio-pick][aria-selected="true"]').count(), 0);
     assert.equal(await page.evaluate(() => window.SkyStudio.slug()), 'about');
     if (width <= 720) {
-      assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), 'phone names share one row');
-      for (const row of rows) assert.ok(row.scrollWidth <= row.clientWidth + 1, 'a phone name overflows its cell');
+      assert.equal(await page.locator('#studio-projects').evaluate(node => getComputedStyle(node).display), 'none');
+      const select = page.locator('[data-studio-project-select]');
+      assert.equal(await select.isVisible(), true);
+      assert.deepEqual(await select.locator('option').evaluateAll(nodes => nodes.map(node => node.value)), ['agentcrucible', 'airforge', 'shipgate']);
     } else {
       for (let i = 1; i < rows.length; i++) {
         assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1, 'project rows stay upright');
@@ -209,20 +211,27 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
     const detail = await page.locator('[data-studio-detail]').boundingBox();
     if (width >= 1000) {
       assert.ok(Math.abs(shell.width - width) <= 2, `shell ${shell.width} should span the viewport`);
-      assert.ok(detail.x >= list.x + list.width - 2, 'the list and the selected preview sit in columns');
+      assert.ok(list && detail.x >= list.x + list.width - 2, 'the list and the selected preview sit in columns');
     }
-    if (width === 768) assert.ok(detail.x >= list.x + list.width - 2 || detail.y >= list.y + list.height - 2, 'tablet keeps the list and preview from overlapping');
-    if (width <= 600) assert.ok(detail.y >= list.y + list.height - 2, 'narrow pages stack the preview under the list');
+    if (width === 768) assert.ok(list && (detail.x >= list.x + list.width - 2 || detail.y >= list.y + list.height - 2), 'tablet keeps the list and preview from overlapping');
+    if (width <= 600) assert.equal(await page.locator('[data-studio-project-select]').isVisible(), true);
     if (process.env.POLISH_SHOTS) {
       fs.mkdirSync(process.env.POLISH_SHOTS, { recursive: true });
       await page.screenshot({ path: path.join(process.env.POLISH_SHOTS, `home-${width}.png`), fullPage: true });
     }
-    await page.locator('a[href="#work-list"]').first().click();
+    const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+    assert.ok(workLink && workLink.y >= 0 && workLink.y + workLink.height <= 900, 'Work header link is visible');
+    await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
     await page.waitForFunction(() => window.SkyStudio.settled() && !document.documentElement.classList.contains('lenis-scrolling') && window.SkyStudio.slug() === 'agentcrucible');
-    await page.locator('#agentcrucible').focus();
-    for (let step = 0; step < 8 && await page.evaluate(() => window.SkyStudio.slug()) !== 'airforge'; step++) {
-      await page.keyboard.press('ArrowDown');
+    if (width <= 720) {
+      await page.locator('[data-studio-project-select]').selectOption('airforge');
       await page.waitForFunction(() => window.SkyStudio.settled());
+    } else {
+      await page.locator('#agentcrucible').focus();
+      for (let step = 0; step < 8 && await page.evaluate(() => window.SkyStudio.slug()) !== 'airforge'; step++) {
+        await page.keyboard.press('ArrowDown');
+        await page.waitForFunction(() => window.SkyStudio.settled());
+      }
     }
     await page.waitForFunction(() => {
       const header = document.querySelector('.studio-header');

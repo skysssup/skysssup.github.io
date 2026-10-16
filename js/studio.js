@@ -251,38 +251,43 @@
     var workStart = workTop + window.scrollY;
     var workT = reducedMotion() ? 0 : easeStudio(Math.min(1, Math.max(0, window.scrollY / Math.max(1, workStart - line))));
     var contactT = reducedMotion() ? 0 : easeStudio(Math.min(1, Math.max(0, 1 - (contactTop - line) / (vh * 0.55))));
-    var band = narrowWork() ? 'narrow' : wideWork() ? 'wide' : 'mid';
-    var workScale = band === 'wide' ? 0.6 : band === 'mid' ? 0.48 : 0.42;
-    var workOpacity = band === 'wide' ? 0.85 : band === 'mid' ? 0.72 : 0.32;
-    var contactScale = band === 'wide' ? 0.52 : band === 'mid' ? 0.42 : 0.28;
-    var contactOpacity = band === 'wide' ? 0.62 : band === 'mid' ? 0.5 : 0.28;
+    var narrow = narrowWork();
+    var vw = document.documentElement.clientWidth;
+    var workScale = narrow ? 0.42 : (vw >= 1440 ? 0.28 : 0.24);
+    var workOpacity = narrow ? 0.32 : 0.18;
+    var contactScale = narrow ? 0.28 : 0.38;
+    var contactOpacity = narrow ? 0.28 : 0.45;
     var opacity = lerp(lerp(1, workOpacity, workT), contactOpacity, contactT);
     var scale = lerp(lerp(1, workScale, workT), contactScale, contactT);
     var width = figure.offsetWidth || 320;
     var portraitY = Math.max(20, ((identity ? identity.offsetTop : vh * 0.7) - width) * 0.5);
-    var shift = Math.max(workT, contactT);
     var x = 0;
     var y = portraitY;
-    if (band === 'narrow') {
+    if (narrow) {
+      var shift = Math.max(workT, contactT);
       y = lerp(lerp(portraitY, 8, workT), 4, contactT);
-      x = lerp(0, Math.max(0, document.documentElement.clientWidth * 0.5 - width * scale * 0.5 - 16), shift);
+      x = lerp(0, Math.max(0, vw * 0.5 - width * scale * 0.5 - 16), shift);
     } else {
-      var wrap = root.querySelector('.studio-list-wrap');
       var slot = figure.parentElement;
-      if (wrap && list && slot) {
-        var wrapBox = wrap.getBoundingClientRect();
-        var listBox = list.getBoundingClientRect();
-        var slotBox = slot.getBoundingClientRect();
-        var hostH = figure.offsetHeight || width;
-        var hostCenter = slotBox.left + slotBox.width / 2;
-        var railCenter = wrapBox.left + wrapBox.width / 2;
-        var reserve = listBox.top - wrapBox.top;
-        if (!(reserve > 48)) reserve = band === 'wide' ? 230 : 150;
-        var bandMid = listBox.top - reserve / 2;
-        var yInRail = bandMid - hostH * scale * 0.5 - slotBox.top;
-        x = lerp(0, railCenter - hostCenter, shift);
-        y = lerp(portraitY, yInRail, shift);
+      var slotBox = slot ? slot.getBoundingClientRect() : { left: 0, width: vw };
+      var hostCenter = slotBox.left + slotBox.width / 2;
+      var column = Math.min(1160, vw);
+      var workLeft = (vw - column) / 2;
+      var visual = width * workScale;
+      var gutterCenter = workLeft * 0.5;
+      var cappedCenter = workLeft + 40 - visual * 0.5;
+      var workCenter = workLeft >= visual + 8 ? gutterCenter : Math.min(gutterCenter, cappedCenter);
+      var workX = workCenter - hostCenter;
+      var contactX = workX;
+      if (layers.contact) {
+        var copyBox = layers.contact.getBoundingClientRect();
+        var visualC = width * contactScale;
+        var desired = copyBox.right + 28 + visualC * 0.5;
+        var maxCenter = vw - 12 - visualC * 0.5;
+        if (desired <= maxCenter) contactX = desired - hostCenter;
       }
+      x = lerp(lerp(0, workX, workT), contactX, contactT);
+      y = lerp(lerp(portraitY, 28, workT), 36, contactT);
     }
     figure.style.opacity = String(Math.round(opacity * 1000) / 1000);
     figure.style.setProperty('--studio-figure-scale', scale.toFixed(3));
@@ -336,26 +341,28 @@
 
   function moveMarker() {
     if (!marker) return;
-    var row = committed >= 0 ? rows[committed] : null;
-    if (!row || stage !== 'work') {
-      marker.style.opacity = '0';
+    var on = stage === 'work' && committed >= 0;
+    marker.classList.toggle('is-set', on);
+    if (!on || narrowWork()) {
+      marker.style.opacity = on ? '' : '0';
+      if (!on || narrowWork()) {
+        marker.style.transform = '';
+        marker.style.width = '';
+        marker.style.height = '';
+      }
       return;
     }
-    var wrap = marker.offsetParent;
-    if (!wrap || !wrap.classList.contains('studio-index')) wrap = root.querySelector('.studio-index');
-    if (!wrap) return;
+    var wheel = root.querySelector('.studio-project-wheel');
+    var anchor = wheel || (list && list.parentElement);
+    var wrap = marker.offsetParent || marker.parentElement;
+    if (!anchor || !wrap) return;
     var wrapBox = wrap.getBoundingClientRect();
-    var rect = row.getBoundingClientRect();
+    var box = anchor.getBoundingClientRect();
+    var markH = 44;
     marker.style.opacity = '1';
-    if (narrowWork()) {
-      marker.style.width = Math.round(rect.width) + 'px';
-      marker.style.height = '2px';
-      marker.style.transform = 'translate(' + Math.round(rect.left - wrapBox.left) + 'px,' + Math.round(rect.bottom - wrapBox.top - 2) + 'px)';
-    } else {
-      marker.style.width = '2px';
-      marker.style.height = Math.round(rect.height) + 'px';
-      marker.style.transform = 'translateY(' + Math.round(rect.top - wrapBox.top) + 'px)';
-    }
+    marker.style.width = '2px';
+    marker.style.height = markH + 'px';
+    marker.style.transform = 'translateY(' + Math.round(box.top + box.height / 2 - markH / 2 - wrapBox.top) + 'px)';
   }
   function syncReadout() {
     if (!readout) return;
@@ -395,6 +402,7 @@
     var nextCurrent = dataIndexForSlug(slug);
     if (nextCurrent < 0) nextCurrent = 0;
     var changed = nextStage !== stage || nextRow !== committed || nextCurrent !== current;
+    var pickerChanged = nextRow !== committed;
     stage = nextStage;
     committed = nextRow;
     if (preview === committed) preview = -1;
@@ -416,6 +424,7 @@
       panel.classList.toggle('is-shown', on);
       panel.classList.toggle('is-selected', on);
     });
+    if (pickerChanged) updatePicker();
     if (changed) {
       document.dispatchEvent(new CustomEvent('sky:workselect', { detail: { index: Math.max(0, committed) } }));
     }
@@ -567,12 +576,20 @@
       if (preview === i) setPreview(-1);
     });
     row.addEventListener('click', function (event) {
+      if (swallowClick) {
+        swallowClick = false;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
       setPreview(-1);
       goTo(row.getAttribute('href').slice(1), 'push');
     });
   });
+  bindProjectWheel();
+  bindProjectSelect();
   if (list) {
     list.addEventListener('keydown', function (event) {
       var focused = rows.indexOf(event.target.closest ? event.target.closest('[data-studio-pick]') : event.target);
@@ -635,6 +652,10 @@
   if (motion && motion.subscribe) motion.subscribe(function () {
     syncMotionClass();
     labs.forEach(function (lab) { if (lab && lab.motionChanged) lab.motionChanged(); });
+    var instant = reducedMotion();
+    rows.forEach(function (row) { row.style.transition = instant ? 'none' : ''; });
+    var wheelNow = root.querySelector('.studio-project-wheel');
+    if (wheelNow) wheelNow.classList.toggle('is-instant', instant);
     syncLabs();
     syncEvidence();
     schedule();
@@ -813,8 +834,125 @@
     nav.appendChild(navMark);
   }
 
+  function pickPose(index, base) {
+    var d = index - base;
+    if (rows.length === 3) {
+      if (d > rows.length / 2) d -= rows.length;
+      if (d < -rows.length / 2) d += rows.length;
+    }
+    var ad = Math.abs(d);
+    return {
+      y: d * 136,
+      x: ad * 18,
+      rotate: -d * 8,
+      scale: ad === 0 ? 1 : ad === 1 ? 0.8 : 0.65,
+      opacity: ad === 0 ? 1 : ad === 1 ? 0.64 : 0.32,
+      depth: 10 - ad
+    };
+  }
+  var pickerBase = -2;
+  function updatePicker() {
+    var base = committed >= 0 ? committed : 0;
+    if (base === pickerBase && rows.length && rows[0].style.getPropertyValue('--pick-y')) {
+      syncPickerChrome(base);
+      return;
+    }
+    pickerBase = base;
+    rows.forEach(function (row, i) {
+      var pose = pickPose(i, base);
+      row.style.setProperty('--pick-y', pose.y + 'px');
+      row.style.setProperty('--pick-x', pose.x + 'px');
+      row.style.setProperty('--pick-rotate', pose.rotate + 'deg');
+      row.style.setProperty('--pick-scale', String(pose.scale));
+      row.style.setProperty('--pick-opacity', String(pose.opacity));
+      row.style.setProperty('--pick-depth', String(pose.depth));
+    });
+    syncPickerChrome(base);
+  }
+  function syncPickerChrome(base) {
+    var tab = committed >= 0 ? committed : base;
+    rows.forEach(function (row, i) { row.tabIndex = i === tab ? 0 : -1; });
+    var select = root.querySelector('[data-studio-project-select]');
+    var slug = (committed >= 0 && rows[committed] && rows[committed].id) || (rows[0] && rows[0].id) || '';
+    if (select && slug && select.value !== slug) select.value = slug;
+    var wheel = root.querySelector('.studio-project-wheel');
+    if (wheel) wheel.classList.toggle('is-instant', reducedMotion());
+  }
+  var wheelDrag = null;
+  var swallowClick = false;
+  function clearWheelDrag() {
+    var wheel = root.querySelector('.studio-project-wheel');
+    if (wheel) {
+      wheel.style.setProperty('--wheel-drag', '0px');
+      wheel.classList.remove('is-dragging');
+      wheel.removeAttribute('data-dragging');
+    }
+    wheelDrag = null;
+  }
+  function bindProjectWheel() {
+    var wheel = root.querySelector('.studio-project-wheel');
+    if (!wheel) return;
+    wheel.style.setProperty('--wheel-drag', '0px');
+    // Linked thumbnails otherwise start HTML drag-and-drop, cancelling the
+    // pointer stream before the wheel can commit the visitor's gesture.
+    wheel.addEventListener('dragstart', function (event) { event.preventDefault(); });
+    wheel.addEventListener('pointerdown', function (event) {
+      if (event.pointerType !== 'mouse' || event.button !== 0) return;
+      wheelDrag = {
+        id: event.pointerId,
+        y: event.clientY,
+        dy: 0,
+        captured: false
+      };
+    });
+    wheel.addEventListener('pointermove', function (event) {
+      if (!wheelDrag || event.pointerId !== wheelDrag.id) return;
+      var dy = event.clientY - wheelDrag.y;
+      if (!wheelDrag.captured) {
+        if (Math.abs(dy) < 5) return;
+        wheelDrag.captured = true;
+        wheel.classList.add('is-dragging');
+        wheel.setAttribute('data-dragging', '');
+        try { wheel.setPointerCapture(event.pointerId); } catch (e) {}
+      }
+      wheelDrag.dy = dy;
+      wheel.style.setProperty('--wheel-drag', dy.toFixed(1) + 'px');
+    });
+    function finishDrag(event, commit) {
+      if (!wheelDrag || event.pointerId !== wheelDrag.id) return;
+      var dragged = wheelDrag.captured;
+      var dy = wheelDrag.dy;
+      if (wheel.hasPointerCapture && wheel.hasPointerCapture(event.pointerId)) {
+        try { wheel.releasePointerCapture(event.pointerId); } catch (e) {}
+      }
+      clearWheelDrag();
+      if (!commit || !dragged) return;
+      swallowClick = true;
+      setTimeout(function () { swallowClick = false; }, 0);
+      if (Math.abs(dy) <= 35) return;
+      var origin = committed >= 0 ? committed : 0;
+      var next = origin + Math.round(-dy / 136);
+      if (next < 0) next = 0;
+      if (next > rows.length - 1) next = rows.length - 1;
+      if (next === origin || !rows[next]) return;
+      goTo('project-' + rows[next].id, 'push');
+    }
+    wheel.addEventListener('pointerup', function (event) { finishDrag(event, true); });
+    wheel.addEventListener('pointercancel', function (event) { finishDrag(event, false); });
+  }
+  function bindProjectSelect() {
+    var select = root.querySelector('[data-studio-project-select]');
+    if (!select) return;
+    select.addEventListener('change', function () {
+      var value = select.value;
+      if (!value) return;
+      goTo('project-' + value, 'push');
+    });
+  }
+
   syncMotionClass();
   scrollPad();
+  updatePicker();
   applyFigure();
   applyFocus();
   applyWorkProgress();

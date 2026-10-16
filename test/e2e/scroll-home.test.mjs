@@ -168,8 +168,10 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
       const air = document.getElementById('project-airforge').getBoundingClientRect();
       const ship = document.getElementById('project-shipgate').getBoundingClientRect().top;
       const selected = [...document.querySelectorAll('[aria-selected="true"]')];
-      const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect().top;
-      const row = document.getElementById('airforge').getBoundingClientRect().top;
+      const markerBox = document.querySelector('[data-studio-marker]').getBoundingClientRect();
+      const rowBox = document.getElementById('airforge').getBoundingClientRect();
+      const markerCenter = markerBox.top + markerBox.height / 2;
+      const rowCenter = rowBox.top + rowBox.height / 2;
       return scrollY > 100
         && air.top <= line + 1 && ship > line + 1
         && window.SkyStudio.slug() === 'airforge'
@@ -178,7 +180,7 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
         && location.hash === '#project-airforge'
         && document.getElementById('project-airforge').classList.contains('is-shown')
         && !document.documentElement.classList.contains('lenis-scrolling')
-        && Math.abs(marker - row) <= 2;
+        && Math.abs(markerCenter - rowCenter) <= 24;
     }, null, { timeout: 8000 });
     assert.ok(await page.evaluate(start => scrollY > start + 100, before));
 
@@ -296,15 +298,12 @@ test('the portrait figure scales in document flow and reduced motion leaves it s
       const scale = Number(fig.style.getPropertyValue('--studio-figure-scale') || 1);
       const opacity = Number(fig.style.opacity);
       const box = fig.getBoundingClientRect();
-      const rail = document.querySelector('.studio-list-wrap').getBoundingClientRect();
-      const row = document.querySelector('.studio-row').getBoundingClientRect();
+      const workLeft = (document.documentElement.clientWidth - Math.min(1160, document.documentElement.clientWidth)) / 2;
       const canvas = fig.querySelector('canvas').getBoundingClientRect();
-      // The canvas has deliberate overscan; measure the portrait field's bottom.
-      return scale >= 0.55 && scale <= 0.65 && opacity >= 0.8 && opacity <= 1
+      // Work avatar recessed to gutter: scale .2-.35, opacity .1-.25
+      return scale >= 0.20 && scale <= 0.35 && opacity >= 0.10 && opacity <= 0.25
         && box.width > 24 && box.bottom > 0
-        && canvas.left + canvas.width / 2 >= rail.left
-        && canvas.left + canvas.width / 2 <= rail.right
-        && box.top + box.height * scale <= row.top + 32;
+        && canvas.left <= workLeft + 80;
     }, null, { timeout: 8000 });
     const later = await full.page.evaluate(() => {
       const fig = document.getElementById('figure');
@@ -364,37 +363,43 @@ test('the portrait figure scales in document flow and reduced motion leaves it s
   }
 });
 
-test('390 and 360 compact nav underlines the selected row and fits every name', { timeout: 40000 }, async () => {
+test('390 and 360 compact nav asserts native picker 44px, 3 options, selection sync across route and scroll, no overflow', { timeout: 40000 }, async () => {
   for (const [width, height] of [[390, 844], [360, 800]]) {
     const { context, page, errors } = await openPage({ width, height, touch: true, reduced: true });
     try {
-      const nav = await page.evaluate(() => {
-        const rows = [...document.querySelectorAll('#studio-projects [data-studio-pick]')].map(node => {
-          const box = node.getBoundingClientRect();
-          return { id: node.id, top: box.top, left: box.left, width: box.width, bottom: box.bottom, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth };
-        });
-        const columns = getComputedStyle(document.querySelector('.studio-list')).gridTemplateColumns.split(' ').length;
-        return { rows, columns };
-      });
-      assert.equal(nav.columns, 3, `${width} column count`);
-      assert.equal(nav.rows.length, 3);
-      assert.ok(nav.rows.every(row => Math.abs(row.top - nav.rows[0].top) <= 2), `${width} rows share a top`);
-      for (const row of nav.rows) assert.ok(row.scrollWidth <= row.clientWidth + 1, `${width} ${row.id} overflows`);
-      await page.locator('#airforge').click();
+      const picker = page.locator('select[data-studio-project-select]');
+      await picker.waitFor({ state: 'visible', timeout: 5000 });
+      const pickerBox = await picker.boundingBox();
+      assert.ok(pickerBox, `${width} picker exists`);
+      assert.ok(Math.abs(pickerBox.height - 44) <= 4, `${width} picker height is ~44px (got ${pickerBox.height})`);
+
+      const optionValues = await picker.locator('option').evaluateAll(opts => opts.map(o => o.value));
+      assert.equal(optionValues.length, 3, `${width} has 3 actual options`);
+      assert.deepEqual(optionValues, PROJECTS, `${width} option values match projects`);
+
+      // Selection sync: select airforge via picker
+      await picker.selectOption('airforge');
+      await lenisIdle(page);
+      assert.equal(await picker.inputValue(), 'airforge', `${width} picker value updated to airforge`);
+      assert.equal(await page.evaluate(() => location.hash), '#project-airforge', `${width} hash synced to #project-airforge`);
+
+      // Scroll to shipgate and verify value syncs back to picker
+      await page.locator('article#project-shipgate').scrollIntoViewIfNeeded();
+      await lenisIdle(page);
       await page.waitForFunction(() => {
-        const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect();
-        const row = document.getElementById('airforge').getBoundingClientRect();
-        const pad = document.querySelector('.studio-header').offsetHeight;
-        const navHeight = document.querySelector('.studio-list-wrap').offsetHeight;
-        const top = document.getElementById('project-airforge').getBoundingClientRect().top;
-        return window.SkyStudio.slug() === 'airforge'
-          && window.SkyStudio.settled()
-          && Math.abs(marker.bottom - row.bottom) <= 2
-          && Math.abs(marker.left - row.left) <= 2
-          && Math.abs(marker.width - row.width) <= 2
-          && top >= pad - 2
-          && top <= pad + navHeight + 20;
-      });
+        const sel = document.querySelector('select[data-studio-project-select]');
+        return sel && sel.value === 'shipgate';
+      }, null, { timeout: 8000 });
+      assert.equal(await picker.inputValue(), 'shipgate', `${width} picker value synced from scroll`);
+
+      // Assert no horizontal overflow
+      const overflowX = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+      assert.ok(overflowX, `no horizontal overflow at width ${width}`);
+
+      // Old hidden rows are indeed hidden (display: none)
+      const listDisplay = await page.locator('#studio-projects').evaluate(el => getComputedStyle(el).display);
+      assert.equal(listDisplay, 'none', `${width} wheel list is hidden on mobile`);
+
       assert.deepEqual(errors, []);
     } finally {
       await context.close();

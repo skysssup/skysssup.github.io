@@ -6,6 +6,13 @@ const pad = value => String(value).padStart(2, '0');
 const search = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';
 const lamp = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="5.5"/><path class="theme-half" d="M10 4.5a5.5 5.5 0 0 1 0 11Z"/></svg>';
 
+function thumb(p) {
+  if (!p.lead) return '';
+  const src = p.lead.poster || p.lead.src;
+  if (!src || p.lead.kind === 'video' && !p.lead.poster) return '';
+  return `<img class="studio-thumb" src="${esc(src)}" alt="" width="180" height="120" aria-hidden="true" draggable="false">`;
+}
+
 function evidence(p) {
   if (!p.lead) {
     const note = p.sourceNote || 'No public screenshot is published for this project.';
@@ -59,12 +66,19 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
           <div class="studio-rail-seat" aria-hidden="true"></div>
+          <label class="studio-project-select-label">
+            <select data-studio-project-select aria-label="Choose project">
+${projects.map(p=>`              <option value="${esc(p.slug)}">${esc(p.name)}</option>`).join('\n')}
+            </select>
+          </label>
           <div class="studio-index">
             <span class="studio-progress" data-studio-progress aria-hidden="true"></span>
             <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
+            <div class="studio-project-wheel">
             <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="${esc(projects[0].slug)}">
-${projects.map((p,i)=>`            <li role="none"><a id="${esc(p.slug)}" class="studio-row${i===0?' is-selected':''}" href="#project-${esc(p.slug)}" role="option" data-studio-pick="${i}" aria-selected="${i===0}">${pad(i+1)}<span>${esc(p.name)}</span><small>${esc(p.status)}</small></a></li>`).join('\n')}
+${projects.map((p,i)=>`            <li role="none"><a id="${esc(p.slug)}" class="studio-row${i===0?' is-selected':''}" href="#project-${esc(p.slug)}" role="option" data-studio-pick="${i}" aria-selected="${i===0}">${thumb(p)}<b class="studio-tile-index">${pad(i+1)}</b><span>${esc(p.name)}</span><small>${esc(p.status)}</small></a></li>`).join('\n')}
             </ul>
+            </div>
           </div>
           <div class="studio-preview" data-studio-preview hidden aria-hidden="true"></div>
         </div>
@@ -73,11 +87,11 @@ ${projects.map(p=>`          <article class="studio-panel work-card" id="project
             <div class="studio-copy">
               <h3 class="work-card-name">${esc(p.name)}</h3>
               <p class="work-card-desc">${esc(p.summary||p.tagline)}</p>
+              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="${esc(p.status)}">${esc(p.status)}</dd><dt>stack</dt><dd>${p.stack.map(esc).join(' · ')}</dd><dt>source</dt><dd>${esc(p.visibility)}</dd></dl>
             </div>
-            <nav class="scene-links" aria-label="${esc(p.name)} links"><a href="/work/${esc(p.slug)}/">${p.placeholder?'Project notes':'Case study'}</a>${p.repo?`<a href="${esc(p.repo)}">Source</a>`:''}${p.slug==='airforge'?'<a href="https://skysssup.github.io/airforge/?example=ramp-and-ball" data-playground-open>Draw &amp; simulate ↗</a>':''}</nav>
-            <details class="studio-lab" open><summary>Live lab <span>local demo</span></summary>${projectLab(p)}</details>
             ${evidence(p)}
-            <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="${esc(p.status)}">${esc(p.status)}</dd><dt>source</dt><dd>${esc(p.visibility)}</dd><dt>stack</dt><dd>${p.stack.map(esc).join(' · ')}</dd></dl>
+            <nav class="scene-links" aria-label="${esc(p.name)} links"><a href="/work/${esc(p.slug)}/">${p.placeholder?'Project notes':'Case study'}</a>${p.repo?`<a href="${esc(p.repo)}">Source</a>`:''}${p.slug==='airforge'?'<a href="https://skysssup.github.io/airforge/?example=ramp-and-ball" data-playground-open>Draw &amp; simulate ↗</a>':''}</nav>
+            <details class="studio-lab"><summary>Live example</summary>${projectLab(p)}</details>
           </article>`).join('\n')}
         </div>
       </div>

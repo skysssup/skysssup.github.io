@@ -78,13 +78,18 @@ function bandProbe(name) {
   const narrow = matchMedia('(max-width: 720px)').matches;
   const nav = document.querySelector('.studio-list-wrap');
   const clearance = pad + (narrow && nav ? nav.offsetHeight + 8 : 0);
-  const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect();
-  const row = document.getElementById(name).getBoundingClientRect();
-  const markerOk = narrow
-    ? Math.abs(marker.bottom - row.bottom) <= 2 && Math.abs(marker.left - row.left) <= 2 && Math.abs(marker.width - row.width) <= 2
-    : Math.abs(marker.top - row.top) <= 2;
+  const marker = document.querySelector('[data-studio-marker]');
+  const markerBox = marker.getBoundingClientRect();
+  const index = (marker.closest('.studio-index') || marker.parentElement).getBoundingClientRect();
+  const reduced = document.documentElement.dataset.motion === 'reduced'
+    || (document.documentElement.dataset.motion !== 'full' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const markerOk = narrow || reduced
+    ? getComputedStyle(marker).display === 'none' || markerBox.height === 0
+    : marker.classList.contains('is-set') && Math.abs((markerBox.top + markerBox.height / 2) - (index.top + index.height / 2)) <= 12;
   return {
     inBand: box.top <= line + 1 && nextTop > line + 1,
+    slug: window.SkyStudio.slug(),
+    delta: box.top - line + 48,
     above: nextTop <= line + 1,
     landed: box.top >= pad - 2 && box.top <= clearance + 36,
     markerOk,
@@ -113,8 +118,8 @@ async function wheelToArticle(page, slug) {
   for (let step = 0; step < 24; step += 1) {
     await waitLenisIdle(page);
     const probe = await page.evaluate(bandProbe, slug);
-    if (probe.inBand) return;
-    await page.mouse.wheel(0, probe.above ? -560 : 560);
+    if (probe.inBand && probe.slug === slug) return;
+    await page.mouse.wheel(0, Math.max(-320, Math.min(320, probe.delta)));
   }
   await waitLenisIdle(page);
   const probe = await page.evaluate(bandProbe, slug);
@@ -139,11 +144,14 @@ async function committed(page, slug) {
     const clearance = pad + (narrow && nav ? nav.offsetHeight + 8 : 0);
     const landed = box.top >= pad - 2 && box.top <= clearance + 36;
     const selected = [...document.querySelectorAll('[aria-selected="true"]')];
-    const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect();
-    const row = document.getElementById(name).getBoundingClientRect();
-    const markerOk = narrow
-      ? Math.abs(marker.bottom - row.bottom) <= 2 && Math.abs(marker.left - row.left) <= 2 && Math.abs(marker.width - row.width) <= 2
-      : Math.abs(marker.top - row.top) <= 2;
+    const marker = document.querySelector('[data-studio-marker]');
+    const markerBox = marker.getBoundingClientRect();
+    const index = (marker.closest('.studio-index') || marker.parentElement).getBoundingClientRect();
+    const reduced = document.documentElement.dataset.motion === 'reduced'
+      || (document.documentElement.dataset.motion !== 'full' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const markerOk = narrow || reduced
+      ? getComputedStyle(marker).display === 'none' || markerBox.height === 0
+      : marker.classList.contains('is-set') && Math.abs((markerBox.top + markerBox.height / 2) - (index.top + index.height / 2)) <= 12;
     return window.SkyStudio.slug() === name
       && window.SkyStudio.settled()
       && selected.length === 1
@@ -152,7 +160,19 @@ async function committed(page, slug) {
       && article.classList.contains('is-shown')
       && (inBand || landed)
       && markerOk;
-  }, slug);
+  }, slug, { timeout: 8000 }).catch(async error => {
+    console.error('Project commit state', await page.evaluate(name => {
+      const marker = document.querySelector('[data-studio-marker]');
+      const index = marker.closest('.studio-index');
+      const article = document.getElementById('project-' + name);
+      return { name, slug: SkyStudio.slug(), hash: location.hash, y: scrollY,
+        settled: SkyStudio.settled(), selected: [...document.querySelectorAll('[aria-selected="true"]')].map(n => n.id),
+        marker: marker.className, markerDisplay: getComputedStyle(marker).display,
+        markerBox: marker.getBoundingClientRect().toJSON(), index: index.getBoundingClientRect().toJSON(),
+        article: article.getBoundingClientRect().toJSON(), motion: document.documentElement.dataset.motion };
+    }, slug));
+    throw error;
+  });
 }
 
 test('the project list scrolls the page and selects by hover, focus, click, keys, and history', async () => {
@@ -213,7 +233,12 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'false');
   assert.equal(await page.evaluate(() => location.hash), committedHash);
   assert.equal(await page.locator('#project-agentcrucible').evaluate(node => node.classList.contains('is-shown')), true);
-  assert.ok(Math.abs(await markerTop(page) - await rowTop(page, 'agentcrucible')) <= 2, 'the marker stays on the committed row');
+  assert.equal(await page.evaluate(() => {
+    const marker = document.querySelector('[data-studio-marker]');
+    const m = marker.getBoundingClientRect();
+    const i = (marker.closest('.studio-index') || marker.parentElement).getBoundingClientRect();
+    return marker.classList.contains('is-set') && Math.abs((m.top + m.height / 2) - (i.top + i.height / 2)) <= 12;
+  }), true, 'the marker stays on the wheel center');
   await page.mouse.move(8, 8);
 
   await page.locator('#airforge').focus();
@@ -243,13 +268,7 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   await page.waitForFunction(() => window.__markerDone);
   const samples = await page.evaluate(() => window.__markerSamples);
   await committed(page, 'shipgate');
-  const destination = samples[samples.length - 1];
-  assert.ok(samples.some(top => top > origin + 8 && top < destination - 4), `the marker travels between rows (${origin} -> ${destination})`);
-  await page.waitForFunction(() => {
-    const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect().top;
-    const row = document.getElementById('shipgate').getBoundingClientRect().top;
-    return Math.abs(marker - row) <= 2;
-  });
+  assert.ok(samples.every(top => Math.abs(top - origin) <= 8), `the center tick does not chase a thumbnail (${origin})`);
   const endBox = await page.locator('#shipgate').boundingBox();
   const view = page.viewportSize();
   assert.ok(endBox.y >= 0 && endBox.y + endBox.height <= view.height + 1, 'End keeps the selected row in view');
@@ -260,7 +279,12 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => SkyStudio.slug()), 'airforge', 'a reversal replaces the in-flight selection');
   assert.equal(await page.locator('[aria-selected="true"]').count(), 1);
-  assert.ok(Math.abs(await markerTop(page) - await rowTop(page, 'airforge')) <= 2);
+  assert.equal(await page.evaluate(() => {
+    const marker = document.querySelector('[data-studio-marker]');
+    const m = marker.getBoundingClientRect();
+    const i = (marker.closest('.studio-index') || marker.parentElement).getBoundingClientRect();
+    return Math.abs((m.top + m.height / 2) - (i.top + i.height / 2)) <= 12;
+  }), true);
 
   await page.keyboard.press('Home');
   await committed(page, 'agentcrucible');
@@ -275,14 +299,18 @@ test('the project list scrolls the page and selects by hover, focus, click, keys
   await committed(page, 'agentcrucible');
   await page.goForward();
   await committed(page, 'shipgate');
-  await page.locator('a[href="#contact"]').first().click();
+  await headerClick(page, '#contact');
   await page.waitForFunction(() => {
     const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
     const contact = document.getElementById('contact').getBoundingClientRect();
     return location.hash === '#contact' && SkyStudio.slug() === 'contact' && SkyStudio.settled() && contact.top >= header - 2;
   });
   assert.equal(await page.locator('#contact a[href^="mailto:"]').getAttribute('href'), 'mailto:hello@aakashdahal.fun');
-  await page.locator('#airforge').click();
+  await headerClick(page, '#work-list');
+  await waitLenisIdle(page);
+  const air = await page.locator('#airforge').boundingBox();
+  assert.ok(air && air.y >= 0 && air.y + air.height <= page.viewportSize().height, 'AirForge thumbnail is visible');
+  await page.mouse.click(air.x + air.width / 2, air.y + Math.min(air.height / 2, 40));
   await committed(page, 'airforge');
   await page.locator('#project-airforge .scene-links a').first().click();
   await page.waitForURL('**/work/airforge/');
@@ -320,17 +348,24 @@ test('desktop, tablet, and phone keep a centered portrait, a fitting project nav
       return { top: box.top, left: box.left, width: box.width, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth };
     }));
     if (width <= 720) {
-      assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), `${width} nav is not one compact row`);
-      assert.ok(rows[1].left > rows[0].left + 8 && rows[2].left > rows[1].left + 8, `${width} nav is not three columns`);
-      for (const row of rows) assert.ok(row.scrollWidth <= row.clientWidth + 1, `${width} project name overflows its cell`);
+      assert.equal(await page.locator('#studio-projects').evaluate(node => getComputedStyle(node).display), 'none');
+      const select = page.locator('[data-studio-project-select]');
+      assert.equal(await select.isVisible(), true);
+      assert.deepEqual(await select.locator('option').evaluateAll(nodes => nodes.map(node => node.value)), ['agentcrucible', 'airforge', 'shipgate']);
     } else {
-      for (let i = 1; i < rows.length; i++) assert.ok(rows[i].top >= rows[i - 1].top + 20, `${width} list is not vertical`);
+      for (let i = 1; i < rows.length; i++) assert.ok(rows[i].top >= rows[i - 1].top + 20, `${width} reduced-motion list stays upright`);
     }
-    await page.locator('#airforge').click();
+    await headerClick(page, '#work-list');
+    await page.waitForFunction(() => SkyStudio.settled());
+    if (width <= 720) await page.locator('[data-studio-project-select]').selectOption('airforge');
+    else {
+      const tile = await page.locator('#airforge').boundingBox();
+      assert.ok(tile && tile.height > 0);
+      await page.mouse.click(tile.x + tile.width / 2, tile.y + Math.min(tile.height / 2, 40));
+    }
     await committed(page, 'airforge');
     const detail = await page.locator('#project-airforge').boundingBox();
-    if (width <= 720) assert.ok(Math.abs(detail.x - (await page.locator('#studio-projects').boundingBox()).x) <= 4);
-    else assert.ok(detail.x > (await page.locator('#studio-projects').boundingBox()).x + 40);
+    if (width > 720) assert.ok(detail.x > (await page.locator('#studio-projects').boundingBox()).x + 40);
     await page.locator('a[href="#contact"]').first().click();
     await page.waitForFunction(() => document.getElementById('contact').getBoundingClientRect().top < innerHeight);
     const accessibility = await new AxeBuilder({ page }).analyze();
@@ -598,9 +633,9 @@ test('a phone stacks three rows and three articles and still scrolls', async () 
   const { page, context, errors } = await open({ url: '/', viewport: { width: 390, height: 844 }, hasTouch: true, reducedMotion: 'reduce' });
   assert.equal(await page.locator('#studio-projects [data-studio-pick]').count(), 3);
   assert.equal(await page.locator('article.work-card').count(), 3);
-  const rows = await page.locator('#studio-projects a').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect()));
-  assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), 'phone nav is one compact row');
-  assert.ok(rows[1].left > rows[0].left + 8 && rows[2].left > rows[1].left + 8, 'phone nav is three columns');
+  assert.equal(await page.locator('#studio-projects').evaluate(node => getComputedStyle(node).display), 'none');
+  assert.equal(await page.locator('[data-studio-project-select]').isVisible(), true);
+  assert.deepEqual(await page.locator('[data-studio-project-select] option').evaluateAll(nodes => nodes.map(node => node.value)), ['agentcrucible', 'airforge', 'shipgate']);
   const articles = await page.locator('article.work-card').evaluateAll(nodes => nodes.map(node => node.offsetTop));
   for (let i = 1; i < articles.length; i += 1) assert.ok(articles[i] > articles[i - 1]);
   const before = await page.evaluate(() => scrollY);

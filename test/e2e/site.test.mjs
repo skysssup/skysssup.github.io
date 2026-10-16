@@ -360,8 +360,8 @@ test('contact stays concise and the public page has no rendering or construction
   assert.equal(models.length, 3);
   assert.deepEqual(await page.locator('[data-studio-pick]').evaluateAll(nodes => nodes.map(node => node.id)), ['agentcrucible', 'airforge', 'shipgate']);
   for (const model of models) {
-    assert.equal(model.open, true);
-    assert.ok(model.shown > 0);
+    assert.equal(model.open, false);
+    assert.equal(model.shown, 0);
   }
   assert.deepEqual(problems, []);
   await context.close();

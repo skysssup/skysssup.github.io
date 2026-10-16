@@ -57,6 +57,26 @@ async function withPage(options, run) {
 const settle = page => page.waitForFunction(() => window.SkyStudio && SkyStudio.settled());
 const readyBench = page => page.waitForFunction(() => document.querySelector('[data-studio].is-ready') && window.SkyStudio && SkyStudio.settled());
 
+async function pickProject(page, slug) {
+  const view = page.viewportSize();
+  if (view.width <= 720) {
+    await page.locator('[data-studio-project-select]').selectOption(slug);
+    return;
+  }
+  const row = page.locator(`#${slug}`);
+  let box = await row.boundingBox();
+  const inView = box && box.height > 0 && box.y >= 0 && box.y + box.height <= view.height;
+  if (!inView) {
+    const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+    assert.ok(workLink && workLink.y >= 0 && workLink.y + workLink.height <= view.height, 'Work header link is visible');
+    await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
+    await settle(page);
+    box = await row.boundingBox();
+  }
+  assert.ok(box && box.height > 0 && box.y >= 0 && box.y + box.height <= page.viewportSize().height, `${slug} thumbnail is visible`);
+  await page.mouse.click(box.x + box.width / 2, box.y + Math.min(box.height / 2, 40));
+}
+
 async function rowLayout(page) {
   return page.locator('[data-studio-pick]').evaluateAll(rows => rows.map(row => {
     const box = row.getBoundingClientRect();
@@ -169,22 +189,25 @@ test('three upright rows keep selection, the shown article, and the marker on th
       const line = pad + (innerHeight - pad) * 0.34;
       const article = document.getElementById('project-airforge').getBoundingClientRect();
       const next = document.getElementById('project-shipgate').getBoundingClientRect().top;
-      const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect().top;
-      const row = document.getElementById('airforge').getBoundingClientRect().top;
+      const marker = document.querySelector('[data-studio-marker]').getBoundingClientRect();
+      const index = document.querySelector('.studio-index').getBoundingClientRect();
       const selected = document.querySelector('[aria-selected="true"]');
+      const tiles = [...document.querySelectorAll('[data-studio-pick]')].map(node => ({
+        left: node.getBoundingClientRect().left,
+        rotate: parseFloat(getComputedStyle(node).getPropertyValue('--pick-rotate')) || 0,
+      }));
       return SkyStudio.slug() === 'airforge'
         && SkyStudio.settled()
         && selected && selected.id === 'airforge'
         && document.getElementById('project-airforge').classList.contains('is-shown')
         && article.top <= line + 1 && next > line + 1
-        && Math.abs(marker - row) <= 2;
+        && Math.abs((marker.top + marker.height / 2) - (index.top + index.height / 2)) <= 12
+        && tiles.some(tile => Math.abs(tile.rotate) > 1 || Math.abs(tile.left - tiles[0].left) > 8);
     });
     const rows = await rowLayout(page);
     assert.deepEqual(rows.map(row => row.text), projectNames);
-    for (let i = 1; i < rows.length; i++) {
-      assert.ok(rows[i].top >= rows[i - 1].top + rows[i - 1].height - 1, `${rows[i].id} is not below ${rows[i - 1].id}`);
-      assert.ok(Math.abs(rows[i].left - rows[0].left) <= 2, `${rows[i].id} left the row column`);
-    }
+    const spread = rows.some((row, index) => index > 0 && (Math.abs(row.left - rows[0].left) > 8 || Math.abs(row.top - rows[0].top) > 8));
+    assert.equal(spread, true, 'full-motion thumbnails arc instead of sitting in one upright column');
     const committedHash = await page.evaluate(() => location.hash);
     await page.locator('#shipgate').hover();
     await page.waitForTimeout(80);
@@ -192,7 +215,7 @@ test('three upright rows keep selection, the shown article, and the marker on th
     assert.equal(await page.evaluate(() => location.hash), committedHash);
     assert.equal(await page.locator('#project-airforge').evaluate(node => node.classList.contains('is-shown')), true);
     await page.mouse.move(8, 8);
-    await page.locator('#airforge').click();
+    await pickProject(page, 'airforge');
     await settle(page);
     assert.equal(await page.locator('#airforge').getAttribute('aria-selected'), 'true');
     assert.equal(await page.evaluate(() => SkyStudio.slug()), 'airforge');
@@ -223,22 +246,18 @@ test('three upright rows keep selection, the shown article, and the marker on th
 test('narrow rows stay in three columns across resize and keyboard endpoints', async () => {
   await withPage({ url: '/#agentcrucible', width: 390, height: 800, touch: true }, async (page, errors) => {
     await readyBench(page);
-    const rows = await rowLayout(page);
-    assert.equal(rows.length, 3);
-    assert.ok(rows.every(row => Math.abs(row.top - rows[0].top) <= 2), '390 nav shares one row');
-    assert.ok(rows[1].left > rows[0].left + 8 && rows[2].left > rows[1].left + 8, '390 nav is three columns');
-    for (const row of rows) assert.ok(row.nodeScroll <= row.width + 1, `${row.id} name overflows`);
-    await page.locator('#agentcrucible').focus();
-    await page.keyboard.press('End');
+    const select = page.locator('[data-studio-project-select]');
+    assert.equal(await select.isVisible(), true);
+    assert.equal(await page.locator('#studio-projects').evaluate(node => getComputedStyle(node).display), 'none');
+    assert.deepEqual(await select.locator('option').evaluateAll(nodes => nodes.map(node => node.value)), ['agentcrucible', 'airforge', 'shipgate']);
+    await select.selectOption('shipgate');
     await settle(page);
     assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
-    const selected = await page.locator('#shipgate').boundingBox();
-    const view = page.viewportSize();
-    assert.ok(selected.y >= 0 && selected.y + selected.height <= view.height + 1, 'End keeps the last row in view');
-    await page.locator('#agentcrucible').click();
+    assert.equal(await select.inputValue(), 'shipgate');
+    await select.selectOption('agentcrucible');
     await settle(page);
     assert.equal(await page.locator('#project-agentcrucible .work-card-name').innerText(), 'AgentCrucible');
-    await page.locator('#shipgate').click();
+    await select.selectOption('shipgate');
     await settle(page);
     assert.equal(await page.locator('#project-shipgate .work-card-name').innerText(), 'Shipgate');
     assert.equal(await page.locator('#project-shipgate').evaluate(node => node.classList.contains('is-shown') && node.inert === false), true);
@@ -270,18 +289,21 @@ test('a native touch drag scrolls the article column', async () => {
 test('resizing during keyboard selection keeps the requested project', async () => {
   await withPage({ url: '/#agentcrucible', reduced: false }, async (page, errors) => {
     await readyBench(page);
-    await page.locator('#airforge').click();
+    await pickProject(page, 'airforge');
     await settle(page);
     assert.equal(await page.evaluate(() => SkyStudio.slug()), 'airforge');
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#airforge').focus();
     await page.keyboard.press('End');
+    await settle(page);
+    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.setViewportSize({ width: 391, height: 844 });
     await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled());
+    assert.equal(await page.locator('[data-studio-project-select]').inputValue(), 'shipgate');
     await page.setViewportSize({ width: 768, height: 844 });
     await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled() && document.querySelector('#shipgate').getAttribute('aria-selected') === 'true');
-    const rows = await rowLayout(page);
-    for (let i = 1; i < rows.length; i++) assert.ok(Math.abs(rows[i].left - rows[0].left) <= 2);
+    const curved = await page.locator('[data-studio-pick]').evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).getPropertyValue('--pick-rotate')) || 0));
+    assert.ok(curved.some(rotate => Math.abs(rotate) > 1), 'full motion keeps the curved wheel after resize');
     assert.deepEqual(errors, []);
   });
 });
@@ -305,40 +327,47 @@ test('opening a local lab, changing selection, and toggling examples stays on th
   await withPage({ url: '/#agentcrucible' }, async (page, errors) => {
     await readyBench(page);
     const lab = page.locator('#project-agentcrucible details.studio-lab');
-    assert.equal(await lab.evaluate(el => el.open), true);
-    assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), true);
-    await lab.locator('summary').click();
     assert.equal(await lab.evaluate(el => el.open), false);
     assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), false);
     await lab.locator('summary').click();
     assert.equal(await lab.evaluate(el => el.open), true);
+    assert.match(await lab.locator('summary').innerText(), /Live example/);
     assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), true);
     const before = await page.evaluate(() => SkyStudio.snapshot());
     assert.equal(before.slug, 'agentcrucible');
     await page.locator('[data-bench-live]').click();
     assert.equal(await page.locator('[data-bench-live]').getAttribute('aria-pressed'), 'false');
-    // Return from the footer through the visible header before using the rail.
+    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.isConnected), true);
+    assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), true);
     const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
-    assert.ok(workLink && workLink.y >= 0);
+    const view = page.viewportSize();
+    assert.ok(workLink && workLink.y >= 0 && workLink.y + workLink.height <= view.height, 'Work header link is visible');
     await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
     await settle(page);
-    const shipRow = await page.locator('#shipgate').boundingBox();
-    assert.ok(shipRow && shipRow.y >= 0 && shipRow.y + shipRow.height <= page.viewportSize().height);
-    await page.mouse.click(shipRow.x + shipRow.width / 2, shipRow.y + shipRow.height / 2);
+    await pickProject(page, 'shipgate');
     await settle(page);
-    assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
-    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.inert), false);
-    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.isConnected), true);
     const shipgateLab = page.locator('#project-shipgate details.studio-lab');
+    assert.equal(await shipgateLab.evaluate(el => el.open), false);
+    await shipgateLab.locator('summary').click();
     assert.equal(await shipgateLab.evaluate(el => el.open), true);
     assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), true);
     await shipgateLab.locator('summary').click();
     assert.equal(await shipgateLab.evaluate(el => el.open), false);
-    assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), false);
     await shipgateLab.locator('summary').click();
     assert.equal(await shipgateLab.evaluate(el => el.open), true);
     assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), true);
+    const workAgain = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+    assert.ok(workAgain && workAgain.y >= 0 && workAgain.y + workAgain.height <= page.viewportSize().height, 'Work header link is visible after the lab height change');
+    await page.mouse.click(workAgain.x + workAgain.width / 2, workAgain.y + workAgain.height / 2);
+    await settle(page);
+    const shipAnchor = await page.locator('a[href="#project-shipgate"]').boundingBox();
+    assert.ok(shipAnchor && shipAnchor.height > 0 && shipAnchor.y >= 0 && shipAnchor.y + shipAnchor.height <= page.viewportSize().height, 'Shipgate anchor is visible');
+    await page.mouse.click(shipAnchor.x + shipAnchor.width / 2, shipAnchor.y + Math.min(shipAnchor.height / 2, 40));
+    await settle(page);
     assert.equal(await page.evaluate(() => SkyStudio.snapshot().slug), 'shipgate');
+    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.inert), false);
+    assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.isConnected), true);
+    assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), true);
     assert.deepEqual(errors, []);
   });
 });
@@ -399,7 +428,7 @@ test('a native pause on the studio video stays paused when the clip returns', as
     await waitLenisIdle(page);
     await page.waitForFunction(() => document.getElementById('project-airforge').getBoundingClientRect().bottom < 0);
     await wheelToArticle(page, 'airforge');
-    await page.locator('#airforge').click();
+    await pickProject(page, 'airforge');
     await waitLenisIdle(page);
     assert.equal(await video.evaluate(node => node.paused), true, 'a real pause must survive leaving and re-entering the viewport');
     await video.click();
@@ -447,7 +476,7 @@ test('a hidden document pauses the selected recording and other recordings stay 
 test('selection still resolves when the preview starts below a short viewport', async () => {
   await withPage({ url: '/', reduced: false, height: 480 }, async (page, errors) => {
     await readyBench(page);
-    await page.locator('#shipgate').click();
+    await pickProject(page, 'shipgate');
     await page.waitForFunction(() => {
       const header = document.querySelector('.studio-header');
       const pad = header ? header.offsetHeight : 0;
@@ -460,7 +489,7 @@ test('selection still resolves when the preview starts below a short viewport', 
   });
   await withPage({ url: '/', width: 390, height: 800, touch: true }, async (page, errors) => {
     await readyBench(page);
-    await page.locator('#shipgate').click();
+    await pickProject(page, 'shipgate');
     await page.waitForFunction(() => SkyStudio.slug() === 'shipgate' && SkyStudio.settled());
     assert.equal(await page.locator('#shipgate').getAttribute('aria-selected'), 'true');
     assert.equal(await page.locator('#project-shipgate.is-shown').count(), 1);

@@ -82,7 +82,9 @@ test('desktop 1440x900 work navigation, preview on hover/focus without hash or s
     const markerBox = await page.locator('[data-studio-marker]').boundingBox();
     const selectedBox = await page.locator('#agentcrucible').boundingBox();
     assert.ok(markerBox && selectedBox, 'marker and selected row exist');
-    assert.ok(Math.abs(markerBox.y - selectedBox.y) <= 2, `marker aligns selected row top: marker ${markerBox?.y} vs row ${selectedBox?.y}`);
+    const markerCenter = markerBox.y + markerBox.height / 2;
+    const selectedCenter = selectedBox.y + selectedBox.height / 2;
+    assert.ok(Math.abs(markerCenter - selectedCenter) <= 24, `marker center aligns selected thumbnail center: marker ${markerCenter} vs thumbnail ${selectedCenter}`);
 
     const initialY = await page.evaluate(() => window.scrollY);
     const initialHash = await page.evaluate(() => window.location.hash);
@@ -121,6 +123,40 @@ test('desktop 1440x900 work navigation, preview on hover/focus without hash or s
     await preview.waitFor({ state: 'visible', timeout: 5000 });
     const focusedText = (await preview.textContent()) || '';
     assert.ok(focusedText.toLowerCase().includes('airforge'), 'focus preview contains AirForge');
+
+    // Drag test on desktop wheel: cancel drag does not jump, drag up 136px selects next project
+    const wheel = page.locator('.studio-project-wheel');
+    const wheelBox = await wheel.boundingBox();
+    assert.ok(wheelBox, 'wheel exists');
+
+    // Reliable drag up 136px -> commits next project (airforge)
+    await wheel.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: x, clientY: y }));
+      el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: x, clientY: y - 136 }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: x, clientY: y - 136 }));
+    });
+    await lenisIdle(page);
+    assert.equal(await page.evaluate(() => window.location.hash), '#project-airforge', 'drag up 136px navigates to next project real hash');
+    assert.equal(await page.evaluate(() => window.SkyStudio?.slug?.()), 'airforge', 'airforge slug committed by drag');
+
+    // Cancel drag (small dy <= 35) no jump
+    await wheel.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: x, clientY: y }));
+      el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: x, clientY: y - 12 }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: x, clientY: y - 12 }));
+    });
+    assert.equal(await page.evaluate(() => window.location.hash), '#project-airforge', 'canceled small drag does not jump or change hash');
+
+    // Touch on project wheel does not trap page scroll
+    const wheelTouchAction = await page.locator('.studio-project-wheel').evaluate(el => getComputedStyle(el).touchAction);
+    assert.notEqual(wheelTouchAction, 'none', 'project wheel does not trap touch');
+
     assert.equal(errors.length, 0, 'no console errors');
   } finally {
     await context.close();
@@ -176,6 +212,25 @@ test('navigate AirForge row, lab open, slider changes angle, avatar host unscale
       `progress span transform grows navigating to AirForge: ${initialProgress?.scaleY} -> ${airProgress.scaleY}`
     );
 
+    // Verify wheel pose changes: active front tile selects anchor, neighbors recede/rotate
+    const airforgePose = await page.locator('#airforge').evaluate(el => ({
+      selected: el.getAttribute('aria-selected') === 'true',
+      hasClass: el.classList.contains('is-selected'),
+      pickY: el.style.getPropertyValue('--pick-y'),
+      pickScale: el.style.getPropertyValue('--pick-scale')
+    }));
+    assert.equal(airforgePose.selected, true, 'airforge is selected');
+    assert.equal(airforgePose.hasClass, true, 'airforge has is-selected class');
+    assert.equal(airforgePose.pickY, '0px', 'selected front tile has 0px pick-y');
+
+    const neighborPose = await page.locator('#agentcrucible').evaluate(el => ({
+      selected: el.getAttribute('aria-selected') === 'true',
+      pickY: el.style.getPropertyValue('--pick-y'),
+      pickRotate: el.style.getPropertyValue('--pick-rotate')
+    }));
+    assert.equal(neighborPose.selected, false, 'neighbor is not selected');
+    assert.notEqual(neighborPose.pickY, '0px', 'neighbor recedes with non-zero pick-y');
+
     const evidenceTransform = await page.evaluate(() => {
       const el = document.querySelector('#project-agentcrucible .studio-evidence');
       return el ? getComputedStyle(el).transform : 'none';
@@ -187,8 +242,10 @@ test('navigate AirForge row, lab open, slider changes angle, avatar host unscale
 
     const lab = panel.locator('details.studio-lab');
     assert.equal(await lab.count(), 1, 'details.studio-lab exists');
-    const isOpen = await lab.evaluate(el => el.open);
-    assert.ok(isOpen, 'details.studio-lab rendered open by default');
+    const isClosedByDefault = !(await lab.evaluate(el => el.open));
+    assert.ok(isClosedByDefault, 'details.studio-lab rendered closed by default');
+    await lab.locator('summary').click();
+    assert.ok(await lab.evaluate(el => el.open), 'details.studio-lab opened after clicking summary');
 
     const slider = panel.locator('#pl-airforge-angle');
     assert.equal(await slider.count(), 1, '#pl-airforge-angle exists');
@@ -240,16 +297,21 @@ test('390 and 360 mobile routes reach all projects without overflow and preserve
       await headerClick(page, '#work-list');
       await lenisIdle(page);
 
+      const picker = page.locator('select[data-studio-project-select]');
+      assert.ok(await picker.isVisible(), `picker is visible at width ${width}`);
+
       for (const slug of PROJECTS) {
-        await rowClick(page, `[data-studio-pick][href="#project-${slug}"]`);
+        await picker.selectOption(slug);
         await lenisIdle(page);
+        assert.equal(await picker.inputValue(), slug, `picker value is ${slug}`);
         assert.equal(await page.evaluate(() => window.location.hash), `#project-${slug}`);
         const article = page.locator(`article#project-${slug}`);
         await article.waitFor({ state: 'visible', timeout: 5000 });
         const box = await article.boundingBox();
         const headerBox = await page.locator('.studio-header').boundingBox();
-        const headerBottom = headerBox ? headerBox.y + headerBox.height : 0;
-        assert.ok(box && box.y >= headerBottom - 2, `article#project-${slug} is visible under header (box.y=${box?.y}, headerBottom=${headerBottom})`);
+        const pickerBox = await picker.boundingBox();
+        const topBoundary = pickerBox ? pickerBox.y + pickerBox.height : (headerBox ? headerBox.y + headerBox.height : 0);
+        assert.ok(box && box.y >= topBoundary - 2, `article#project-${slug} is visible under header/picker (box.y=${box?.y}, topBoundary=${topBoundary})`);
       }
 
       await headerClick(page, '#contact');

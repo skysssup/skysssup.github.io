@@ -37,7 +37,13 @@ test('three project articles stay in the document and only the active viewport p
     assert.ok(await image.evaluate(img => img.naturalWidth > 1000));
     assert.match(await page.locator('#project-agentcrucible figcaption').innerText(), /fictional demo workspace/);
 
-    await page.locator('#airforge').click();
+    const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+    assert.ok(workLink && workLink.y >= 0 && workLink.y + workLink.height <= 900);
+    await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
+    await idle(page);
+    const airTile = await page.locator('#airforge').boundingBox();
+    assert.ok(airTile && airTile.height > 0 && airTile.y >= 0 && airTile.y + airTile.height <= 900);
+    await page.mouse.click(airTile.x + airTile.width / 2, airTile.y + Math.min(airTile.height / 2, 40));
     await idle(page);
     await page.waitForFunction(() => {
       const air = document.querySelector('#project-airforge video');
@@ -53,7 +59,9 @@ test('three project articles stay in the document and only the active viewport p
     });
     assert.equal(await page.locator('article.work-card').count(), 3);
 
-    await page.locator('#shipgate').click();
+    const shipTile = await page.locator('#shipgate').boundingBox();
+    assert.ok(shipTile && shipTile.height > 0 && shipTile.y >= 0 && shipTile.y + shipTile.height <= 900);
+    await page.mouse.click(shipTile.x + shipTile.width / 2, shipTile.y + Math.min(shipTile.height / 2, 40));
     await idle(page);
     await page.waitForFunction(() => {
       const air = document.querySelector('#project-airforge video');

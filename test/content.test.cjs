@@ -151,7 +151,7 @@ test('the work index lists every case study once, and the home page lists each o
   assert.match(home, /href="mailto:hello@aakashdahal\.fun"/);
   assert.match(home, /<p data-contact-note>Email reaches me fastest\.<\/p>/);
   assert.equal((home.match(/<details class="studio-lab"(?:\s+open)?>/g) || []).length, order.length);
-  assert.equal((home.match(/<details class="studio-lab"\s+open>/g) || []).length, order.length);
+  assert.equal((home.match(/<details class="studio-lab"\s+open>/g) || []).length, 0, 'labs are closed by default');
   assert.doesNotMatch(home, /studio-model|studio-wheel|data-studio-picker|data-studio-view-pick="illustration"/);
   const data = JSON.parse(home.match(/<script type="application\/json" id="studio-data">([^<]+)<\/script>/)[1]);
   assert.deepEqual(data.map(entry => entry.slug), ['about', ...order, 'contact']);
