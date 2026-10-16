@@ -20,16 +20,16 @@
 <meta name="twitter:creator" content="@skysssup">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#090a0b">
-<link rel="icon" href="/favicon.ico?v=scroll-1" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
-<link rel="icon" href="/assets/favicon-32.png?v=scroll-1" type="image/png" sizes="32x32">
-<link rel="icon" href="/assets/favicon.svg?v=scroll-1" type="image/svg+xml" sizes="any">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=scroll-1" sizes="180x180">
+<link rel="icon" href="/favicon.ico?v=studio-live-2" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64">
+<link rel="icon" href="/assets/favicon-32.png?v=studio-live-2" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/favicon.svg?v=studio-live-2" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=studio-live-2" sizes="180x180">
 <link rel="preload" href="/assets/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(){addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.name==="InvalidStateError"&&String(r.message).indexOf("ViewTransition opt-in disabled")!==-1)e.preventDefault()})})();(function(r){try{var t=localStorage.getItem("sky-theme");if(t==="dark"||t==="light")r.setAttribute("data-theme",t);var g=sessionStorage.getItem("sky-gear");if(g==="two"||g==="blue")r.setAttribute("data-gear",g);if(sessionStorage.getItem("sky-grid")==="on")r.setAttribute("data-grid","on");var m=localStorage.getItem("sky-motion");if(m==="reduced"||(m!=="full"&&matchMedia("(prefers-reduced-motion: reduce)").matches))r.setAttribute("data-motion","reduced")}catch(e){}r.classList.add("js")})(document.documentElement);(function(r,d){var t=r.getAttribute("data-theme"),g=r.getAttribute("data-gear"),dark=g==="two"||g==="blue"||t!=="light",u=dark?"/assets/hero/preview-dark.webp":"/assets/hero/preview.webp",l=d.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.crossOrigin="anonymous";l.href=u;d.head.appendChild(l)})(document.documentElement,document);</script>
-<link rel="stylesheet" href="/css/site.css?v=scroll-1">
-<link rel="stylesheet" href="/css/studio.css?v=scroll-1">
-<link rel="stylesheet" href="/css/project-lab.css?v=scroll-1">
-<link rel="stylesheet" href="/css/project-playground.css?v=scroll-1">
+<link rel="stylesheet" href="/css/site.css?v=studio-live-2">
+<link rel="stylesheet" href="/css/studio.css?v=studio-live-2">
+<link rel="stylesheet" href="/css/project-lab.css?v=studio-live-2">
+<link rel="stylesheet" href="/css/project-playground.css?v=studio-live-2">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Aakash Dahal","url":"https://skysssup.github.io/","email":"mailto:hello@aakashdahal.fun","sameAs":["https://github.com/skysssup","https://x.com/skysssup"],"description":"Developer tools and interactive physics software."}</script>
 </head><body class="page-home studio-page">
 <div class="fx-flash" aria-hidden="true"></div>
@@ -59,22 +59,26 @@
       <div class="studio-work-head"><h2 id="work-title">Work</h2><p><span data-studio-count>03</span> <a href="/work/">notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
-          <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
-          <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="agentcrucible">
+          <div class="studio-rail-seat" aria-hidden="true"></div>
+          <div class="studio-index">
+            <span class="studio-progress" data-studio-progress aria-hidden="true"></span>
+            <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
+            <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="agentcrucible">
             <li role="none"><a id="agentcrucible" class="studio-row is-selected" href="#project-agentcrucible" role="option" data-studio-pick="0" aria-selected="true">01<span>AgentCrucible</span><small>Working tool</small></a></li>
             <li role="none"><a id="airforge" class="studio-row" href="#project-airforge" role="option" data-studio-pick="1" aria-selected="false">02<span>AirForge</span><small>Working tool</small></a></li>
             <li role="none"><a id="shipgate" class="studio-row" href="#project-shipgate" role="option" data-studio-pick="2" aria-selected="false">03<span>Shipgate</span><small>Working tool</small></a></li>
-          </ul>
+            </ul>
+          </div>
+          <div class="studio-preview" data-studio-preview hidden aria-hidden="true"></div>
         </div>
         <div class="studio-detail" data-studio-detail>
           <article class="studio-panel work-card" id="project-agentcrucible" data-studio-panel="agentcrucible" data-scene="agentcrucible" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><img src="/work/agentcrucible/media/console.png" width="1440" height="900" alt="AgentCrucible&#39;s local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data." loading="lazy" decoding="async"><figcaption>The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="agentcrucible" aria-label="View AgentCrucible evidence large">view large</button></figure>
             <div class="studio-copy">
               <h3 class="work-card-name">AgentCrucible</h3>
               <p class="work-card-desc">A fault-testing tool for AI agents: break their tool calls, compare their answers with what actually committed, and replay the evidence.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Public</dd><dt>stack</dt><dd>TypeScript · Node.js · YAML</dd></dl>
-              <nav class="scene-links" aria-label="AgentCrucible links"><a href="/work/agentcrucible/">Case study</a><a href="https://github.com/skysssup/agentcrucible">Source</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="agentcrucible" aria-label="AgentCrucible. AgentCrucible local illustrative check">
+            </div>
+            <nav class="scene-links" aria-label="AgentCrucible links"><a href="/work/agentcrucible/">Case study</a><a href="https://github.com/skysssup/agentcrucible">Source</a></nav>
+            <details class="studio-lab" open><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="agentcrucible" aria-label="AgentCrucible. AgentCrucible local illustrative check">
 <p class="project-lab__banner"><strong>Local example.</strong> Counts and wording only. Not an AgentCrucible grade.</p>
 
 <form class="project-lab__form" data-lab-form="agentcrucible">
@@ -104,16 +108,16 @@
 <ul class="project-lab__reasons" data-out="reasons"></ul>
 </div>
 </section></details>
-            </div>
+            <figure class="studio-evidence" data-studio-evidence><img src="/work/agentcrucible/media/console.png" width="1440" height="900" alt="AgentCrucible&#39;s local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data." loading="lazy" decoding="async"><figcaption>The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="agentcrucible" aria-label="View AgentCrucible evidence large">view large</button></figure>
+            <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Public</dd><dt>stack</dt><dd>TypeScript · Node.js · YAML</dd></dl>
           </article>
           <article class="studio-panel work-card" id="project-airforge" data-studio-panel="airforge" data-scene="airforge" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/airforge/media/overview.mp4" poster="/work/airforge/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of AirForge on a gridded sheet: a drawn line becomes a black ramp, a small circle becomes a ball, a long rectangle becomes a platform, and after Drop the blue ball rolls down the ramp, flies off its end, and lands on the platform."></video><figcaption>Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="airforge" aria-label="View AirForge evidence large">view large</button></figure>
             <div class="studio-copy">
               <h3 class="work-card-name">AirForge</h3>
               <p class="work-card-desc">A browser physics sandbox: drawn strokes become ramps, balls, platforms, and curved tracks that Rapier simulates at a fixed 120 Hz.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Public</dd><dt>stack</dt><dd>TypeScript · React · Three.js · Rapier · MediaPipe</dd></dl>
-              <nav class="scene-links" aria-label="AirForge links"><a href="/work/airforge/">Case study</a><a href="https://github.com/skysssup/airforge">Source</a><a href="https://skysssup.github.io/airforge/?example=ramp-and-ball" data-playground-open>Draw &amp; simulate ↗</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="airforge" aria-label="AirForge. AirForge local ramp measurements">
+            </div>
+            <nav class="scene-links" aria-label="AirForge links"><a href="/work/airforge/">Case study</a><a href="https://github.com/skysssup/airforge">Source</a><a href="https://skysssup.github.io/airforge/?example=ramp-and-ball" data-playground-open>Draw &amp; simulate ↗</a></nav>
+            <details class="studio-lab" open><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="airforge" aria-label="AirForge. AirForge local ramp measurements">
 <p class="project-lab__banner"><strong>Local example.</strong> Straight ramp, then free fall at 1/120 s. Not Rapier.</p>
 
 <form class="project-lab__form" data-lab-form="airforge">
@@ -133,14 +137,14 @@
 </div>
 </form>
 <div class="project-lab__stage">
-<svg class="project-lab__svg" viewBox="0 0 640 300" role="img" aria-label="Ramp, predicted path, ball, and platform. Drag the ramp handle to change the angle.">
+<svg class="project-lab__svg" viewBox="0 0 640 300" role="group" aria-label="Ramp, predicted path, ball, and platform. Drag the ramp handle to change the angle.">
 <line data-geom="ground" x1="24" y1="260" x2="616" y2="260"></line>
 <rect data-geom="platform" x="360" y="248" width="180" height="12"></rect>
 <polyline data-geom="predict" points=""></polyline>
 <line data-geom="ramp" x1="48" y1="80" x2="280" y2="248"></line>
 <polyline data-geom="trail" points=""></polyline>
 <circle data-geom="ball" cx="48" cy="80" r="8"></circle>
-<circle data-geom="handle" cx="48" cy="80" r="11" tabindex="0" aria-label="Ramp angle handle"></circle>
+<circle data-geom="handle" cx="48" cy="80" r="11" tabindex="0" role="slider" aria-label="Ramp angle handle" aria-valuemin="10" aria-valuemax="60" aria-valuenow="30" aria-orientation="horizontal" aria-valuetext="30 degrees"></circle>
 <text data-geom="angle" x="62" y="72">30°</text>
 </svg>
 </div>
@@ -153,16 +157,16 @@
 </dl>
 
 </section></details>
-            </div>
+            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/airforge/media/overview.mp4" poster="/work/airforge/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of AirForge on a gridded sheet: a drawn line becomes a black ramp, a small circle becomes a ball, a long rectangle becomes a platform, and after Drop the blue ball rolls down the ramp, flies off its end, and lands on the platform."></video><figcaption>Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="airforge" aria-label="View AirForge evidence large">view large</button></figure>
+            <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Public</dd><dt>stack</dt><dd>TypeScript · React · Three.js · Rapier · MediaPipe</dd></dl>
           </article>
           <article class="studio-panel work-card" id="project-shipgate" data-studio-panel="shipgate" data-scene="shipgate" data-studio-view="evidence" tabindex="-1">
-            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/shipgate/media/overview.mp4" poster="/work/shipgate/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of the Shipgate policy simulator switching between strict, balanced and yolo levels across scenarios such as a secret in .env and a public remote."></video><figcaption>The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="shipgate" aria-label="View Shipgate evidence large">view large</button></figure>
             <div class="studio-copy">
               <h3 class="work-card-name">Shipgate</h3>
               <p class="work-card-desc">CLI for scanning staged Git changes and applying local policies to commit and push workflows.</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Public</dd><dt>stack</dt><dd>TypeScript · Node.js · Git</dd></dl>
-              <nav class="scene-links" aria-label="Shipgate links"><a href="/work/shipgate/">Project notes</a><a href="https://github.com/skysssup/shipgate">Source</a></nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="shipgate" aria-label="Shipgate. Shipgate local diff heuristic">
+            </div>
+            <nav class="scene-links" aria-label="Shipgate links"><a href="/work/shipgate/">Project notes</a><a href="https://github.com/skysssup/shipgate">Source</a></nav>
+            <details class="studio-lab" open><summary>Live lab <span>local demo</span></summary><section class="project-lab" data-project-lab="shipgate" aria-label="Shipgate. Shipgate local diff heuristic">
 <p class="project-lab__banner"><strong>Local example.</strong> Added-line patterns only. Not the Shipgate scanner.</p>
 
 <form class="project-lab__form" data-lab-form="shipgate">
@@ -181,7 +185,8 @@
 <ul class="project-lab__reasons" data-out="matches"></ul>
 </div>
 </section></details>
-            </div>
+            <figure class="studio-evidence" data-studio-evidence><video data-studio-video src="/work/shipgate/media/overview.mp4" poster="/work/shipgate/media/overview-poster.webp" width="1440" height="900" muted loop playsinline controls preload="none" aria-label="Screen recording of the Shipgate policy simulator switching between strict, balanced and yolo levels across scenarios such as a secret in .env and a public remote."></video><figcaption>The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each.</figcaption><button type="button" class="studio-evidence-zoom" data-studio-evidence-zoom="shipgate" aria-label="View Shipgate evidence large">view large</button></figure>
+            <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="Working tool">Working tool</dd><dt>source</dt><dd>Public</dd><dt>stack</dt><dd>TypeScript · Node.js · Git</dd></dl>
           </article>
         </div>
       </div>
@@ -231,13 +236,13 @@
 <dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title" data-lenis-prevent><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage" data-lenis-prevent></div></dialog>
 <span class="vh" aria-live="polite" data-announce></span>
 <script type="application/json" id="studio-data">[{"slug":"about","name":"Aakash Dahal","status":"profile","kind":"profile"},{"slug":"agentcrucible","name":"AgentCrucible","status":"Working tool","kind":"project","evidence":{"label":"Screenshot","caption":"The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data."}},{"slug":"airforge","name":"AirForge","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"Drawing a ramp, a ball, and a platform with the mouse, then Drop: the ball rolls off the ramp and lands on the platform."}},{"slug":"shipgate","name":"Shipgate","status":"Working tool","kind":"project","evidence":{"label":"Recording","caption":"The policy simulator: switching safety levels and scenarios, and the decision Shipgate makes for each."}},{"slug":"contact","name":"Contact","status":"email","kind":"contact"}]</script>
-<script src="/js/theme.js?v=scroll-1" defer></script>
-<script src="/assets/vendor/lenis.min.js?v=scroll-1" defer></script>
-<script src="/js/motion.js?v=scroll-1" defer></script>
-<script src="/js/hero.js?v=scroll-1" defer></script>
-<script src="/js/page.js?v=scroll-1" defer></script>
-<script src="/js/project-lab.js?v=scroll-1" defer></script>
-<script src="/js/studio.js?v=scroll-1" defer></script>
-<script src="/js/project-playground.js?v=scroll-1" defer></script>
+<script src="/js/theme.js?v=studio-live-2" defer></script>
+<script src="/assets/vendor/lenis.min.js?v=studio-live-2" defer></script>
+<script src="/js/motion.js?v=studio-live-2" defer></script>
+<script src="/js/hero.js?v=studio-live-2" defer></script>
+<script src="/js/page.js?v=studio-live-2" defer></script>
+<script src="/js/project-lab.js?v=studio-live-2" defer></script>
+<script src="/js/studio.js?v=studio-live-2" defer></script>
+<script src="/js/project-playground.js?v=studio-live-2" defer></script>
 </body>
 </html>

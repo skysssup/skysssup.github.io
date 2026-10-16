@@ -305,7 +305,11 @@ test('opening a local lab, changing selection, and toggling examples stays on th
   await withPage({ url: '/#agentcrucible' }, async (page, errors) => {
     await readyBench(page);
     const lab = page.locator('#project-agentcrucible details.studio-lab');
+    assert.equal(await lab.evaluate(el => el.open), true);
+    assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), true);
+    await lab.locator('summary').click();
     assert.equal(await lab.evaluate(el => el.open), false);
+    assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), false);
     await lab.locator('summary').click();
     assert.equal(await lab.evaluate(el => el.open), true);
     assert.equal(await page.locator('#project-agentcrucible [data-project-lab]').isVisible(), true);
@@ -313,13 +317,26 @@ test('opening a local lab, changing selection, and toggling examples stays on th
     assert.equal(before.slug, 'agentcrucible');
     await page.locator('[data-bench-live]').click();
     assert.equal(await page.locator('[data-bench-live]').getAttribute('aria-pressed'), 'false');
-    await page.locator('#shipgate').click();
+    // Return from the footer through the visible header before using the rail.
+    const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+    assert.ok(workLink && workLink.y >= 0);
+    await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
+    await settle(page);
+    const shipRow = await page.locator('#shipgate').boundingBox();
+    assert.ok(shipRow && shipRow.y >= 0 && shipRow.y + shipRow.height <= page.viewportSize().height);
+    await page.mouse.click(shipRow.x + shipRow.width / 2, shipRow.y + shipRow.height / 2);
     await settle(page);
     assert.equal(await page.evaluate(() => SkyStudio.slug()), 'shipgate');
     assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.inert), false);
     assert.equal(await page.locator('#project-agentcrucible').evaluate(el => el.isConnected), true);
-    assert.equal(await page.locator('#project-shipgate details.studio-lab').evaluate(el => el.open), false);
-    await page.locator('#project-shipgate details.studio-lab summary').click();
+    const shipgateLab = page.locator('#project-shipgate details.studio-lab');
+    assert.equal(await shipgateLab.evaluate(el => el.open), true);
+    assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), true);
+    await shipgateLab.locator('summary').click();
+    assert.equal(await shipgateLab.evaluate(el => el.open), false);
+    assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), false);
+    await shipgateLab.locator('summary').click();
+    assert.equal(await shipgateLab.evaluate(el => el.open), true);
     assert.equal(await page.locator('#project-shipgate [data-project-lab]').isVisible(), true);
     assert.equal(await page.evaluate(() => SkyStudio.snapshot().slug), 'shipgate');
     assert.deepEqual(errors, []);

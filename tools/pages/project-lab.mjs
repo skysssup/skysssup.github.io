@@ -82,14 +82,14 @@ function air(project) {
 </div>
 </form>
 <div class="project-lab__stage">
-<svg class="project-lab__svg" viewBox="0 0 640 300" role="img" aria-label="Ramp, predicted path, ball, and platform. Drag the ramp handle to change the angle.">
+<svg class="project-lab__svg" viewBox="0 0 640 300" role="group" aria-label="Ramp, predicted path, ball, and platform. Drag the ramp handle to change the angle.">
 <line data-geom="ground" x1="24" y1="260" x2="616" y2="260"></line>
 <rect data-geom="platform" x="360" y="248" width="180" height="12"></rect>
 <polyline data-geom="predict" points=""></polyline>
 <line data-geom="ramp" x1="48" y1="80" x2="280" y2="248"></line>
 <polyline data-geom="trail" points=""></polyline>
 <circle data-geom="ball" cx="48" cy="80" r="8"></circle>
-<circle data-geom="handle" cx="48" cy="80" r="11" tabindex="0" aria-label="Ramp angle handle"></circle>
+<circle data-geom="handle" cx="48" cy="80" r="11" tabindex="0" role="slider" aria-label="Ramp angle handle" aria-valuemin="10" aria-valuemax="60" aria-valuenow="30" aria-orientation="horizontal" aria-valuetext="30 degrees"></circle>
 <text data-geom="angle" x="62" y="72">30°</text>
 </svg>
 </div>

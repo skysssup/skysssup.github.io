@@ -548,6 +548,8 @@
       if (handle) {
         handle.setAttribute('cx', rampStart.x.toFixed(1));
         handle.setAttribute('cy', rampStart.y.toFixed(1));
+        handle.setAttribute('aria-valuenow', air.angle.toFixed(0));
+        handle.setAttribute('aria-valuetext', air.angle.toFixed(0) + ' degrees');
       }
       if (angleLabel) {
         angleLabel.textContent = air.angle.toFixed(0) + '°';
@@ -890,7 +892,10 @@
       if (!button || !root.contains(button)) return;
       var action = button.getAttribute('data-action');
       if (slug === 'airforge') {
-        if (action === 'play') play();
+        if (action === 'play') {
+          if (air && air.stopped) retuneAir(false);
+          play();
+        }
         if (action === 'pause') { playing = false; stopRaf(); paintAir(); }
         if (action === 'step') {
           playing = false;
@@ -971,12 +976,38 @@
 
     if (form) form.addEventListener('input', onInput);
     root.addEventListener('click', onClick);
+    function onKeyDown(event) {
+      if (slug !== 'airforge' || !form) return;
+      var field = form.querySelector('[data-field="angle"]');
+      if (!field) return;
+      var current = Number(field.value);
+      if (Number.isNaN(current)) current = 30;
+      var next = current;
+      var key = event.key;
+      if (key === 'ArrowLeft' || key === 'Left' || key === 'ArrowDown' || key === 'Down') {
+        next = current - 1;
+      } else if (key === 'ArrowRight' || key === 'Right' || key === 'ArrowUp' || key === 'Up') {
+        next = current + 1;
+      } else if (key === 'Home') {
+        next = 10;
+      } else if (key === 'End') {
+        next = 60;
+      } else {
+        return;
+      }
+      if (event.preventDefault) event.preventDefault();
+      next = Math.max(10, Math.min(60, next));
+      field.value = String(next);
+      retuneAir(false);
+    }
+
     var handle = root.querySelector('[data-geom="handle"]');
     if (handle) {
       handle.addEventListener('pointerdown', onPointerDown);
       handle.addEventListener('pointermove', onPointerMove);
       handle.addEventListener('pointerup', onPointerEnd);
       handle.addEventListener('pointercancel', onPointerEnd);
+      handle.addEventListener('keydown', onKeyDown);
     }
     if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', onVisibility);
     render();

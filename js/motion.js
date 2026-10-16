@@ -76,6 +76,9 @@
       scrollTo: function (top, options) {
         options = options || {};
         if (smoother) {
+          // Responsive wrapping and open labs can change the document limit
+          // before Lenis's debounced resize observer has measured it.
+          if (smoother.resize) smoother.resize();
           smoother.scrollTo(top, { duration: 0.36, easing: options.easing, immediate: !!options.immediate, force: true, onComplete: options.onComplete });
         } else {
           win.scrollTo({ top: top, behavior: "instant" });

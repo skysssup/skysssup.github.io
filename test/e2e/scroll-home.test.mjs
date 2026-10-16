@@ -155,10 +155,11 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
         const line = pad + (innerHeight - pad) * 0.34;
         const air = document.getElementById('project-airforge').getBoundingClientRect().top;
         const ship = document.getElementById('project-shipgate').getBoundingClientRect().top;
-        return { inBand: air <= line + 1 && ship > line + 1, above: ship <= line + 1 };
+        return { inBand: air <= line + 1 && ship > line + 1,
+          delta: air > line ? air - line + 48 : ship - line - 48 };
       });
       if (probe.inBand) break;
-      await page.mouse.wheel(0, probe.above ? -600 : 600);
+      await page.mouse.wheel(0, Math.max(-400, Math.min(400, probe.delta)));
       await lenisIdle(page);
     }
     await page.waitForFunction(() => {
@@ -200,7 +201,9 @@ test('stacked home keeps three focusable articles and commits the viewing-band p
         && document.getElementById('agentcrucible').getAttribute('aria-selected') === 'true'
         && work.top >= pad - 2;
     });
-    await page.locator('#shipgate').click();
+    const shipRow = await page.locator('#shipgate').boundingBox();
+    assert.ok(shipRow && shipRow.y >= 0 && shipRow.y + shipRow.height <= 900);
+    await page.mouse.click(shipRow.x + shipRow.width / 2, shipRow.y + shipRow.height / 2);
     await page.waitForFunction(() => {
       const pad = document.querySelector('.studio-header').offsetHeight;
       const top = document.getElementById('project-shipgate').getBoundingClientRect().top;
@@ -293,7 +296,15 @@ test('the portrait figure scales in document flow and reduced motion leaves it s
       const scale = Number(fig.style.getPropertyValue('--studio-figure-scale') || 1);
       const opacity = Number(fig.style.opacity);
       const box = fig.getBoundingClientRect();
-      return scale < 0.5 && opacity > 0.15 && opacity < 0.5 && box.width > 24 && box.bottom > 0;
+      const rail = document.querySelector('.studio-list-wrap').getBoundingClientRect();
+      const row = document.querySelector('.studio-row').getBoundingClientRect();
+      const canvas = fig.querySelector('canvas').getBoundingClientRect();
+      // The canvas has deliberate overscan; measure the portrait field's bottom.
+      return scale >= 0.55 && scale <= 0.65 && opacity >= 0.8 && opacity <= 1
+        && box.width > 24 && box.bottom > 0
+        && canvas.left + canvas.width / 2 >= rail.left
+        && canvas.left + canvas.width / 2 <= rail.right
+        && box.top + box.height * scale <= row.top + 32;
     }, null, { timeout: 8000 });
     const later = await full.page.evaluate(() => {
       const fig = document.getElementById('figure');
@@ -301,6 +312,7 @@ test('the portrait figure scales in document flow and reduced motion leaves it s
       const poseNow = {
         figures: document.querySelectorAll('#figure').length,
         canvas: fig.querySelectorAll('canvas').length,
+        scale: Number(fig.style.getPropertyValue('--studio-figure-scale') || 1),
       };
       const host = new DOMMatrixReadOnly(getComputedStyle(fig).transform);
       const hostScale = Math.hypot(host.a, host.b) || 1;
@@ -309,7 +321,8 @@ test('the portrait figure scales in document flow and reduced motion leaves it s
       return { poseNow, hostScale, canvasWidth: canvas.getBoundingClientRect().width, hostWidth: fig.getBoundingClientRect().width, buffer };
     });
     assert.ok(Math.abs(later.hostScale - 1) < 0.08, `host matrix scale is ${later.hostScale}`);
-    assert.ok(later.canvasWidth < later.hostWidth * 0.75, 'the canvas layer carries the figure scale');
+    assert.ok(Math.abs(later.canvasWidth - later.hostWidth * 1.36 * later.poseNow.scale) <= 3,
+      'the canvas layer carries the figure scale while preserving its native overscan');
     assert.equal(later.buffer, true, 'the dots buffer stays at full resolution');
     assert.equal(later.poseNow.figures, 1);
     assert.equal(later.poseNow.canvas, top.canvas);

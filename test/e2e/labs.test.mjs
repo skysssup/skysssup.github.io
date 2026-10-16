@@ -105,7 +105,14 @@ test('local project labs compute inspectable results and pause with the page', {
         assert.equal(await air.locator('[data-out="time"]').innerText(), examples, 'turning examples off holds the ramp');
         await page.locator('[data-bench-live]').click();
 
-        await page.locator('#shipgate').click();
+        const workLink = await page.locator('.studio-header a[href="#work-list"]').boundingBox();
+        const view = page.viewportSize();
+        assert.ok(workLink && workLink.y >= 0 && workLink.y + workLink.height <= view.height, 'Work header link is visible');
+        await page.mouse.click(workLink.x + workLink.width / 2, workLink.y + workLink.height / 2);
+        await settle(page);
+        const shipRow = await page.locator('#shipgate').boundingBox();
+        assert.ok(shipRow && shipRow.y >= 0 && shipRow.y + shipRow.height <= page.viewportSize().height, 'Shipgate row is visible');
+        await page.mouse.click(shipRow.x + shipRow.width / 2, shipRow.y + shipRow.height / 2);
         await page.waitForFunction(() => SkyStudio.slug() === 'shipgate');
         const left = await air.locator('[data-out="time"]').innerText();
         await frames(page, 8);
@@ -190,4 +197,20 @@ async function lab(page, slug) {
 
 async function frames(page, count) {
   for (let i = 0; i < count; i++) await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+}
+
+async function settle(page) {
+  await page.waitForFunction(() => {
+    const root = document.documentElement;
+    if (root.classList.contains('lenis-scrolling')) return false;
+    if (window.SkyStudio && typeof SkyStudio.settled === 'function' && !SkyStudio.settled()) return false;
+    const y = window.scrollY;
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve(Math.abs(window.scrollY - y) < 0.5 && !document.documentElement.classList.contains('lenis-scrolling'));
+        });
+      });
+    });
+  });
 }

@@ -58,21 +58,26 @@ export function studioBody({site, projects, scenes, labControls, headerMark, sit
       <div class="studio-work-head"><h2 id="work-title">Work</h2><p><span data-studio-count>${pad(projects.length)}</span> <a href="/work/">notes</a></p></div>
       <div class="studio-work-layout">
         <div class="studio-list-wrap">
-          <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
-          <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="${esc(projects[0].slug)}">
+          <div class="studio-rail-seat" aria-hidden="true"></div>
+          <div class="studio-index">
+            <span class="studio-progress" data-studio-progress aria-hidden="true"></span>
+            <span class="studio-marker" data-studio-marker aria-hidden="true"></span>
+            <ul class="studio-list" id="studio-projects" role="listbox" aria-label="Projects" aria-activedescendant="${esc(projects[0].slug)}">
 ${projects.map((p,i)=>`            <li role="none"><a id="${esc(p.slug)}" class="studio-row${i===0?' is-selected':''}" href="#project-${esc(p.slug)}" role="option" data-studio-pick="${i}" aria-selected="${i===0}">${pad(i+1)}<span>${esc(p.name)}</span><small>${esc(p.status)}</small></a></li>`).join('\n')}
-          </ul>
+            </ul>
+          </div>
+          <div class="studio-preview" data-studio-preview hidden aria-hidden="true"></div>
         </div>
         <div class="studio-detail" data-studio-detail>
 ${projects.map(p=>`          <article class="studio-panel work-card" id="project-${esc(p.slug)}" data-studio-panel="${esc(p.slug)}" data-scene="${esc(p.slug)}" data-studio-view="evidence" tabindex="-1">
-            ${evidence(p)}
             <div class="studio-copy">
               <h3 class="work-card-name">${esc(p.name)}</h3>
               <p class="work-card-desc">${esc(p.summary||p.tagline)}</p>
-              <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="${esc(p.status)}">${esc(p.status)}</dd><dt>source</dt><dd>${esc(p.visibility)}</dd><dt>stack</dt><dd>${p.stack.map(esc).join(' · ')}</dd></dl>
-              <nav class="scene-links" aria-label="${esc(p.name)} links"><a href="/work/${esc(p.slug)}/">${p.placeholder?'Project notes':'Case study'}</a>${p.repo?`<a href="${esc(p.repo)}">Source</a>`:''}${p.slug==='airforge'?'<a href="https://skysssup.github.io/airforge/?example=ramp-and-ball" data-playground-open>Draw &amp; simulate ↗</a>':''}</nav>
-              <details class="studio-lab"><summary>Live lab <span>local demo</span></summary>${projectLab(p)}</details>
             </div>
+            <nav class="scene-links" aria-label="${esc(p.name)} links"><a href="/work/${esc(p.slug)}/">${p.placeholder?'Project notes':'Case study'}</a>${p.repo?`<a href="${esc(p.repo)}">Source</a>`:''}${p.slug==='airforge'?'<a href="https://skysssup.github.io/airforge/?example=ramp-and-ball" data-playground-open>Draw &amp; simulate ↗</a>':''}</nav>
+            <details class="studio-lab" open><summary>Live lab <span>local demo</span></summary>${projectLab(p)}</details>
+            ${evidence(p)}
+            <dl class="studio-facts"><dt>status</dt><dd class="studio-project-status" data-status="${esc(p.status)}">${esc(p.status)}</dd><dt>source</dt><dd>${esc(p.visibility)}</dd><dt>stack</dt><dd>${p.stack.map(esc).join(' · ')}</dd></dl>
           </article>`).join('\n')}
         </div>
       </div>

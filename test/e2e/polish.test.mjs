@@ -249,7 +249,7 @@ test('polished homepage fits desktop and mobile, keeps text work and keyboard na
     assert.equal(await page.locator('#project-airforge [data-studio-evidence]').count(), 1);
     assert.equal(await page.locator('#project-airforge').evaluate(node => node.classList.contains('is-shown')), true);
     const a11y = await new AxeBuilder({ page }).analyze();
-    assert.deepEqual(a11y.violations.map(v => v.id), []);
+    assert.deepEqual(a11y.violations.map(v => v.id), [], JSON.stringify(a11y.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))));
     await page.locator('#project-airforge .scene-links a[href="/work/airforge/"]').click();
     await page.waitForURL('**/work/airforge/');
     assert.equal(await page.locator('h1').innerText(), 'AirForge');
