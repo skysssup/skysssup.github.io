@@ -158,7 +158,7 @@ test('reduced motion drops the route animation and evidence controls stay tappab
   assert.equal(await policy.page.locator('[data-diagram] .node').count(), 3);
   assert.equal(await policy.page.locator('[data-diagram]').getAttribute('data-stage'), '0');
   assert.equal(await policy.page.locator('.lead-media').count(), 1);
-  assert.match(await policy.page.locator('#problem p').innerText(), /staged|commit|policy/i);
+  assert.match(await policy.page.locator('#problem').innerText(), /staged|commit|policy/i);
   assert.deepEqual(policy.errors, []);
   await policy.context.close();
 });
