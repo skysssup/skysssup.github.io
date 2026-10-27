@@ -46,7 +46,8 @@ test('the studio is usable immediately, with no black-hole gate and no dead load
     assert.notEqual(api.overflow, 'hidden', 'the studio page scrolls instead of trapping the document');
     assert.equal(api.scroll, true);
     assert.equal(await page.locator('[data-scroll-field], .scroll-waypoints').count(), 0);
-    await page.locator('#agentcrucible').click();
+    if (width <= 720) await page.getByRole('combobox', { name: 'Choose project' }).selectOption('agentcrucible');
+    else await page.locator('#agentcrucible').click();
     await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible' && window.SkyStudio.selected() === 1);
     const snap = await page.evaluate(() => window.SkyStudio.snapshot());
     assert.equal(snap.slug, 'agentcrucible');
