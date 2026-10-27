@@ -25,7 +25,7 @@
   "src": "/work/agentcrucible/media/failure-lab.png",
   "w": 1440,
   "h": 900,
-  "caption": "The failure lab after executing the refund experiment. Results come from scripted agents and mock payments; the surrounding Northwind workspace has fictional history.",
+  "caption": "The failure lab after a real run against mock payments. Northwind is a fictional demo workspace with generated history; the five agents are scripted test fixtures.",
   "alt": "AgentCrucible's failure lab comparing scripted recovery strategies after a refund commits and its response times out, with tool calls, committed effects, and verdicts."
  }
 }
