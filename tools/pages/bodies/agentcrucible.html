@@ -1,4 +1,20 @@
 <!-- Source and verification notes: research/agentcrucible/facts.md. Edit here and regenerate with node tools/pages/build.mjs. -->
+      <section id="experiment" aria-labelledby="experiment-title">
+        <h2 id="experiment-title">Run the failure</h2>
+        <p>The payment service refunds an order, then loses the response. An agent sees a timeout. Run five recovery strategies and inspect which ones refund twice, recover safely, or claim something the evidence does not support.</p>
+        <div class="refund-experiment" data-refund-experiment>
+          <form aria-label="Refund fault experiment">
+            <label>Fault<select name="fault"><option value="timeout_after_commit">Timeout after commit</option><option value="phantom_success">Success without a write</option><option value="duplicate_delivery">Duplicate delivery</option><option value="none">No fault</option></select></label>
+            <label>Seed<input name="seed" value="demo" maxlength="120" required></label>
+            <button type="submit">Run five strategies</button>
+          </form>
+          <p role="status">Runs the actual AgentCrucible harness and grader in your browser. Scripted agents, fresh mock payments, no API key.</p>
+          <div data-results></div>
+          <button type="button" data-export disabled>Download evidence JSON</button>
+          <noscript><p>Enable JavaScript to run the experiment, or use the local commands below.</p></noscript>
+        </div>
+        <p>This is a narrow experiment, not a production safety score. The <a href="https://github.com/skysssup/agentcrucible/blob/main/src/browser-refund.ts">browser entry point</a> calls the same harness, payment world, scripted agents, and grader used by the CLI. A parity test compares their traces, committed effects, and verdicts.</p>
+      </section>
       <section id="problem" aria-labelledby="problem-title">
         <h2 id="problem-title">The problem</h2>
         <p>A tool call can fail after it has already done the work. A payment service creates a refund, the response times out, and an agent retries. Without the same idempotency key, the customer gets refunded twice. The opposite is possible too: a tool returns a convincing success response even though nothing happened, and the agent tells the user the task is finished.</p>
@@ -10,6 +26,10 @@
         <p>The same harness accepts a JavaScript agent module, a model through OpenAI, Anthropic, or Ollama, or an MCP client connected over stdio. Scripted agents run offline without keys. Model responses can be recorded and replayed offline; fresh model calls use the configured provider.</p>
         <p>The console brings the evidence together: scenario editing, background runs, a scenario-by-agent result matrix, report timelines, fault sweeps, coverage gaps, comparisons, and reliability trends across agent versions. The CLI writes JSON, HTML, Markdown, and JUnit reports, and a saved baseline can make CI fail when a result regresses or a new scenario fails.</p>
         <p>The Northwind workspace shown above is a built-in demonstration, with fictional agents and generated history. It shows how the console works; those numbers are not customer usage or production reliability measurements.</p>
+        <figure class="fig wide">
+          <div class="fig-frame"><img src="/work/agentcrucible/media/console.png" alt="The wider AgentCrucible console with fictional Northwind history, coverage, and results needing attention." width="1440" height="900" loading="lazy" decoding="async"></div>
+          <figcaption><span class="t-small">The wider console. Northwind's chart history and agent releases are generated demonstration data.</span></figcaption>
+        </figure>
       </section>
       <section id="how" aria-labelledby="how-title">
         <h2 id="how-title">How it works</h2>
@@ -61,7 +81,7 @@ node dist/cli.js ui --demo</code></pre>
       </section>
       <section id="status" aria-labelledby="status-title">
         <h2 id="status-title">Status and next</h2>
-        <p>This case study describes the v2.1.0 source at <a href="https://github.com/skysssup/agentcrucible/commit/475e5c0c76e6496fb21c3210aa1ef70cc6eace78">commit 475e5c0</a>, checked on 8 October 2026. At that check, the latest published GitHub release was <a href="https://github.com/skysssup/agentcrucible/releases/tag/v1.0.0">v1.0.0</a>; the commands above build from source. The repository's CI is configured to build, typecheck, run Vitest, exercise documented commands, and verify the package on Node.js 22 and 24.</p>
+        <p>This page follows the current source, including the failure lab and browser experiment added after v2.1.0. Build from <code>main</code> with the commands above; these changes may be newer than a published release. CI builds, typechecks, runs the engine tests, executes documented commands, verifies the installed package on Linux and Windows, and exercises the lab in Chromium.</p>
         <p>The main limits are explicit: the worlds are small in-memory mocks without real latency, concurrency, or partial writes; answer parsing uses keyword rules; and answer facts beyond amounts need scenario-specific checks. A safe result applies to the modeled scenario. It does not establish safety against a production service.</p>
         <p>The next useful validation is to test a real agent's recovery behavior against scenarios derived from the services it actually uses, then compare those results with controlled integration tests. Richer service behavior and broader answer checks would address the current limits. These are directions for further work, not capabilities claimed by this version.</p>
         <p>The <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/grading.md">grading rules</a>, <a href="https://github.com/skysssup/agentcrucible/blob/main/docs/traces.md">trace and replay reference</a>, and <a href="https://github.com/skysssup/agentcrucible/blob/main/CHANGELOG.md">changelog</a> document the behavior and its boundaries. The project is MIT licensed.</p>

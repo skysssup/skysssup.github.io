@@ -288,7 +288,7 @@ function caseStudy(p, i) {
         <figcaption><span class="t-label muted">Fig. 1</span><span class="t-small">${tie(esc(lead.caption))}</span></figcaption>
       </figure>`
     : '';
-  const preload = lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '';
+  const preload = (lead && lead.kind === 'video' ? `<link rel="preload" href="${lead.poster}" as="image" fetchpriority="high">\n` : '') + (p.slug === 'agentcrucible' ? '<link rel="stylesheet" href="/css/refund-experiment.css?v=1">\n' : '');
   return `${head({ title: `${p.name} — Aakash Dahal`, description: p.summary, url, image: `/assets/og/${p.slug}.png`, imageAlt: `${p.name}: ${p.tagline}`, type: 'article', extra: preload })}
 <body class="page-case" data-project="${p.slug}">
 ${header('work')}
@@ -347,6 +347,7 @@ ${body.numbers}
 ${footer()}
 <span class="vh" aria-live="polite" data-announce></span>
 ${scripts(['/js/theme.js', '/assets/vendor/lenis.min.js', '/js/motion.js', '/js/diagram.js', ...(body.prose.includes('data-demo') ? ['/js/demo.js'] : []), '/js/page.js'])}
+${p.slug === 'agentcrucible' ? '<script type="module" src="/js/refund-experiment.js?v=1"></script>' : ''}
 </body>
 </html>
 `;

@@ -15,7 +15,7 @@
  "tagline": "A Git gate that scans what a coding agent is about to push.",
  "description": "CLI for scanning staged Git changes and applying local policies to commit and push workflows.",
  "summary": "CLI for scanning staged Git changes and applying local policies to commit and push workflows.",
- "placeholder": true,
+ "placeholder": false,
  "cover": {
   "src": "/work/shipgate/media/cover",
   "w": 1344,

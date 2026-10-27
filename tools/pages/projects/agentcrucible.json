@@ -22,10 +22,10 @@
  },
  "lead": {
   "kind": "image",
-  "src": "/work/agentcrucible/media/console.png",
+  "src": "/work/agentcrucible/media/failure-lab.png",
   "w": 1440,
   "h": 900,
-  "caption": "The v2.1.0 console with Northwind, a fictional demo workspace. Its scenarios run through the real engine; its eight weeks of history are generated demo data.",
-  "alt": "AgentCrucible's local console showing the Northwind demo workspace: verdict trends, agent version markers, fault coverage, and results needing attention. All displayed history is demo data."
+  "caption": "The failure lab after executing the refund experiment. Results come from scripted agents and mock payments; the surrounding Northwind workspace has fictional history.",
+  "alt": "AgentCrucible's failure lab comparing scripted recovery strategies after a refund commits and its response times out, with tool calls, committed effects, and verdicts."
  }
 }

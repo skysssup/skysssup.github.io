@@ -1,0 +1,63 @@
+<!-- Current source: skysssup/shipgate. The simulator and CLI share packages/core/src/run-plan.ts. -->
+      <section id="problem" aria-labelledby="problem-title">
+        <h2 id="problem-title">The problem</h2>
+        <p>A coding agent can finish a task and push the wrong thing: a credential from a template file, changes staged by another process, or a commit that cannot be safely undone. Reviewing the working directory alone is insufficient because Git commits the index.</p>
+        <p>Shipgate puts an explicit policy between an agent's changes and Git. The CLI inspects the staged content, decides whether to ship, block, or wait, and records what happened. The browser simulator exposes that decision without modifying a repository.</p>
+      </section>
+      <section id="built" aria-labelledby="built-title">
+        <h2 id="built-title">What I built</h2>
+        <p>A TypeScript policy library, a Node.js CLI for real repositories, and a browser simulator for inspecting decisions. Repository opt-in, credential findings, destination visibility, external review, and concurrent-agent state feed an explicit result. JSON output lets an agent or CI consume the same decision a person reads in the terminal.</p>
+      </section>
+      <section id="how" aria-labelledby="how-title">
+        <h2 id="how-title">One decision engine, two interfaces</h2>
+        <p>The core library evaluates credentials, destination visibility, busy agents, repository opt-in, and optional external review. The CLI supplies facts from a real repository. The simulator supplies editable, synthetic fixtures to the same <code>planRun</code> function, so the browser can explain the decision without pretending to perform Git operations.</p>
+        <p><code>preview</code> reports what the current change would do without staging it. <code>ship</code> stages, scans, applies the policy, commits, and attempts the push. <code>history</code> shows recent commits and whether undo applies. <code>undo</code> uses the recorded commit and remote state, retaining the changes in the working tree.</p>
+        <figure class="diagram wide" data-diagram>
+          <script type="application/json">{"nodes":[{"id":"scan","label":"Staged blobs","sub":"content findings"},{"id":"policy","label":"Policy","sub":"planner + facts"},{"id":"decision","label":"Decision","sub":"ship, block, hold"}],"edges":[{"from":"scan","to":"policy"},{"from":"policy","to":"decision"}]}</script>
+          <ol class="diagram-steps t-small"><li>Staged blobs: read the content Git will commit and collect credential findings.</li><li>Policy: evaluate findings, destination, opt-in, review, and concurrent-agent state.</li><li>Decision: return ship, block, or hold with an explanation before taking the permitted Git actions.</li></ol>
+          <figcaption><span class="t-small">The decision path. The simulator supplies synthetic facts to the same planner.</span></figcaption>
+        </figure>
+      </section>
+      <section id="decisions" aria-labelledby="decisions-title">
+        <h2 id="decisions-title">Key decisions</h2>
+        <ol class="decisions">
+          <li><p><b>Scan what Git will commit.</b> The CLI reads staged blobs, including template contents, rather than substituting the working file. A credential-free edit on disk must not conceal a credential still staged in the index.</p></li>
+          <li><p><b>Make the decision inspectable.</b> Strict, balanced, and yolo policies expose their reasons and explicit overrides. A blocked run names the finding or policy condition. The simulator shows how the same facts change outcome across levels.</p></li>
+          <li><p><b>Preserve the evidence of a failed push.</b> A successful local commit and a failed remote push are separate outcomes. Recovery must account for the commit that already exists rather than claiming nothing happened.</p></li>
+          <li><p><b>Bound undo to the observed remote state.</b> Undo uses an explicit force-with-lease expectation. It refuses when origin has moved, instead of overwriting someone else's newer commits.</p></li>
+        </ol>
+      </section>
+      <section id="credentials" aria-labelledby="credentials-title">
+        <h2 id="credentials-title">A credential is not always an API key</h2>
+        <p>The scanner recognizes provider tokens, private keys, JWTs, dotenv filenames, and passwords embedded in database connection URLs. PostgreSQL, MySQL, MongoDB, Redis, AMQP, and SQL Server URLs are covered. Exact placeholders can pass; a real-looking password containing the word “example” does not become exempt.</p>
+        <p>The same rule definitions drive findings, redaction, the rule reference, and synthetic samples in the simulator. The database URL example places a synthetic password in a template file and blocks it. Tests check that redaction targets the password even when it is identical to the username or URL scheme, and that credential-shaped filenames do not leak into generated commit subjects.</p>
+        <p>This is a pattern scanner with explicit rules. A clean scan does not establish that a repository contains no secrets, nor does a passing policy prove a code change is correct.</p>
+      </section>
+      <section id="hard" aria-labelledby="hard-title">
+        <h2 id="hard-title">Where recovery gets difficult</h2>
+        <p>Staging is shared mutable state. A blocked operation must restore the index it inherited, and a concurrent operation must not interleave with the transaction. The CLI tests use temporary repositories to check those boundaries, including competing ships and interrupted work.</p>
+        <p>Undo has a different boundary: another developer may push after Shipgate does. A local record of the last shipped commit is insufficient. The remote lease must match the observed state before an undo can rewrite it; tests deliberately advance origin and require a refusal.</p>
+      </section>
+      <section id="try" aria-labelledby="try-title">
+        <h2 id="try-title">Try the decision</h2>
+        <p>Build the current source and open the browser simulator:</p>
+        <pre class="term" tabindex="0" aria-label="Build Shipgate and open the local simulator"><code>git clone https://github.com/skysssup/shipgate.git
+cd shipgate
+npm ci
+npm run build
+npm run dev:web</code></pre>
+        <p>Choose <b>Password in a database URL</b>, inspect the finding, then compare it with <b>Placeholders in .env.example</b>. The examples contain synthetic credentials. The simulator evaluates policy locally; it does not stage, commit, or push visitor code.</p>
+        <p>The <a href="https://github.com/skysssup/shipgate/blob/main/README.md">CLI reference</a> describes setup, repository opt-in, the safety levels, and explicit overrides. Use a disposable repository when trying real commit and undo operations.</p>
+      </section>
+      <section id="status" aria-labelledby="status-title">
+        <h2 id="status-title">Evidence and limits</h2>
+        <p>The repository tests policy decisions, staged-index behavior, real Git transactions in temporary repositories, concurrent runs, failed pushes, undo leases, and simulator parity. Browser tests exercise the production build; package tests install the CLI into an empty consumer.</p>
+        <p>The useful demonstration is a blocked synthetic credential followed by a clear explanation of what Git would do. Test fixtures establish the modeled behavior, not adoption or customer outcomes. Changes on <code>main</code> can be newer than a published release; the commands above build the current source.</p>
+      </section>
+<!-- numbers -->
+          <dl>
+            <div><dt>Ship / Block / Hold</dt><dd>explicit policy outcomes</dd></div>
+            <div><dt>Staged blobs</dt><dd>the content Git will commit</dd></div>
+            <div><dt>Shared core</dt><dd>the CLI and simulator use the same planner</dd></div>
+            <div><dt>Temporary repos</dt><dd>transaction and recovery tests isolate their data</dd></div>
+          </dl>
