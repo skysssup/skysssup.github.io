@@ -14,7 +14,7 @@ function cards(root) {
   const host = new URL(JSON.parse(read('tools/pages/site.json')).origin).host;
   const list = [
     { out: 'home.png', kicker: 'Developer tools · Physics software', title: 'Aakash Dahal', summary: meta(read('index.html'), 'description'), label: 'Work · Contact', host, still: true },
-    { out: 'work.png', kicker: 'Work', title: 'Eight projects', summary: 'AI systems, developer tools, and physics software, each with a case study.', label: 'AI systems · Developer tools · Physics software', host, still: true },
+    { out: 'work.png', kicker: 'Work', title: `${JSON.parse(read('tools/pages/site.json')).order.length} projects`, summary: 'AI systems, developer tools, and physics software, each with a case study.', label: 'AI systems · Developer tools · Physics software', host, still: true },
   ];
   for (const slug of fs.readdirSync(path.join(root, 'work')).sort()) {
     const file = path.join('work', slug, 'index.html');
