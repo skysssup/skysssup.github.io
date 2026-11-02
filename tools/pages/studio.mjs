@@ -114,7 +114,7 @@ ${siteIndex()}
 <dialog class="studio-viewer" id="studio-viewer" aria-labelledby="studio-viewer-title" data-lenis-prevent><div class="studio-viewer-head"><h2 id="studio-viewer-title">Evidence</h2><button type="button" data-studio-viewer-close aria-label="Close viewer">close</button></div><div class="studio-viewer-stage" data-lenis-prevent></div></dialog>
 <span class="vh" aria-live="polite" data-announce></span>
 <script type="application/json" id="studio-data">${JSON.stringify(entries).replace(/</g,'\\u003c')}</script>
-${scripts(['/js/theme.js','/assets/vendor/lenis.min.js','/js/motion.js','/js/hero.js','/js/page.js','/js/project-lab.js','/js/studio.js','/js/project-playground.js'])}
+${scripts(['/js/theme.js','/assets/vendor/lenis.min.js','/js/motion.js','/js/hero.js','/js/blackhole.js','/js/page.js','/js/project-lab.js','/js/studio.js','/js/project-playground.js'])}
 </body>
 </html>`;
 }

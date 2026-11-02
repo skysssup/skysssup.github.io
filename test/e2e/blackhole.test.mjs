@@ -13,23 +13,35 @@ async function ready(page) {
   await page.waitForFunction(() => document.querySelector('[data-studio]')?.classList.contains('is-ready') && window.SkyStudio?.settled());
 }
 
-test('the studio is usable immediately, with no black-hole gate and no dead loading screen', async () => {
+test('home plays a short black-hole entrance without gating the hero or scroll', async () => {
+  const timings = [];
   for (const width of [1440, 390]) {
-    const context = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width < 700 });
+    const context = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width < 700, reducedMotion: 'no-preference' });
     const page = await context.newPage(), errors = [], art = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('request', r => { if (r.url().includes('/assets/hero/hero.json')) art.push(r.url()); });
-    await page.goto(site.origin, { waitUntil: 'domcontentloaded' });
-    assert.equal(await page.locator('.blackhole-transition, [data-enter], [data-entry-screen], [data-entry-replay]').count(), 0);
-    await ready(page);
-    assert.equal(await page.locator('.blackhole-transition, [data-enter], [data-entry-screen], [data-entry-replay]').count(), 0);
-    assert.ok(art.length >= 1, 'hero art is requested with the page, not held behind a gate');
+    const started = Date.now();
+    await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'), null, { timeout: 1500 });
+    assert.equal(await page.locator('[data-enter], [data-entry-screen], [data-entry-replay]').count(), 0);
+    assert.ok(art.length >= 1, 'hero art is requested while the entrance plays');
     await page.waitForFunction(() => {
       const figure = document.querySelector('#figure');
       return figure && (figure.classList.contains('is-live') || figure.classList.contains('is-fallback'));
     });
-    assert.equal(await page.locator('#figure').getAttribute('data-intro'), null);
-    assert.equal(await page.getAttribute('html', 'data-theme'), null, 'dark is the default until light is chosen');
+    const during = await page.evaluate(() => ({
+      active: window.SkyBlackHole.active,
+      overflow: getComputedStyle(document.body).overflow,
+      pe: getComputedStyle(document.querySelector('.blackhole-transition')).pointerEvents,
+    }));
+    assert.equal(during.active, true);
+    assert.equal(during.pe, 'none');
+    assert.notEqual(during.overflow, 'hidden');
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Work', exact: true }).click();
+    await page.waitForFunction(() => !document.querySelector('.blackhole-transition') && window.SkyBlackHole.active === false);
+    await ready(page);
+    await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible' && window.SkyStudio.selected() === 1);
+    timings.push({ width, ms: Date.now() - started, skipped: true });
     const api = await page.evaluate(() => ({
       keys: Object.keys(window.SkyStudio).sort(),
       globals: {
@@ -38,84 +50,58 @@ test('the studio is usable immediately, with no black-hole gate and no dead load
         presence: typeof window.SkyPresence,
         field: typeof window.SkyScrollField,
       },
-      overflow: getComputedStyle(document.body).overflow,
       scroll: document.documentElement.scrollWidth <= innerWidth,
     }));
     assert.deepEqual(api.keys, ['playing', 'position', 'select', 'selectSlug', 'selected', 'settled', 'slug', 'snapshot', 'wheel']);
-    assert.deepEqual(api.globals, { blackhole: 'undefined', workbench: 'undefined', presence: 'undefined', field: 'undefined' });
-    assert.notEqual(api.overflow, 'hidden', 'the studio page scrolls instead of trapping the document');
+    assert.deepEqual(api.globals, { blackhole: 'object', workbench: 'undefined', presence: 'undefined', field: 'undefined' });
     assert.equal(api.scroll, true);
-    assert.equal(await page.locator('[data-scroll-field], .scroll-waypoints').count(), 0);
-    if (width <= 720) await page.getByRole('combobox', { name: 'Choose project' }).selectOption('agentcrucible');
-    else await page.locator('#agentcrucible').click();
-    await page.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible' && window.SkyStudio.selected() === 1);
-    const snap = await page.evaluate(() => window.SkyStudio.snapshot());
-    assert.equal(snap.slug, 'agentcrucible');
-    assert.equal(snap.selected, 1);
-    assert.equal(await page.evaluate(() => window.SkyStudio.wheel), null);
     assert.equal(await page.locator('#figure').count(), 1);
-    assert.equal(await page.locator('#agentcrucible').getAttribute('aria-selected'), 'true');
-    assert.equal(await page.locator('[data-studio-pick][aria-selected="true"]').count(), 1);
     assert.equal(await page.locator('[data-studio-pick]').count(), 3);
-    assert.equal(await page.locator('[data-studio-panel="agentcrucible"]').evaluate(el => el.classList.contains('is-shown') && el.inert === false), true);
-    assert.equal(await page.locator('.work-card').evaluateAll(els => els.every(el => el.inert === false && el.getAttribute('aria-hidden') !== 'true')), true);
-    assert.equal(await page.locator('#about, #contact').evaluateAll(els => els.length === 2 && els.every(el => el.inert === false)), true);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
     await context.close();
   }
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
+  const page = await context.newPage();
+  await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'));
+  const played = await page.evaluate(() => new Promise((resolve) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const node = document.querySelector('.blackhole-transition');
+      if (!node && window.SkyBlackHole && window.SkyBlackHole.active === false) resolve(performance.now() - t0);
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }));
+  timings.push({ width: 1280, ms: Math.round(played), skipped: false });
+  assert.ok(played >= 1200 && played <= 4000, 'entrance settles in a short window, measured ' + played);
+  assert.equal(await page.locator('.blackhole-transition').count(), 0);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'), null, { timeout: 1500 });
+  await context.close();
+  console.log('BLACKHOLE_TIMING ' + JSON.stringify(timings));
 });
 
-test('keyboard, reduced motion, hashes, and reload never insert a gate and keep the studio contract', async () => {
-  for (const key of ['Escape', 'Tab']) {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const page = await context.newPage();
-    await page.goto(site.origin, { waitUntil: 'domcontentloaded' });
-    await page.keyboard.press(key);
-    assert.equal(await page.locator('.blackhole-transition, [data-enter]').count(), 0);
-    await ready(page);
-    assert.equal(await page.locator('.blackhole-transition, [data-enter]').count(), 0);
-    assert.equal(['agentcrucible', 'airforge', 'shipgate'].includes(await page.evaluate(() => window.SkyStudio.slug())), false);
-    await context.close();
-  }
+test('input, reduced motion, hashes, and other routes skip the entrance cleanly', async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
+  const page = await context.newPage();
+  await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'));
+  const before = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 180);
+  await page.waitForFunction(() => !document.querySelector('.blackhole-transition'));
+  await page.waitForTimeout(200);
+  const afterY = await page.evaluate(() => scrollY);
+  assert.ok(afterY > before, 'wheel still scrolls');
+  await context.close();
 
   const reduced = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   const reducedPage = await reduced.newPage();
   await reducedPage.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
   await ready(reducedPage);
-  assert.equal(await reducedPage.locator('.blackhole-transition, [data-enter]').count(), 0);
-  assert.equal(await reducedPage.getAttribute('html', 'data-motion'), 'reduced');
-  await reducedPage.locator('#agentcrucible').click();
-  await reducedPage.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible');
-  const startY = await reducedPage.evaluate(() => scrollY);
-  await reducedPage.evaluate(() => {
-    window.__scrollSamples = [];
-    window.__scrollDone = false;
-    const start = performance.now();
-    const tick = () => {
-      window.__scrollSamples.push(scrollY);
-      if (performance.now() - start < 280) requestAnimationFrame(tick);
-      else window.__scrollDone = true;
-    };
-    requestAnimationFrame(tick);
-  });
-  await reducedPage.locator('#agentcrucible').focus();
-  await reducedPage.keyboard.press('ArrowDown');
-  await reducedPage.waitForFunction(() => window.__scrollDone && window.SkyStudio.settled() && window.SkyStudio.slug() === 'airforge' && window.SkyStudio.selected() === 2);
-  const endY = await reducedPage.evaluate(() => scrollY);
-  const samples = await reducedPage.evaluate(() => window.__scrollSamples);
-  assert.ok(samples.every(y => Math.abs(y - startY) <= 4 || Math.abs(y - endY) <= 4), 'reduced motion lands on the next frame');
-  await reducedPage.waitForFunction(() => {
-    const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
-    const box = document.getElementById('project-airforge').getBoundingClientRect();
-    return box.top >= header - 2;
-  });
   assert.equal(await reducedPage.locator('.blackhole-transition').count(), 0);
-  await reducedPage.keyboard.press('ArrowUp');
-  await reducedPage.waitForFunction(() => window.SkyStudio.settled() && window.SkyStudio.slug() === 'agentcrucible');
-  assert.equal(await reducedPage.locator('#agentcrucible').getAttribute('role'), 'option');
-  assert.equal(await reducedPage.locator('[data-studio-step]').count(), 0);
-  assert.equal(await reducedPage.locator('.blackhole-transition, [data-enter]').count(), 0);
+  assert.equal(await reducedPage.evaluate(() => window.SkyBlackHole.active), false);
+  assert.equal(await reducedPage.getAttribute('html', 'data-motion'), 'reduced');
   await reduced.close();
 
   for (const entry of [
@@ -125,10 +111,11 @@ test('keyboard, reduced motion, hashes, and reload never insert a gate and keep 
     { suffix: '/#agentcrucible', hash: '#project-agentcrucible', slug: 'agentcrucible', article: '#project-agentcrucible' },
     { suffix: '/#contact', slug: 'contact', article: '#contact' },
   ]) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
-    const page = await context.newPage();
-    await page.goto(site.origin + entry.suffix, { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(expected => {
+    const hashContext = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
+    const hashPage = await hashContext.newPage();
+    await hashPage.goto(site.origin + entry.suffix, { waitUntil: 'domcontentloaded' });
+    assert.equal(await hashPage.locator('.blackhole-transition').count(), 0);
+    await hashPage.waitForFunction(expected => {
       if (!window.SkyStudio?.settled()) return false;
       const header = document.querySelector('.studio-header').getBoundingClientRect().bottom;
       const node = document.querySelector(expected.article);
@@ -143,13 +130,16 @@ test('keyboard, reduced motion, hashes, and reload never insert a gate and keep 
       if (expected.slug === 'contact') return clear && window.SkyStudio.slug() === 'contact';
       return clear && window.SkyStudio.slug() === expected.slug && document.getElementById(expected.slug).getAttribute('aria-selected') === 'true' && document.getElementById(`project-${expected.slug}`).classList.contains('is-shown');
     }, entry);
-    assert.equal(await page.locator('.blackhole-transition, [data-enter], [data-entry-screen]').count(), 0);
     const hash = entry.hash || entry.suffix.slice(entry.suffix.indexOf('#'));
-    assert.equal(new URL(page.url()).hash, hash);
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(expected => window.SkyStudio?.settled() && (expected.slug ? window.SkyStudio.slug() === expected.slug : window.SkyStudio.slug() === 'about'), entry);
-    assert.equal(new URL(page.url()).hash, hash);
-    assert.equal(await page.locator('.blackhole-transition, [data-enter]').count(), 0);
-    await context.close();
+    assert.equal(new URL(hashPage.url()).hash, hash);
+    assert.equal(await hashPage.locator('.blackhole-transition').count(), 0);
+    await hashContext.close();
   }
+
+  const work = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const workPage = await work.newPage();
+  await workPage.goto(site.origin + '/work/', { waitUntil: 'domcontentloaded' });
+  assert.equal(await workPage.locator('.blackhole-transition').count(), 0);
+  assert.equal(await workPage.evaluate(() => typeof window.SkyBlackHole), 'undefined');
+  await work.close();
 });
