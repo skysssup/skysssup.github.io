@@ -1,6 +1,6 @@
 /* Home-root entrance: a short elliptical accretion disk and photon ring.
    The page stays interactive. Hero mount is never deferred. Any input skips. */
-(function () {
+(function entrance() {
   "use strict";
   var motion = window.SkyMotion;
   var DURATION = 1850;
@@ -42,8 +42,20 @@
     return path === "/" || path === "/index.html";
   }
 
-  if (!homeRoot() || location.hash || document.hidden || (motion && motion.reduced())) {
+  var portraitHash = !location.hash || location.hash === '#about' || location.hash === '#hero';
+  if (!homeRoot() || !portraitHash || (motion && motion.reduced())) {
     finish();
+    return;
+  }
+  // A background tab should play its opening when first viewed, rather than
+  // silently consuming it before the owner can see it.
+  if (document.hidden) {
+    finish();
+    document.addEventListener('visibilitychange', function reveal() {
+      if (document.hidden) return;
+      document.removeEventListener('visibilitychange', reveal);
+      entrance();
+    });
     return;
   }
 

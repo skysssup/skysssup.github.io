@@ -33,7 +33,7 @@ test('home plays a short black-hole entrance without gating the hero or scroll',
     page.on('pageerror', e => errors.push(e.message));
     page.on('request', r => { if (r.url().includes('/assets/hero/hero.json')) art.push(r.url()); });
     const started = Date.now();
-    await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
+    await page.goto(site.origin + (width === 1440 ? '/#about' : '/#hero'), { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!window.__entranceObserved);
     assert.equal(await page.locator('[data-enter], [data-entry-screen], [data-entry-replay]').count(), 0);
     assert.ok(art.length >= 1, 'hero art is requested while the entrance plays');
@@ -90,7 +90,7 @@ test('home plays a short black-hole entrance without gating the hero or scroll',
   console.log('BLACKHOLE_TIMING ' + JSON.stringify(timings));
 });
 
-test('input, reduced motion, hashes, and other routes skip the entrance cleanly', async () => {
+test('input, reduced motion, project hashes, and other routes skip the entrance cleanly', async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
   const page = await context.newPage();
   await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
@@ -113,8 +113,6 @@ test('input, reduced motion, hashes, and other routes skip the entrance cleanly'
   await reduced.close();
 
   for (const entry of [
-    { suffix: '/#hero', slug: null, article: '#hero' },
-    { suffix: '/#about', slug: null, article: '#hero' },
     { suffix: '/#work-list', slug: 'agentcrucible', article: '#project-agentcrucible' },
     { suffix: '/#agentcrucible', hash: '#project-agentcrucible', slug: 'agentcrucible', article: '#project-agentcrucible' },
     { suffix: '/#contact', slug: 'contact', article: '#contact' },
@@ -150,4 +148,24 @@ test('input, reduced motion, hashes, and other routes skip the entrance cleanly'
   assert.equal(await workPage.locator('.blackhole-transition').count(), 0);
   assert.equal(await workPage.evaluate(() => typeof window.SkyBlackHole), 'undefined');
   await work.close();
+});
+
+test('a background home waits until visible before playing its entrance', async () => {
+  const context = await browser.newContext({ reducedMotion: 'no-preference' });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.__background = true;
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => window.__background });
+    });
+    await page.goto(site.origin + '/#about', { waitUntil: 'domcontentloaded' });
+    assert.equal(await page.locator('.blackhole-transition').count(), 0);
+    await page.evaluate(() => {
+      window.__background = false;
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    assert.equal(await page.locator('.blackhole-transition').count(), 1);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.blackhole-transition').count(), 0);
+  } finally { await context.close(); }
 });
