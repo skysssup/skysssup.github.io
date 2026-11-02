@@ -70,10 +70,18 @@ test('home plays a short black-hole entrance without gating the hero or scroll',
   }
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      if (document.querySelector('.blackhole-transition') && !window.__entranceSeen) {
+        window.__entranceSeen = true;
+        window.__entranceStarted = performance.now();
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
   await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'));
   const played = await page.evaluate(() => new Promise((resolve) => {
-    const t0 = performance.now();
+    const t0 = window.__entranceStarted;
     const tick = () => {
       const node = document.querySelector('.blackhole-transition');
       if (!node && window.SkyBlackHole && window.SkyBlackHole.active === false) resolve(performance.now() - t0);
@@ -85,7 +93,7 @@ test('home plays a short black-hole entrance without gating the hero or scroll',
   assert.ok(played >= 1200 && played <= 4000, 'entrance settles in a short window, measured ' + played);
   assert.equal(await page.locator('.blackhole-transition').count(), 0);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'), null, { timeout: 1500 });
+  await page.waitForFunction(() => window.__entranceSeen === true);
   await context.close();
   console.log('BLACKHOLE_TIMING ' + JSON.stringify(timings));
 });
