@@ -18,22 +18,30 @@ test('home plays a short black-hole entrance without gating the hero or scroll',
   for (const width of [1440, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width < 700, reducedMotion: 'no-preference' });
     const page = await context.newPage(), errors = [], art = [];
+    // Observe the short-lived entrance from document creation: a cold WebGL
+    // startup can consume its lifetime before DOMContentLoaded reaches the driver.
+    await page.addInitScript(() => {
+      new MutationObserver(() => {
+        const canvas = document.querySelector('.blackhole-transition');
+        if (canvas && !window.__entranceObserved) window.__entranceObserved = {
+          active: window.SkyBlackHole.active,
+          overflow: getComputedStyle(document.body).overflow,
+          pe: getComputedStyle(canvas).pointerEvents,
+        };
+      }).observe(document, { childList: true, subtree: true });
+    });
     page.on('pageerror', e => errors.push(e.message));
     page.on('request', r => { if (r.url().includes('/assets/hero/hero.json')) art.push(r.url()); });
     const started = Date.now();
     await page.goto(site.origin + '/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => !!document.querySelector('.blackhole-transition'), null, { timeout: 1500 });
+    await page.waitForFunction(() => !!window.__entranceObserved);
     assert.equal(await page.locator('[data-enter], [data-entry-screen], [data-entry-replay]').count(), 0);
     assert.ok(art.length >= 1, 'hero art is requested while the entrance plays');
     await page.waitForFunction(() => {
       const figure = document.querySelector('#figure');
       return figure && (figure.classList.contains('is-live') || figure.classList.contains('is-fallback'));
     });
-    const during = await page.evaluate(() => ({
-      active: window.SkyBlackHole.active,
-      overflow: getComputedStyle(document.body).overflow,
-      pe: getComputedStyle(document.querySelector('.blackhole-transition')).pointerEvents,
-    }));
+    const during = await page.evaluate(() => window.__entranceObserved);
     assert.equal(during.active, true);
     assert.equal(during.pe, 'none');
     assert.notEqual(during.overflow, 'hidden');
